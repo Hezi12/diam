@@ -42,14 +42,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/bookings', bookingsRoutes);
 
-// שירות קבצים סטטיים בסביבת ייצור
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
-  });
-}
+// נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to Diam API' });
+});
 
 // נתיב לבדיקת בריאות השרת
 app.get('/api/health', (req, res) => {
