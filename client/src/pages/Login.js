@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Container, Button, Typography, Paper, InputAdornment, IconButton, FormControl, OutlinedInput } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Box, Container, Button, Typography, Paper, InputAdornment, IconButton, FormControl, OutlinedInput, Alert } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useFormik } from 'formik';
@@ -82,12 +82,23 @@ const logoOptions = [
 ];
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLogo, setSelectedLogo] = useState(null);
   const [showOptions, setShowOptions] = useState(true);
+  const [loginError, setLoginError] = useState('');
+
+  useEffect(() => {
+    console.log('Login: Checking if user is already authenticated:', isAuthenticated);
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      console.log('Login: User is already authenticated, redirecting to:', from);
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
 
   const formik = useFormik({
     initialValues: {
@@ -97,17 +108,30 @@ const Login = () => {
     validationSchema,
     onSubmit: async (values) => {
       setIsSubmitting(true);
+      setLoginError('');
+      console.log('Login: Submitting form with values:', { ...values, password: '*****' });
+      
       try {
+        console.log('Login: Calling login function');
         const result = await login(values);
+        console.log('Login: Received result from login:', result);
+        
         if (result.success) {
+          console.log('Login: Login successful');
           toast.success('התחברת בהצלחה!');
-          navigate('/dashboard');
+          
+          const from = location.state?.from?.pathname || '/dashboard';
+          console.log('Login: Navigating to:', from);
+          navigate(from, { replace: true });
         } else {
+          console.error('Login: Login failed', result.error);
+          setLoginError(result.error || 'התחברות נכשלה');
           toast.error(result.error || 'התחברות נכשלה');
         }
       } catch (error) {
+        console.error('Login: Unexpected error during login:', error);
+        setLoginError('אירעה שגיאה לא צפויה בהתחברות');
         toast.error('אירעה שגיאה לא צפויה');
-        console.error(error);
       } finally {
         setIsSubmitting(false);
       }
@@ -161,6 +185,15 @@ const Login = () => {
           boxShadow: '0 2px 20px rgba(0, 0, 0, 0.04)'
         }}
       >
+        {loginError && (
+          <Alert 
+            severity="error" 
+            sx={{ mb: 2, fontSize: '0.875rem' }}
+          >
+            {loginError}
+          </Alert>
+        )}
+        
         <form onSubmit={formik.handleSubmit}>
           <FormControl fullWidth variant="outlined" sx={{ mb: 2, position: 'relative' }}>
             <Box 

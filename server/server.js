@@ -14,10 +14,24 @@ const app = express();
 // הגדרת פורט
 const PORT = process.env.PORT || 3200;
 
+// הגדרת CORS
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'https://diam-tau.vercel.app',
+    'https://diam-schwartzHezi-gmailcoms-projects.vercel.app',
+    /\.vercel\.app$/,
+    /\.onrender\.com$/
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(morgan('dev'));
 
 // הגדרת נתיב גישה לתמונות - חדש!
