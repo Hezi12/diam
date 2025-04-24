@@ -1,0 +1,399 @@
+const Room = require('../models/Room');
+const Gallery = require('../models/Gallery');
+const fs = require('fs-extra');
+const path = require('path');
+
+// קבלת כל החדרים
+exports.getAllRooms = async (req, res) => {
+  try {
+    const rooms = await Room.find().sort({ location: 1, roomNumber: 1 });
+    res.json(rooms);
+  } catch (error) {
+    console.error('Error getting rooms:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת רשימת החדרים' });
+  }
+};
+
+// קבלת חדרים לפי מיקום
+exports.getRoomsByLocation = async (req, res) => {
+  try {
+    const { location } = req.params;
+    
+    // וידוא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    const rooms = await Room.find({ location }).sort({ roomNumber: 1 });
+    res.json(rooms);
+  } catch (error) {
+    console.error('Error getting rooms by location:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת רשימת החדרים' });
+  }
+};
+
+// קבלת חדר לפי מזהה
+exports.getRoomById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const room = await Room.findById(id);
+    
+    if (!room) {
+      return res.status(404).json({ message: 'חדר לא נמצא' });
+    }
+    
+    res.json(room);
+  } catch (error) {
+    console.error('Error getting room by id:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת פרטי החדר' });
+  }
+};
+
+// יצירת חדר חדש
+exports.createRoom = async (req, res) => {
+  try {
+    const { 
+      roomNumber, 
+      location, 
+      category, 
+      basePrice, 
+      vatPrice, 
+      fridayPrice, 
+      fridayVatPrice,
+      baseOccupancy,
+      maxOccupancy,
+      extraGuestCharge,
+      description,
+      amenities,
+      images,
+      status
+    } = req.body;
+    
+    // בדיקה אם חדר עם אותו מספר ומיקום כבר קיים
+    const existingRoom = await Room.findOne({ 
+      roomNumber, 
+      location 
+    });
+    
+    if (existingRoom) {
+      return res.status(400).json({ 
+        message: `חדר עם מספר ${roomNumber} כבר קיים במיקום ${location}` 
+      });
+    }
+    
+    // יצירת חדר חדש
+    const newRoom = new Room({
+      roomNumber,
+      location,
+      category,
+      basePrice,
+      vatPrice,
+      fridayPrice,
+      fridayVatPrice,
+      baseOccupancy,
+      maxOccupancy,
+      extraGuestCharge,
+      description,
+      amenities,
+      images,
+      status
+    });
+    
+    await newRoom.save();
+    
+    res.status(201).json(newRoom);
+  } catch (error) {
+    console.error('Error creating room:', error);
+    res.status(500).json({ message: 'שגיאה ביצירת חדר חדש' });
+  }
+};
+
+// עדכון חדר קיים
+exports.updateRoom = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // הסרת שדות שאסור לעדכן ישירות
+    delete updateData._id;
+    delete updateData.__v;
+    
+    // בדיקה אם החדר קיים
+    const room = await Room.findById(id);
+    
+    if (!room) {
+      return res.status(404).json({ message: 'חדר לא נמצא' });
+    }
+    
+    // בדיקה אם מנסים לשנות מספר חדר ומיקום, לוודא שאין התנגשות
+    if (
+      (updateData.roomNumber && updateData.roomNumber !== room.roomNumber) ||
+      (updateData.location && updateData.location !== room.location)
+    ) {
+      const existingRoom = await Room.findOne({
+        roomNumber: updateData.roomNumber || room.roomNumber,
+        location: updateData.location || room.location,
+        _id: { $ne: id } // לא לבדוק את החדר הנוכחי
+      });
+      
+      if (existingRoom) {
+        return res.status(400).json({ 
+          message: `חדר עם מספר ${updateData.roomNumber || room.roomNumber} כבר קיים במיקום ${updateData.location || room.location}` 
+        });
+      }
+    }
+    
+    // עדכון החדר
+    const updatedRoom = await Room.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+    
+    res.json(updatedRoom);
+  } catch (error) {
+    console.error('Error updating room:', error);
+    res.status(500).json({ message: 'שגיאה בעדכון החדר' });
+  }
+};
+
+// מחיקת חדר
+exports.deleteRoom = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deletedRoom = await Room.findByIdAndDelete(id);
+    
+    if (!deletedRoom) {
+      return res.status(404).json({ message: 'חדר לא נמצא' });
+    }
+    
+    // מחיקת תמונות החדר מהשרת
+    if (deletedRoom.images && deletedRoom.images.length > 0) {
+      for (const imagePath of deletedRoom.images) {
+        try {
+          // הסרת ה-URL הבסיסי כדי לקבל את הנתיב היחסי
+          const relativePath = imagePath.replace(/^https?:\/\/[^\/]+\//, '');
+          await fs.remove(path.join(__dirname, '../', relativePath));
+          console.log(`תמונה נמחקה: ${relativePath}`);
+        } catch (err) {
+          console.error(`שגיאה במחיקת תמונה ${imagePath}:`, err);
+        }
+      }
+    }
+    
+    res.json({ message: 'החדר נמחק בהצלחה' });
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    res.status(500).json({ message: 'שגיאה במחיקת החדר' });
+  }
+};
+
+// העלאת תמונה לחדר
+exports.uploadImage = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    // וידוא שנשלח קובץ
+    if (!req.file) {
+      return res.status(400).json({ message: 'לא נשלח קובץ תמונה' });
+    }
+    
+    // וידוא שהחדר קיים
+    const room = await Room.findById(roomId);
+    if (!room) {
+      // מחיקת הקובץ שהועלה אם החדר לא נמצא
+      await fs.remove(req.file.path);
+      return res.status(404).json({ message: 'חדר לא נמצא' });
+    }
+    
+    // בניית נתיב הגישה לתמונה
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/rooms/${room.location}/${req.file.filename}`;
+    
+    // עדכון החדר עם התמונה החדשה
+    await Room.findByIdAndUpdate(
+      roomId,
+      { $push: { images: imageUrl } }
+    );
+    
+    res.json({ 
+      message: 'התמונה הועלתה בהצלחה',
+      imageUrl
+    });
+  } catch (error) {
+    console.error('Error uploading room image:', error);
+    
+    // מחיקת הקובץ שהועלה במקרה של שגיאה
+    if (req.file) {
+      await fs.remove(req.file.path);
+    }
+    
+    res.status(500).json({ message: 'שגיאה בהעלאת התמונה' });
+  }
+};
+
+// העלאת תמונה לגלריה
+exports.uploadGalleryImage = async (req, res) => {
+  try {
+    const { location } = req.params;
+    
+    // וידוא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      // מחיקת הקובץ שהועלה
+      if (req.file) {
+        await fs.remove(req.file.path);
+      }
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    // וידוא שנשלח קובץ
+    if (!req.file) {
+      return res.status(400).json({ message: 'לא נשלח קובץ תמונה' });
+    }
+    
+    // בניית נתיב הגישה לתמונה
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/gallery/${location}/${req.file.filename}`;
+    
+    // שמירת מידע על התמונה במסד הנתונים
+    const galleryImage = new Gallery({
+      location,
+      imageUrl,
+      title: req.body.title || '',
+      description: req.body.description || '',
+      displayOrder: req.body.displayOrder || 0
+    });
+    
+    await galleryImage.save();
+    
+    res.json({ 
+      message: 'התמונה הועלתה בהצלחה',
+      imageUrl,
+      location,
+      galleryImage
+    });
+  } catch (error) {
+    console.error('Error uploading gallery image:', error);
+    
+    // מחיקת הקובץ שהועלה במקרה של שגיאה
+    if (req.file) {
+      await fs.remove(req.file.path);
+    }
+    
+    res.status(500).json({ message: 'שגיאה בהעלאת התמונה לגלריה' });
+  }
+};
+
+// קבלת תמונות הגלריה
+exports.getGalleryImages = async (req, res) => {
+  try {
+    const { location } = req.params;
+    
+    // וידוא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    // חיפוש תמונות הגלריה במסד הנתונים
+    const galleryImages = await Gallery.find({ 
+      location,
+      active: true 
+    }).sort({ displayOrder: 1, createdAt: -1 });
+    
+    // אם אין תמונות במסד הנתונים, ננסה לקרוא מהתיקייה (לתאימות לאחור)
+    if (galleryImages.length === 0) {
+      // נתיב תיקיית הגלריה
+      const galleryPath = path.join(__dirname, `../uploads/gallery/${location}`);
+      
+      // בדיקה אם התיקייה קיימת
+      if (await fs.pathExists(galleryPath)) {
+        // קריאת רשימת הקבצים
+        const files = await fs.readdir(galleryPath);
+        
+        // יצירת רשימת URLs לתמונות
+        const imageUrls = files
+          .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file)) // רק קבצי תמונה
+          .map(file => `${req.protocol}://${req.get('host')}/uploads/gallery/${location}/${file}`);
+        
+        // המרת התמונות למודל החדש ושמירה במסד הנתונים
+        if (imageUrls.length > 0) {
+          const galleryDocs = await Promise.all(imageUrls.map(async (imageUrl, index) => {
+            const galleryImage = new Gallery({
+              location,
+              imageUrl,
+              displayOrder: index
+            });
+            await galleryImage.save();
+            return galleryImage;
+          }));
+          
+          return res.json(galleryDocs.map(doc => doc.imageUrl));
+        }
+        
+        return res.json([]);
+      } else {
+        return res.json([]);
+      }
+    }
+    
+    // החזרת רשימת URLs של התמונות (לתאימות עם הלקוח הקיים)
+    res.json(galleryImages.map(image => image.imageUrl));
+  } catch (error) {
+    console.error('Error getting gallery images:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת תמונות הגלריה' });
+  }
+};
+
+// מחיקת תמונה מהגלריה
+exports.deleteGalleryImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // מחפשים את התמונה במסד הנתונים
+    const galleryImage = await Gallery.findById(id);
+    
+    if (!galleryImage) {
+      return res.status(404).json({ message: 'תמונה לא נמצאה' });
+    }
+    
+    // מחיקת הקובץ מהדיסק
+    try {
+      const relativePath = galleryImage.imageUrl.replace(/^https?:\/\/[^\/]+\//, '');
+      await fs.remove(path.join(__dirname, '../', relativePath));
+    } catch (err) {
+      console.error(`שגיאה במחיקת קובץ התמונה ${galleryImage.imageUrl}:`, err);
+      // ממשיכים למרות השגיאה במחיקת הקובץ
+    }
+    
+    // מחיקת המסמך ממסד הנתונים
+    await Gallery.findByIdAndDelete(id);
+    
+    res.json({ message: 'התמונה נמחקה בהצלחה' });
+  } catch (error) {
+    console.error('Error deleting gallery image:', error);
+    res.status(500).json({ message: 'שגיאה במחיקת התמונה' });
+  }
+};
+
+// קבלת פרטים מלאים של תמונות הגלריה כולל מזהים
+exports.getGalleryImagesDetails = async (req, res) => {
+  try {
+    const { location } = req.params;
+    
+    // וידוא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    // חיפוש תמונות הגלריה במסד הנתונים
+    const galleryImages = await Gallery.find({ 
+      location,
+      active: true 
+    }).sort({ displayOrder: 1, createdAt: -1 });
+    
+    // החזרת רשימת התמונות עם הפרטים המלאים כולל מזהים
+    res.json(galleryImages);
+  } catch (error) {
+    console.error('Error getting gallery images details:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת פרטי תמונות הגלריה' });
+  }
+}; 

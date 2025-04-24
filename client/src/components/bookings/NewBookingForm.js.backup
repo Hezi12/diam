@@ -1,0 +1,1444 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Grid,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Typography,
+  MenuItem,
+  Paper,
+  Box,
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  InputAdornment,
+} from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { he } from 'date-fns/locale';
+import { addDays, differenceInDays } from 'date-fns';
+import {
+  Close as CloseIcon,
+  Add as AddIcon,
+  Person as PersonIcon,
+  CreditCard as CreditCardIcon,
+  Hotel as HotelIcon,
+  Receipt as ReceiptIcon,
+  Comment as CommentIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  WhatsApp as WhatsAppIcon
+} from '@mui/icons-material';
+import axios from 'axios';
+
+// רכיב של חישובי מחירים
+import PriceCalculator from './PriceCalculator';
+
+/**
+ * טופס ליצירה/עריכה של הזמנה
+ */
+const NewBookingForm = ({
+  open,
+  onClose,
+  onSave,
+  rooms,
+  location,
+  editBooking = null, // אופציונלי - הזמנה לעריכה
+  initialData = null // אופציונלי - נתונים התחלתיים
+}) => {
+  // הגדרת צבעים לפי מיקום
+  const locationColors = {
+    airport: {
+      main: '#0071e3',
+      bgLight: 'rgba(0, 113, 227, 0.08)'
+    },
+    rothschild: {
+      main: '#4570e5',
+      bgLight: 'rgba(69, 112, 229, 0.08)'
+    }
+  };
+
+  // הגדרת צבעי אקסנט
+  const accentColors = {
+    green: '#06a271',
+    red: '#e34a6f',
+    orange: '#f7971e'
+  };
+
+  // הגדרת סגנון עיצוב
+  const style = {
+    card: {
+      borderRadius: '8px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      p: 2.5,
+    },
+    button: {
+      borderRadius: '4px',
+      textTransform: 'none',
+    },
+    dialog: {
+      borderRadius: '8px',
+    }
+  };
+
+  const currentColors = locationColors[location] || locationColors.airport;
+
+  // הגדרת מצב התחלתי של הטופס - משמש לאיפוס בעת פתיחת טופס חדש
+  const initialFormData = {
+    // פרטי אורח
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    
+    // פרטי הזמנה
+    room: '',
+    checkIn: new Date(),
+    checkOut: addDays(new Date(), 1),
+    nights: 1,
+    isTourist: false,
+    guests: 2,
+    
+    // פרטי מחירים - מאופסים ל-0 
+    price: 0,
+    pricePerNight: 0,
+    pricePerNightNoVat: 0,
+    
+    // פרטי תשלום
+    paymentStatus: 'unpaid',
+    paymentAmount: 0,
+    discount: 0,
+    creditCard: {
+      cardNumber: '',
+      cardholderName: '',
+      expiryDate: '',
+      cvv: '',
+    },
+    
+    // סטטוס הזמנה ופרטים נוספים
+    source: 'direct',
+    status: 'pending',
+    notes: '',
+  };
+
+  // מצב טופס
+  const [formData, setFormData] = useState({
+    // פרטי אורח
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    
+    // פרטי הזמנה
+    room: '',
+    checkIn: new Date(),
+    checkOut: addDays(new Date(), 1),
+    nights: 1,
+    isTourist: false,
+    guests: 2,
+    
+    // פרטי מחירים
+    price: 0,
+    pricePerNight: 0,
+    pricePerNightNoVat: 0,
+    
+    // פרטי תשלום
+    paymentStatus: 'unpaid',
+    paymentAmount: 0,
+    discount: 0,
+    creditCard: {
+      cardNumber: '',
+      cardholderName: '',
+      expiryDate: '',
+      cvv: '',
+    },
+    
+    // סטטוס הזמנה ופרטים נוספים
+    source: 'direct',
+    status: 'pending',
+    notes: '',
+  });
+
+  // מצב שדות תיקוף
+  const [errors, setErrors] = useState({});
+
+  // המצב של נעילת שדה מחיר לחישוב
+  const [lockedField, setLockedField] = useState(null);
+
+  // המצב של שדות נעולים בטופס
+  const [lockedFields, setLockedFields] = useState({});
+
+  // המצב של שגיאות כלליות
+  const [error, setError] = useState('');
+
+  // האם אנחנו במצב עריכה
+  const isEditMode = !!editBooking;
+
+  // איפוס הטופס כאשר הדיאלוג נפתח
+  useEffect(() => {
+    if (open) {
+    if (isEditMode && editBooking) {
+        // מצב עריכה - מילוי הטופס בנתוני ההזמנה הקיימת
+        const editFormData = {
+          ...editBooking,
+          checkIn: new Date(editBooking.checkIn),
+          checkOut: new Date(editBooking.checkOut),
+        };
+        setFormData(editFormData);
+
+        // נעילת שדות אם ההזמנה במצב "הושלמה"
+        if (editBooking.status === 'completed') {
+          setLockedFields({
+            room: true,
+            checkIn: true,
+            checkOut: true,
+            isTourist: true,
+          });
+        } else {
+          setLockedFields({});
+        }
+      } else if (initialData) {
+        // יש לנו נתונים התחלתיים (למשל מלחיצה על תא בלוח השנה)
+        const defaultData = {
+          // פרטי אורח
+          firstName: '',
+          lastName: '',
+          phone: '',
+          email: '',
+          
+          // פרטי הזמנה
+          room: initialData.room || '',
+          checkIn: initialData.checkIn || new Date(),
+          checkOut: initialData.checkOut || addDays(new Date(), 1),
+          nights: initialData.nights || differenceInDays(initialData.checkOut || addDays(new Date(), 1), initialData.checkIn || new Date()) || 1,
+          isTourist: false,
+          guests: 2,
+          
+          // פרטי מחירים
+          price: 0,
+          pricePerNight: 0,
+          pricePerNightNoVat: 0,
+          
+          // פרטי תשלום
+          paymentStatus: 'unpaid',
+          paymentAmount: 0,
+          discount: 0,
+          creditCard: {
+            cardNumber: '',
+            cardholderName: '',
+            expiryDate: '',
+            cvv: '',
+          },
+          
+          // סטטוס הזמנה ופרטים נוספים
+          source: 'direct',
+          status: 'pending',
+          notes: '',
+        };
+        
+        setFormData(defaultData);
+        setLockedFields({});
+        
+        // אם יש חדר בנתונים ההתחלתיים, נטען את פרטי המחיר שלו
+        if (initialData.room) {
+          const roomFromProps = rooms.find(room => room._id === initialData.room);
+          if (roomFromProps) {
+            const price = defaultData.isTourist ? roomFromProps.basePrice : roomFromProps.vatPrice;
+            setFormData(prev => ({
+              ...prev,
+              pricePerNight: price,
+              pricePerNightNoVat: roomFromProps.basePrice,
+              price: price * prev.nights
+            }));
+          }
+        }
+      } else {
+        // מצב הזמנה חדשה - איפוס מלא של הטופס לערכי ברירת מחדל
+      setFormData({
+          // פרטי אורח
+          firstName: '',
+          lastName: '',
+          phone: '',
+          email: '',
+          
+          // פרטי הזמנה
+          room: '',
+          checkIn: new Date(),
+          checkOut: addDays(new Date(), 1),
+          nights: 1,
+          isTourist: false,
+          guests: 2,
+          
+          // פרטי מחירים
+          price: 0,
+          pricePerNight: 0,
+          pricePerNightNoVat: 0,
+          
+          // פרטי תשלום
+          paymentStatus: 'unpaid',
+          paymentAmount: 0,
+          discount: 0,
+          creditCard: {
+          cardNumber: '',
+            cardholderName: '',
+            expiryDate: '',
+            cvv: '',
+          },
+          
+          // סטטוס הזמנה ופרטים נוספים
+          source: 'direct',
+          status: 'pending',
+          notes: '',
+        });
+        setLockedFields({});
+      }
+      
+      setErrors({});
+      setLockedField(null);
+      setError('');
+    }
+  }, [open, isEditMode, editBooking, initialData, rooms]);
+
+  // עדכון המחיר לפי בחירת החדר
+  useEffect(() => {
+    if (formData.room) {
+      // איפוס המחיר הנוכחי לפני עדכון המחיר החדש
+      setFormData(prev => ({
+        ...prev,
+        pricePerNight: 0,
+        pricePerNightNoVat: 0,
+        price: 0
+      }));
+      
+      // טעינת המחיר מהחדר הנבחר
+      const fetchRoomPrice = async () => {
+        try {
+          // אם החדר לא מוגדר, לא נמשיך
+          if (!formData.room) return;
+          
+          // מבקש את המחיר מהשרת לפי החדר הנבחר
+          // ננסה למצוא את החדר מתוך מערך החדרים המקומי קודם
+          const roomFromProps = rooms.find(room => room._id === formData.room);
+          
+          if (roomFromProps) {
+            // יש לנו את החדר כבר במערך הפרופס, אז נשתמש בו
+            const vatPrice = roomFromProps.vatPrice || 0;
+            const noVatPrice = roomFromProps.basePrice || 0;
+            
+            // מעדכן את המחיר לפי סוג האורח (תייר או לא)
+            const pricePerNight = formData.isTourist ? noVatPrice : vatPrice;
+            const pricePerNightNoVat = noVatPrice;
+            
+            // חישוב מחיר כולל לפי מספר הלילות
+            const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(1));
+            
+            // עדכון הטופס עם המחירים החדשים
+      setFormData(prev => ({
+        ...prev,
+              pricePerNight,
+              pricePerNightNoVat,
+              price: totalPrice
+            }));
+            
+            return;
+          }
+          
+          // אם לא מצאנו בפרופס, ננסה לקבל מהשרת
+          const response = await axios.get(`/api/rooms/id/${formData.room}`);
+          const roomData = response.data;
+          
+          if (roomData) {
+            const vatPrice = roomData.vatPrice || 0;
+            const noVatPrice = roomData.basePrice || 0;
+            
+            // מעדכן את המחיר לפי סוג האורח (תייר או לא)
+            const pricePerNight = formData.isTourist ? noVatPrice : vatPrice;
+            const pricePerNightNoVat = noVatPrice;
+            
+            // חישוב מחיר כולל לפי מספר הלילות
+            const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(1));
+            
+            // עדכון הטופס עם המחירים החדשים
+        setFormData(prev => ({
+          ...prev,
+              pricePerNight,
+              pricePerNightNoVat,
+              price: totalPrice
+        }));
+      }
+        } catch (error) {
+          console.error('שגיאה בטעינת מחיר החדר:', error);
+          // לא נציג למשתמש הודעת שגיאה כאן, רק נרשום ללוג
+        }
+      };
+      
+      fetchRoomPrice();
+    }
+  }, [formData.room, formData.isTourist]);
+  
+  // עדכון המחיר הכולל כאשר מספר הלילות משתנה
+  useEffect(() => {
+    if (formData.pricePerNight && formData.nights) {
+      // חישוב המחיר הכולל לפי מספר הלילות ומחיר ללילה
+      const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(1));
+    
+    setFormData(prev => ({
+      ...prev,
+        price: totalPrice
+    }));
+    }
+  }, [formData.nights, formData.pricePerNight]);
+
+  // חישוב מחיר והתאמות לפי תאריכים וחדר נבחר
+  useEffect(() => {
+    // חישוב מספר לילות
+    if (formData.checkIn && formData.checkOut) {
+      const nights = differenceInDays(formData.checkOut, formData.checkIn);
+      
+      // עדכון ערך הלילות בטופס
+      setFormData(prev => ({ 
+        ...prev, 
+        nights: nights 
+      }));
+      
+      // אם יש חדר נבחר, עדכן את המחירים בהתאם להגדרות החדר
+      if (formData.room) {
+        fetchRoomSettings(formData.room);
+      }
+    }
+  }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist]);
+
+  /**
+   * טעינת הגדרות החדר - מחירים וכדומה
+   * @param {string} roomId - מזהה החדר
+   * @returns {Promise<void>}
+   */
+  const fetchRoomSettings = async (roomId) => {
+    if (!roomId) return;
+    
+    try {
+      // קביעת נתיב לפי המיקום
+      const settingsPath = location === 'rothschild' ? 'rooms/rothschild' : 'rooms';
+      
+      // קבלת החדרים מהשרת
+      const response = await axios.get(`/api/${settingsPath}`);
+      const rooms = response.data;
+      
+      if (!Array.isArray(rooms) || rooms.length === 0) {
+        console.warn('לא נמצאו חדרים במערכת');
+        return;
+      }
+      
+      // חיפוש החדר הספציפי
+      const selectedRoom = rooms.find(room => room._id === roomId);
+      
+      if (!selectedRoom) {
+        console.warn(`לא נמצא חדר עם מזהה ${roomId}`);
+        return;
+      }
+      
+      // חישוב מחירים לפי סטטוס תייר
+      const price = formData.isTourist ? selectedRoom.basePrice : selectedRoom.vatPrice;
+      const priceNoVat = selectedRoom.basePrice;
+      
+      // עדכון הטופס
+      setFormData(prev => ({
+        ...prev,
+        pricePerNight: price,
+        pricePerNightNoVat: priceNoVat,
+        price: parseFloat((price * prev.nights).toFixed(1))
+      }));
+    } catch (error) {
+      console.error('שגיאה בטעינת הגדרות החדר:', error);
+      setError('שגיאה בטעינת פרטי החדר. נסה שנית מאוחר יותר.');
+    }
+  };
+
+  // עדכון המחיר הכולל כאשר מספר הלילות משתנה
+  useEffect(() => {
+    if (formData.pricePerNight && formData.nights) {
+      // חישוב המחיר הכולל לפי מספר הלילות ומחיר ללילה
+      const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(1));
+      
+      setFormData(prev => ({
+        ...prev,
+        price: totalPrice
+      }));
+    }
+  }, [formData.nights, formData.pricePerNight]);
+
+  // מסיר את חלק השעה מתאריך
+  const stripTime = (date) => {
+    const newDate = new Date(date);
+    newDate.setHours(0, 0, 0, 0);
+    return newDate;
+  };
+
+  // טיפול בשינוי תאריך צ'ק-אין
+  const handleCheckInChange = (date) => {
+    const newCheckIn = stripTime(date);
+    let newCheckOut = stripTime(formData.checkOut);
+    
+    // אם תאריך צ'ק-אאוט הוא לפני או שווה לצ'ק-אין, נעדכן אוטומטית
+    if (newCheckIn >= newCheckOut) {
+      newCheckOut = stripTime(addDays(newCheckIn, 1));
+    }
+    
+    // חישוב מספר לילות (מתעלם משעות)
+    const nights = differenceInDays(newCheckOut, newCheckIn);
+    
+    setFormData(prev => ({
+      ...prev,
+      checkIn: newCheckIn,
+      checkOut: newCheckOut,
+      nights: nights,
+      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+    }));
+  };
+
+  // טיפול בשינוי תאריך צ'ק-אאוט
+  const handleCheckOutChange = (date) => {
+    const newCheckOut = stripTime(date);
+    const currentCheckIn = stripTime(formData.checkIn);
+    
+    // חישוב מספר לילות (מתעלם משעות)
+    const nights = differenceInDays(newCheckOut, currentCheckIn);
+    
+    if (nights <= 0) {
+      // אם מספר הלילות הוא 0 או שלילי, הגדר את צ'ק-אאוט ליום אחד אחרי צ'ק-אין
+      const newDate = stripTime(addDays(currentCheckIn, 1));
+      
+      setFormData(prev => ({
+        ...prev,
+        checkOut: newDate,
+        nights: 1,
+        price: parseFloat(prev.pricePerNight.toFixed(1))
+      }));
+      
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      checkOut: newCheckOut,
+      nights: nights,
+      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+    }));
+  };
+
+  // טיפול בשינוי מספר לילות
+  const handleNightsChange = (e) => {
+    const nights = parseInt(e.target.value) || 0;
+    
+    if (nights <= 0) {
+      setErrors(prev => ({ ...prev, nights: 'מספר לילות חייב להיות גדול מ-0' }));
+      return;
+    }
+    
+    // חישוב תאריך צ'ק-אאוט חדש תוך התעלמות משעות
+    const currentCheckIn = stripTime(formData.checkIn);
+    const newCheckOut = stripTime(addDays(currentCheckIn, nights));
+    
+    setFormData(prev => ({
+      ...prev,
+      checkOut: newCheckOut,
+      nights: nights,
+      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+    }));
+    
+    setErrors(prev => ({ ...prev, nights: undefined }));
+  };
+
+  // טיפול בשינוי סטטוס תייר
+  const handleTouristChange = (e) => {
+    const isTourist = e.target.checked;
+    
+    // אם זה תייר, המחיר הוא בלי מע״מ
+    setFormData(prev => {
+      let pricePerNight;
+      
+      if (prev.room) {
+        const selectedRoom = rooms.find(room => room._id === prev.room);
+        pricePerNight = isTourist ? selectedRoom?.basePrice : selectedRoom?.vatPrice;
+      } else {
+        pricePerNight = isTourist ? prev.pricePerNightNoVat : 
+          parseFloat((prev.pricePerNightNoVat * 1.18).toFixed(1));
+      }
+      
+      return {
+        ...prev,
+        isTourist,
+        pricePerNight: pricePerNight || prev.pricePerNight,
+        price: parseFloat(((pricePerNight || prev.pricePerNight) * prev.nights).toFixed(1))
+      };
+    });
+  };
+
+  // טיפול בשינוי שדה בטופס
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // טיפול בשינוי בפרטי תשלום
+  const handlePaymentDetailChange = (e) => {
+    const { name, value } = e.target;
+    
+    setFormData(prev => ({
+      ...prev,
+      creditCard: {
+        ...prev.creditCard,
+        [name]: value
+      }
+    }));
+  };
+
+  // עדכון המחיר הכולל כאשר מספר הלילות משתנה
+  useEffect(() => {
+    if (formData.pricePerNight && formData.nights) {
+      // חישוב המחיר הכולל לפי מספר הלילות ומחיר ללילה
+      const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(1));
+      
+      setFormData(prev => ({
+        ...prev,
+        price: totalPrice
+      }));
+    }
+  }, [formData.nights, formData.pricePerNight]);
+
+  // בדיקת תקינות הטופס
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // בדיקת שדות חובה לפי המודל בשרת
+    if (!formData.firstName) newErrors.firstName = 'יש למלא שם פרטי';
+    if (!formData.lastName) newErrors.lastName = 'יש למלא שם משפחה';
+    if (!formData.room) newErrors.room = 'יש לבחור חדר';
+    if (!formData.checkIn) newErrors.checkIn = 'יש לבחור תאריך צ\'ק-אין';
+    if (!formData.checkOut) newErrors.checkOut = 'יש לבחור תאריך צ\'ק-אאוט';
+    
+    // בדיקת פורמט אימייל (אם הוזן)
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'כתובת אימייל לא תקינה';
+    }
+    
+    // בדיקת תאריכים
+    if (formData.checkIn && formData.checkOut && formData.checkIn >= formData.checkOut) {
+      newErrors.checkOut = 'תאריך צ\'ק-אאוט חייב להיות אחרי צ\'ק-אין';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // טיפול בשינוי תאריך צ'ק-אאוט
+  const handleCheckOutChange = (date) => {
+    const newCheckOut = stripTime(date);
+    const currentCheckIn = stripTime(formData.checkIn);
+    
+    // חישוב מספר לילות (מתעלם משעות)
+    const nights = differenceInDays(newCheckOut, currentCheckIn);
+    
+    if (nights <= 0) {
+      // אם מספר הלילות הוא 0 או שלילי, הגדר את צ'ק-אאוט ליום אחד אחרי צ'ק-אין
+      const newDate = stripTime(addDays(currentCheckIn, 1));
+      
+      setFormData(prev => ({
+        ...prev,
+        checkOut: newDate,
+        nights: 1,
+        price: parseFloat(prev.pricePerNight.toFixed(1))
+      }));
+      
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      checkOut: newCheckOut,
+      nights: nights,
+      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+    }));
+  };
+
+  // טיפול בשינוי תאריך צ'ק-אאוט
+  const handleCheckInChange = (date) => {
+    const newCheckIn = stripTime(date);
+    let newCheckOut = stripTime(formData.checkOut);
+    
+    // אם תאריך צ'ק-אאוט הוא לפני או שווה לצ'ק-אין, נעדכן אוטומטית
+    if (newCheckIn >= newCheckOut) {
+      newCheckOut = stripTime(addDays(newCheckIn, 1));
+    }
+    
+    // חישוב מספר לילות (מתעלם משעות)
+    const nights = differenceInDays(newCheckOut, newCheckIn);
+    
+    setFormData(prev => ({
+      ...prev,
+      checkIn: newCheckIn,
+      checkOut: newCheckOut,
+      nights: nights,
+      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+    }));
+  };
+
+  // טיפול בשינוי מספר לילות
+  const handleNightsChange = (e) => {
+    const nights = parseInt(e.target.value) || 0;
+    
+    if (nights <= 0) {
+      setErrors(prev => ({ ...prev, nights: 'מספר לילות חייב להיות גדול מ-0' }));
+      return;
+    }
+    
+    // חישוב תאריך צ'ק-אאוט חדש תוך התעלמות משעות
+    const currentCheckIn = stripTime(formData.checkIn);
+    const newCheckOut = stripTime(addDays(currentCheckIn, nights));
+    
+    setFormData(prev => ({
+      ...prev,
+      checkOut: newCheckOut,
+      nights: nights,
+      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+    }));
+    
+    setErrors(prev => ({ ...prev, nights: undefined }));
+  };
+
+  // טיפול בשינוי סטטוס תייר
+  const handleTouristChange = (e) => {
+    const isTourist = e.target.checked;
+    
+    // אם זה תייר, המחיר הוא בלי מע״מ
+    setFormData(prev => {
+      let pricePerNight;
+      
+      if (prev.room) {
+        const selectedRoom = rooms.find(room => room._id === prev.room);
+        pricePerNight = isTourist ? selectedRoom?.basePrice : selectedRoom?.vatPrice;
+      } else {
+        pricePerNight = isTourist ? prev.pricePerNightNoVat : 
+          parseFloat((prev.pricePerNightNoVat * 1.18).toFixed(1));
+      }
+      
+      return {
+        ...prev,
+        isTourist,
+        pricePerNight: pricePerNight || prev.pricePerNight,
+        price: parseFloat(((pricePerNight || prev.pricePerNight) * prev.nights).toFixed(1))
+      };
+    });
+  };
+
+  // טיפול בשינוי שמירת הטופס
+  const handleSubmit = () => {
+    if (validateForm()) {
+      // וידוא שיש שם משפחה אם לא הוזן
+      const lastName = formData.lastName || formData.firstName;
+      
+      // מילוי שדות ברירת מחדל אם חסרים
+      // מבנה JSON להזמנה חדשה
+      const bookingData = {
+        firstName: formData.firstName,
+        lastName: lastName,
+        phone: formData.phone || '',
+        email: formData.email || '',
+        
+        room: formData.room,
+        checkIn: formData.checkIn,
+        checkOut: formData.checkOut,
+        nights: formData.nights || 1,
+        isTourist: formData.isTourist || false,
+        
+        price: formData.price || 0,
+        pricePerNight: formData.pricePerNight || 0,
+        pricePerNightNoVat: formData.pricePerNightNoVat || 0,
+        
+        paymentStatus: formData.paymentStatus || 'unpaid',
+        creditCard: formData.creditCard || {
+          cardNumber: '',
+          cardholderName: '',
+          expiryDate: '',
+          cvv: ''
+        },
+        
+        status: formData.status || 'pending',
+        notes: formData.notes || '',
+        
+        location: location
+      };
+      
+      // אם מדובר בעריכה, שמור את האיידי
+      if (isEditMode && editBooking?._id) {
+        bookingData._id = editBooking._id;
+      }
+      
+      onSave(bookingData);
+    }
+  };
+
+  // פתיחת WhatsApp עם המספר שהוזן
+  const openWhatsApp = () => {
+    if (formData.phone) {
+      // מספר טלפון - להסיר מקפים, רווחים וכו'
+      const phoneNumber = formData.phone.replace(/[\s-]/g, '');
+      // אם המספר לא מתחיל ב-+972 או 05, נוסיף 972
+      const formattedNumber = phoneNumber.startsWith('+972') ? 
+        phoneNumber : 
+        phoneNumber.startsWith('05') ? 
+          `+972${phoneNumber.substring(1)}` : 
+          `+972${phoneNumber}`;
+      
+      window.open(`https://wa.me/${formattedNumber}`, '_blank');
+    }
+  };
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: style.dialog.borderRadius,
+          overflow: 'hidden',
+          width: '95%',
+          maxWidth: '1000px'
+        }
+      }}
+    >
+      <DialogTitle 
+        sx={{ 
+          bgcolor: currentColors.bgLight, 
+          color: currentColors.main,
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: `1px solid ${currentColors.main}`,
+          py: 1.5
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <AddIcon sx={{ marginRight: '10px' }} />
+            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
+        {isEditMode ? 'עריכת הזמנה' : 'הזמנה חדשה'}
+            </Typography>
+          </Box>
+          <FormControl sx={{ minWidth: 150, ml: 3 }} size="small">
+            <InputLabel>סטטוס תשלום</InputLabel>
+            <Select
+              name="paymentStatus"
+              value={formData.paymentStatus}
+              onChange={handleChange}
+              label="סטטוס תשלום"
+              size="small"
+          sx={{
+                '& .MuiSelect-select': {
+                  paddingRight: '20px'
+                }
+              }}
+            >
+              <MenuItem value="unpaid">לא שולם</MenuItem>
+              <MenuItem value="cash">מזומן</MenuItem>
+              <MenuItem value="credit_or_yehuda">אשראי אור יהודה</MenuItem>
+              <MenuItem value="credit_rothschild">אשראי רוטשילד</MenuItem>
+              <MenuItem value="transfer_mizrahi">העברה מזרחי</MenuItem>
+              <MenuItem value="bit_mizrahi">ביט מזרחי</MenuItem>
+              <MenuItem value="paybox_mizrahi">פייבוקס מזרחי</MenuItem>
+              <MenuItem value="transfer_poalim">העברה פועלים</MenuItem>
+              <MenuItem value="bit_poalim">ביט פועלים</MenuItem>
+              <MenuItem value="paybox_poalim">פייבוקס פועלים</MenuItem>
+              <MenuItem value="other">אחר</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <IconButton onClick={onClose} size="small" sx={{ marginRight: 0, color: accentColors.red }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      
+      <DialogContent sx={{ p: 3, mt: 2 }}>
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={he}>
+          {error && (
+            <Box sx={{ mb: 2 }}>
+              <Paper sx={{ 
+                p: 2, 
+                bgcolor: '#ffebee', 
+                borderRadius: style.card.borderRadius,
+                color: accentColors.red
+              }}>
+                <Typography>{error}</Typography>
+              </Paper>
+            </Box>
+          )}
+          <Grid container spacing={3}>
+            {/* חלק 1: פרטי אורח */}
+            <Grid item xs={12} md={7}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: style.card.borderRadius,
+                boxShadow: style.card.boxShadow,
+                borderTop: `3px solid ${currentColors.main}`
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <PersonIcon sx={{ color: currentColors.main, marginRight: '10px' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                פרטי אורח
+              </Typography>
+                </Box>
+              
+              <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                  <TextField
+                      label="שם פרטי"
+                    fullWidth
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    required
+                      size="small"
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        },
+                        '& .MuiInputLabel-root': {
+                          right: 18,
+                          left: 'auto',
+                          transformOrigin: 'top right'
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          textAlign: 'right',
+                        },
+                        '& .MuiInputLabel-shrink': {
+                          transform: 'translate(0, -9px) scale(0.75)',
+                          transformOrigin: 'top right'
+                        }
+                      }}
+                  />
+                </Grid>
+                
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="שם משפחה"
+                      fullWidth
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                      required
+                      size="small"
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        },
+                        '& .MuiInputLabel-root': {
+                          right: 18,
+                          left: 'auto',
+                          transformOrigin: 'top right'
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          textAlign: 'right',
+                        },
+                        '& .MuiInputLabel-shrink': {
+                          transform: 'translate(0, -9px) scale(0.75)',
+                          transformOrigin: 'top right'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="טלפון"
+                    fullWidth
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      size="small"
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIcon fontSize="small" sx={{ marginLeft: '8px' }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton 
+                              onClick={openWhatsApp}
+                              disabled={!formData.phone} 
+                              size="small"
+                              sx={{ color: '#25D366' }}
+                            >
+                              <WhatsAppIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        },
+                        '& .MuiInputLabel-root': {
+                          right: 18,
+                          left: 'auto',
+                          transformOrigin: 'top right'
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          textAlign: 'right',
+                        },
+                        '& .MuiInputLabel-shrink': {
+                          transform: 'translate(0, -9px) scale(0.75)',
+                          transformOrigin: 'top right'
+                        }
+                      }}
+                  />
+                </Grid>
+                
+                  <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="אימייל"
+                    fullWidth
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      size="small"
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" sx={{ marginLeft: '8px' }} /></InputAdornment>,
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        },
+                        '& .MuiInputLabel-root': {
+                          right: 18,
+                          left: 'auto',
+                          transformOrigin: 'top right'
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          textAlign: 'right',
+                        },
+                        '& .MuiInputLabel-shrink': {
+                          transform: 'translate(0, -9px) scale(0.75)',
+                          transformOrigin: 'top right'
+                        }
+                      }}
+                  />
+                </Grid>
+              </Grid>
+              </Paper>
+            </Grid>
+            
+            {/* חלק 2: פרטי כרטיס אשראי */}
+            <Grid item xs={12} md={5}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: style.card.borderRadius,
+                boxShadow: style.card.boxShadow,
+                borderTop: `3px solid ${currentColors.main}`
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <CreditCardIcon sx={{ color: currentColors.main, marginRight: '10px' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    פרטי אשראי לפיקדון
+                  </Typography>
+                </Box>
+                
+                <Grid container spacing={2}>
+            <Grid item xs={12}>
+                    <TextField
+                      name="cardNumber"
+                      label="מספר כרטיס"
+                      fullWidth
+                      value={formData.creditCard.cardNumber}
+                      onChange={(e) => setFormData({
+                        ...formData, 
+                        creditCard: {...formData.creditCard, cardNumber: e.target.value}
+                      })}
+                      inputProps={{ maxLength: 16, dir: "ltr", style: { textAlign: 'center' } }}
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        }
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12}>
+                    <TextField
+                      name="cardholderName"
+                      label="שם בעל הכרטיס"
+                      fullWidth
+                      value={formData.creditCard.cardholderName}
+                      onChange={(e) => setFormData({
+                        ...formData, 
+                        creditCard: {...formData.creditCard, cardholderName: e.target.value}
+                      })}
+                      size="small"
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        },
+                        '& .MuiInputLabel-root': {
+                          right: 18,
+                          left: 'auto',
+                          transformOrigin: 'top right'
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          textAlign: 'right',
+                        },
+                        '& .MuiInputLabel-shrink': {
+                          transform: 'translate(0, -9px) scale(0.75)',
+                          transformOrigin: 'top right'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={6}>
+                    <TextField
+                      name="expiryDate"
+                      label="תוקף"
+                      fullWidth
+                      value={formData.creditCard.expiryDate}
+                      onChange={(e) => setFormData({
+                        ...formData, 
+                        creditCard: {...formData.creditCard, expiryDate: e.target.value}
+                      })}
+                      placeholder="MM/YY"
+                      inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        }
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={6}>
+                    <TextField
+                      name="cvv"
+                      label="CVV"
+                      fullWidth
+                      value={formData.creditCard.cvv}
+                      onChange={(e) => setFormData({
+                        ...formData, 
+                        creditCard: {...formData.creditCard, cvv: e.target.value}
+                      })}
+                      inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        }
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Grid>
+            
+            {/* חלק 3: פרטי הזמנה */}
+            <Grid item xs={12}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: style.card.borderRadius,
+                boxShadow: style.card.boxShadow,
+                borderTop: `3px solid ${currentColors.main}`
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <HotelIcon sx={{ color: currentColors.main, marginRight: '10px' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                פרטי הזמנה
+              </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={formData.isTourist} 
+                        onChange={handleTouristChange}
+                        color="primary"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: currentColors.main,
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: currentColors.main,
+                          },
+                        }}
+                      />
+                    }
+                    label="תייר (ללא מע״מ)"
+                    labelPlacement="start"
+                    sx={{ mr: 3, justifyContent: 'flex-end', margin: 0 }}
+                  />
+                </Box>
+              
+              <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <FormControl fullWidth error={!!errors.room} required size="small" sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: style.button.borderRadius,
+                      },
+                      '& .MuiSelect-select': {
+                        paddingRight: '20px',
+                        textAlign: 'center',
+                      },
+                      '& .MuiInputLabel-root': {
+                        right: 18,
+                        left: 'auto',
+                        transformOrigin: 'top right'
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        textAlign: 'right',
+                      },
+                      '& .MuiInputLabel-shrink': {
+                        transform: 'translate(0, -9px) scale(0.75)',
+                        transformOrigin: 'top right'
+                      }
+                    }}>
+                    <InputLabel>חדר</InputLabel>
+                    <Select
+                        name="room"
+                      value={formData.room}
+                        onChange={handleChange}
+                        label="חדר"
+                        disabled={rooms.length === 0}
+                        size="small"
+                    >
+                        {rooms.map(room => (
+                        <MenuItem key={room._id} value={room._id}>
+                            {`חדר ${room.roomNumber} (${room.category})`}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                      {errors.room && <FormHelperText>{errors.room}</FormHelperText>}
+                  </FormControl>
+                </Grid>
+                
+                  <Grid item xs={12} sm={6} md={3}>
+                  <DatePicker
+                      label="תאריך כניסה"
+                    value={formData.checkIn}
+                    onChange={handleCheckInChange}
+                      disablePast={!isEditMode}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                          error: !!errors.checkIn,
+                          helperText: errors.checkIn,
+                          size: "small",
+                          sx: {
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: style.button.borderRadius,
+                            }
+                          }
+                      }
+                    }}
+                  />
+                </Grid>
+                
+                  <Grid item xs={12} sm={6} md={3}>
+                  <DatePicker
+                      label="תאריך יציאה"
+                    value={formData.checkOut}
+                    onChange={handleCheckOutChange}
+                    minDate={addDays(formData.checkIn, 1)}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                          error: !!errors.checkOut,
+                          helperText: errors.checkOut,
+                          size: "small",
+                          sx: {
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: style.button.borderRadius,
+                            }
+                          }
+                      }
+                    }}
+                  />
+                </Grid>
+                
+                  <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                      name="nights"
+                    label="מספר לילות"
+                    fullWidth
+                      type="number"
+                    value={formData.nights}
+                      onChange={handleNightsChange}
+                      error={!!errors.nights}
+                      helperText={errors.nights}
+                      inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        }
+                      }}
+                  />
+                </Grid>
+              </Grid>
+              </Paper>
+            </Grid>
+            
+            {/* חלק 4: פרטי מחיר */}
+            <Grid item xs={12}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: style.card.borderRadius,
+                boxShadow: style.card.boxShadow,
+                borderTop: `3px solid ${accentColors.green}`
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <ReceiptIcon sx={{ color: accentColors.green, marginRight: '10px' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    פרטי מחיר
+              </Typography>
+                </Box>
+              
+              <Grid container spacing={2}>
+                  {/* רכיב חישוב מחירים */}
+                  <PriceCalculator 
+                    formData={formData}
+                    setFormData={setFormData}
+                    lockedField={lockedField}
+                    setLockedField={setLockedField}
+                    errors={errors}
+                    setErrors={setErrors}
+                    style={style}
+                  />
+                </Grid>
+              </Paper>
+            </Grid>
+            
+            {/* חלק 5: הערות */}
+            <Grid item xs={12}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: style.card.borderRadius,
+                boxShadow: style.card.boxShadow,
+                borderTop: `3px solid ${accentColors.orange}`
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ color: accentColors.orange, marginRight: '10px' }}>
+                    <CommentIcon />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    הערות
+                  </Typography>
+                </Box>
+                
+              <TextField
+                  name="notes"
+                fullWidth
+                  multiline
+                  rows={2}
+                value={formData.notes}
+                  onChange={handleChange}
+                  size="small"
+                  placeholder="הקלד הערות נוספות..."
+                  inputProps={{
+                    style: { 
+                      textAlign: 'right',
+                      paddingRight: '14px',
+                      direction: 'rtl',
+                    }
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: style.button.borderRadius,
+                    },
+                    '& textarea::placeholder': {
+                      textAlign: 'right',
+                      direction: 'rtl',
+                    }
+                  }}
+                />
+              </Paper>
+            </Grid>
+          </Grid>
+        </LocalizationProvider>
+      </DialogContent>
+      
+      <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Button 
+          onClick={onClose}
+          variant="text"
+          sx={{ 
+            color: 'text.secondary',
+            ...style.button
+          }}
+        >
+          ביטול
+        </Button>
+        <Button 
+          variant="contained"
+          onClick={handleSubmit}
+          sx={{ 
+            bgcolor: accentColors.green, 
+            '&:hover': { bgcolor: accentColors.green, filter: 'brightness(90%)' },
+            ...style.button,
+            boxShadow: 'none'
+          }}
+        >
+          {isEditMode ? 'עדכון' : 'שמירה'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default NewBookingForm;
