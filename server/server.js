@@ -16,23 +16,64 @@ const PORT = process.env.PORT || 3200;
 
 // הגדרת CORS
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'https://diam-tau.vercel.app',
-    'https://diam-schwartzHezi-gmailcoms-projects.vercel.app',
-    /\.vercel\.app$/,
-    /\.onrender\.com$/
-  ],
+  origin: function(origin, callback) {
+    // בסביבת פיתוח (או כשאין origin כמו בבקשות מהשרת עצמו) אפשר הכל
+    if (!origin || process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // רשימת דומיינים מאושרים
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3200',
+      'https://diam-tau.vercel.app',
+      'https://diam-schwartzHezi-gmailcoms-projects.vercel.app',
+      'https://diam-git-main-schwartzHezi-gmailcoms-projects.vercel.app',
+      'https://diam-client.vercel.app',
+      'https://diam-client-git-main.vercel.app'
+    ];
+    
+    // בדיקה אם הדומיין שממנו מגיעה הבקשה מאושר
+    // או שהוא תואם את התבניות של vercel/render
+    if (allowedOrigins.includes(origin) || 
+        /\.vercel\.app$/.test(origin) || 
+        /\.onrender\.com$/.test(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`CORS policy violation: ${origin} is not allowed`);
+      callback(null, true); // במקום לחסום - נאפשר בכל זאת ונראה בלוג
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Authorization'],
+  optionsSuccessStatus: 204,
+  preflightContinue: false
 };
 
 // Middleware
+app.use(cors(corsOptions));
+// פתרון נוסף: הוספת מידלוור ספציפי לבקשות preflight
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors(corsOptions));
 app.use(morgan('dev'));
+
+// הגדרת headers לפתרון בעיות CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // תשובה מהירה לבקשות preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  
+  next();
+});
 
 // הגדרת נתיב גישה לתמונות - חדש!
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

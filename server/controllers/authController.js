@@ -75,7 +75,7 @@ exports.login = async (req, res) => {
         role: user.role 
       },
       process.env.JWT_SECRET || 'your_jwt_secret_key',
-      { expiresIn: '1d' }
+      { expiresIn: '7d' }
     );
 
     return res.json({
