@@ -8,8 +8,8 @@ import { AuthProvider } from './context/AuthContext';
 import reportWebVitals from './reportWebVitals';
 
 // הגדרת ברירת מחדל של axios לשרת המקומי
-// שימוש במשתנה הסביבה אם הוא קיים, אחרת נשתמש בכתובת קבועה
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3200';
+// שימוש בכתובת קבועה במקום משתנה סביבה שלא מתעדכן בוורסל
+const API_URL = 'https://diam-loy6.onrender.com';
 console.log('API URL:', API_URL);
 axios.defaults.baseURL = API_URL;
 
