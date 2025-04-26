@@ -16,24 +16,13 @@ axios.defaults.baseURL = API_URL;
 // וידוא שלא יהיו כפילויות של "/api" בנתיבים של קריאות ה-API
 axios.interceptors.request.use(config => {
   // בדיקת חיבור לשרת לפני כל בקשה
+  
+  // פישוט ההיגיון: נוסיף /api אם הוא חסר בנתיב
+  if (config.url && !config.url.startsWith('/api/')) {
+    config.url = '/api' + (config.url.startsWith('/') ? config.url : '/' + config.url);
+  }
+  
   console.log(`Sending request to: ${axios.defaults.baseURL}${config.url}`);
-  
-  // תיקון נתיב אם יש כפילות של /api
-  if (config.url && config.url.startsWith('/api/') && 
-      axios.defaults.baseURL.endsWith('/api')) {
-    config.url = config.url.substring(4); // מסיר את ה-/api בתחילת הנתיב
-  }
-  
-  // וידוא שיש /api בנתיב אם הוא חסר בכתובת הבסיס
-  if (config.url && !config.url.startsWith('/api/') && 
-      !axios.defaults.baseURL.endsWith('/api')) {
-    if (!config.url.startsWith('/')) {
-      config.url = '/api/' + config.url;
-    } else {
-      config.url = '/api' + config.url;
-    }
-  }
-  
   return config;
 });
 
