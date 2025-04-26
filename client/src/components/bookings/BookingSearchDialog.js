@@ -11,13 +11,27 @@ import {
   Typography,
   Box,
   Divider,
-  CircularProgress
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Paper,
+  Card
 } from '@mui/material';
 import { 
   Close as CloseIcon,
   Search as SearchIcon,
+  Person as PersonIcon,
+  Phone as PhoneIcon,
+  CalendarToday as CalendarTodayIcon,
+  Hotel as HotelIcon,
+  Info as InfoIcon,
+  ErrorOutline as ErrorOutlineIcon
 } from '@mui/icons-material';
 import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { format } from 'date-fns';
+import axios from 'axios';
 
 /**
  * רכיב דיאלוג חיפוש הזמנות
@@ -28,9 +42,13 @@ const BookingSearchDialog = ({
   searchQuery, 
   onSearchChange, 
   location,
-  isSearching = false 
+  isSearching = false,
+  onBookingClick
 }) => {
   const [localQuery, setLocalQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
+
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
 
@@ -38,8 +56,31 @@ const BookingSearchDialog = ({
   useEffect(() => {
     if (open) {
       setLocalQuery(searchQuery || '');
+      setHasSearched(!!searchQuery);
     }
   }, [open, searchQuery]);
+
+  // ביצוע חיפוש לאחר שהמשתמש הקליד
+  useEffect(() => {
+    const searchBookings = async () => {
+      if (!localQuery.trim() || !hasSearched) return;
+
+      try {
+        const response = await axios.get(`/api/bookings/search`, {
+          params: {
+            query: localQuery,
+            location
+          }
+        });
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error('שגיאה בחיפוש הזמנות:', error);
+        setSearchResults([]);
+      }
+    };
+
+    searchBookings();
+  }, [localQuery, location, hasSearched]);
 
   // טיפול בשינוי טקסט החיפוש
   const handleInputChange = (e) => {
@@ -49,6 +90,7 @@ const BookingSearchDialog = ({
   // טיפול בשליחת החיפוש
   const handleSearch = () => {
     onSearchChange(localQuery);
+    setHasSearched(true);
   };
 
   // טיפול בלחיצה על Enter
@@ -62,7 +104,78 @@ const BookingSearchDialog = ({
   const handleClear = () => {
     setLocalQuery('');
     onSearchChange('');
+    setSearchResults([]);
+    setHasSearched(false);
   };
+
+  // טיפול בלחיצה על הזמנה
+  const handleBookingClick = (bookingId) => {
+    // סגירת חלון החיפוש ומעבר להזמנה הנבחרת
+    onClose();
+    
+    // קריאה לפונקציה שמטפלת בפתיחת חלון עריכת הזמנה
+    if (onBookingClick) {
+      onBookingClick(bookingId);
+    }
+  };
+
+  // רנדור פריט הזמנה ברשימת תוצאות החיפוש
+  const renderBookingItem = (booking) => (
+    <Card
+      key={booking._id}
+      sx={{
+        mb: 2,
+        borderRadius: '8px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transform: 'translateY(-2px)'
+        }
+      }}
+      onClick={() => handleBookingClick(booking._id)}
+    >
+      <Box sx={{ 
+        p: 2,
+        borderRight: `3px solid ${
+          booking.status === 'confirmed' ? colors.accent.green :
+          booking.status === 'pending' ? colors.accent.orange :
+          booking.status === 'cancelled' ? colors.accent.red :
+          locationColors.main
+        }`
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="subtitle1" fontWeight={600}>
+            {booking.firstName} {booking.lastName}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {booking.room && booking.room.roomNumber ? `חדר ${booking.room.roomNumber}` : 'חדר לא מוגדר'}
+          </Typography>
+        </Box>
+        
+        <Box sx={{ display: 'flex', gap: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <CalendarTodayIcon fontSize="small" sx={{ color: 'text.secondary', ml: 0.5 }} />
+            <Typography variant="body2" color="text.secondary">
+              {format(new Date(booking.checkIn), 'dd/MM/yyyy')}
+              {' - '}
+              {format(new Date(booking.checkOut), 'dd/MM/yyyy')}
+            </Typography>
+          </Box>
+          
+          {booking.phone && (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <PhoneIcon fontSize="small" sx={{ color: 'text.secondary', ml: 0.5 }} />
+              <Typography variant="body2" color="text.secondary">
+                {booking.phone}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    </Card>
+  );
 
   return (
     <Dialog 
@@ -181,6 +294,39 @@ const BookingSearchDialog = ({
             * ניתן לחפש מספר מילות מפתח בו-זמנית, מופרדות ברווח
           </Typography>
         </Box>
+
+        {/* אזור תוצאות החיפוש */}
+        {hasSearched && (
+          <Box sx={{ mt: 3 }}>
+            <Divider sx={{ mb: 2 }} />
+            
+            {isSearching ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={30} sx={{ color: locationColors.main }} />
+              </Box>
+            ) : searchResults.length > 0 ? (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
+                  נמצאו {searchResults.length} תוצאות
+                </Typography>
+                <Box sx={{ maxHeight: '300px', overflow: 'auto', pr: 1 }}>
+                  {searchResults.map(booking => renderBookingItem(booking))}
+                </Box>
+              </Box>
+            ) : (
+              <Box sx={{ 
+                py: 4, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                color: colors.text.secondary
+              }}>
+                <ErrorOutlineIcon sx={{ fontSize: 40, mb: 1, color: colors.text.secondary }} />
+                <Typography>לא נמצאו תוצאות תואמות לחיפוש</Typography>
+              </Box>
+            )}
+          </Box>
+        )}
       </DialogContent>
 
       <Divider />

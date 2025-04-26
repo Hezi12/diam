@@ -42,7 +42,7 @@ const PriceCalculator = ({
       priceNoVat = value;
     } else {
       // ישראלים, מחשבים את המחיר ללא מע"מ
-      priceNoVat = +(value / VAT_RATE).toFixed(1);
+      priceNoVat = +(value / VAT_RATE).toFixed(2);
     }
 
     // חישוב מחיר כולל להזמנה
@@ -85,7 +85,7 @@ const PriceCalculator = ({
       priceWithVat = value;
     } else {
       // ישראלים, מחשבים את המחיר עם מע"מ
-      priceWithVat = Math.round(value * VAT_RATE);
+      priceWithVat = parseFloat((value * VAT_RATE).toFixed(2));
     }
 
     // חישוב מחיר כולל להזמנה
@@ -126,7 +126,7 @@ const PriceCalculator = ({
       pricePerNightNoVat = pricePerNight;
     } else {
       // ישראלים, מחשבים את המחיר ללא מע"מ
-      pricePerNightNoVat = +(pricePerNight / VAT_RATE).toFixed(1);
+      pricePerNightNoVat = +(pricePerNight / VAT_RATE).toFixed(2);
     }
 
     setFormData(prev => ({

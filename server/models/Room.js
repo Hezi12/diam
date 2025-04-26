@@ -87,11 +87,11 @@ RoomSchema.pre('save', function(next) {
   
   // חישוב מע"מ אם חסר
   if (this.basePrice && !this.vatPrice) {
-    this.vatPrice = Math.round(this.basePrice * 1.18);
+    this.vatPrice = parseFloat((this.basePrice * 1.18).toFixed(2));
   }
   
   if (this.fridayPrice && !this.fridayVatPrice) {
-    this.fridayVatPrice = Math.round(this.fridayPrice * 1.18);
+    this.fridayVatPrice = parseFloat((this.fridayPrice * 1.18).toFixed(2));
   }
   
   next();

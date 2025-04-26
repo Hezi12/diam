@@ -349,7 +349,7 @@ const NewBookingForm = ({
         const pricePerNightNoVat = noVatPrice;
         
         // חישוב מחיר כולל לפי מספר הלילות
-        const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(1));
+        const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(2));
         
         // עדכון הטופס
         setFormData(prev => ({
@@ -375,7 +375,7 @@ const NewBookingForm = ({
         const pricePerNightNoVat = noVatPrice;
         
         // חישוב מחיר כולל לפי מספר הלילות
-        const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(1));
+        const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(2));
         
         // עדכון הטופס
         setFormData(prev => ({
@@ -413,7 +413,7 @@ const NewBookingForm = ({
   useEffect(() => {
     if (formData.pricePerNight && formData.nights) {
       // חישוב המחיר הכולל לפי מספר הלילות ומחיר ללילה
-      const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(1));
+      const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(2));
     
     setFormData(prev => ({
       ...prev,
@@ -517,7 +517,7 @@ const NewBookingForm = ({
       checkIn: newCheckIn,
       checkOut: newCheckOut,
       nights: nights,
-      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+      price: parseFloat((prev.pricePerNight * nights).toFixed(2))
     }));
   };
 
@@ -536,7 +536,7 @@ const NewBookingForm = ({
         ...prev,
         checkOut: newDate,
         nights: 1,
-        price: parseFloat(prev.pricePerNight.toFixed(1))
+        price: parseFloat(prev.pricePerNight.toFixed(2))
       }));
       
       return;
@@ -546,7 +546,7 @@ const NewBookingForm = ({
       ...prev,
       checkOut: newCheckOut,
       nights: nights,
-      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+      price: parseFloat((prev.pricePerNight * nights).toFixed(2))
     }));
   };
 
@@ -566,7 +566,7 @@ const NewBookingForm = ({
       ...prev,
       checkOut: newCheckOut,
       nights: nights,
-      price: parseFloat((prev.pricePerNight * nights).toFixed(1))
+      price: parseFloat((prev.pricePerNight * nights).toFixed(2))
     }));
     
     setErrors(prev => ({ ...prev, nights: undefined }));
@@ -585,14 +585,14 @@ const NewBookingForm = ({
         pricePerNight = isTourist ? selectedRoom?.basePrice : selectedRoom?.vatPrice;
       } else {
         pricePerNight = isTourist ? prev.pricePerNightNoVat : 
-          parseFloat((prev.pricePerNightNoVat * 1.18).toFixed(1));
+          parseFloat((prev.pricePerNightNoVat * 1.18).toFixed(2));
       }
       
       return {
         ...prev,
         isTourist,
         pricePerNight: pricePerNight || prev.pricePerNight,
-        price: parseFloat(((pricePerNight || prev.pricePerNight) * prev.nights).toFixed(1))
+        price: parseFloat(((pricePerNight || prev.pricePerNight) * prev.nights).toFixed(2))
       };
     });
   };
@@ -742,7 +742,10 @@ const NewBookingForm = ({
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {isEditMode ? null : <AddIcon sx={{ marginRight: '10px' }} />}
             <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
-              {isEditMode ? 'עריכת הזמנה' : 'הזמנה חדשה'}
+              {isEditMode 
+                ? `עריכת הזמנה${editBooking?.bookingNumber ? ` ${editBooking.bookingNumber}` : ''} - ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`
+                : `הזמנה חדשה - ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`
+              }
             </Typography>
           </Box>
         </Box>

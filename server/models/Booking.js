@@ -1,10 +1,26 @@
 const mongoose = require('mongoose');
 
 /**
+ * סכמת מונה למספרי הזמנה
+ */
+const CounterSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  seq: { type: Number, default: 1000 }
+});
+
+const Counter = mongoose.model('Counter', CounterSchema);
+
+/**
  * סכמת הזמנה במערכת
  */
 const BookingSchema = new mongoose.Schema(
   {
+    // מספר הזמנה עוקב
+    bookingNumber: {
+      type: Number,
+      unique: true
+    },
+    
     // פרטי האורח
     firstName: {
       type: String,
@@ -189,6 +205,20 @@ BookingSchema.statics.checkRoomAvailability = async function(
 
 // חישוב שדות נגזרים לפני שמירה
 BookingSchema.pre('save', async function(next) {
+  // יצירת מספר הזמנה עוקב אם אין עדיין
+  if (!this.bookingNumber) {
+    try {
+      const counter = await Counter.findOneAndUpdate(
+        { name: 'bookingNumber' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      this.bookingNumber = counter.seq;
+    } catch (error) {
+      console.error('שגיאה ביצירת מספר הזמנה:', error);
+    }
+  }
+
   // חישוב מספר לילות אם לא הוגדר
   if (!this.nights && this.checkIn && this.checkOut) {
     this.nights = Math.ceil(

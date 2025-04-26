@@ -212,9 +212,11 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
         }
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {isEditing ? 'עריכת הזמנה' : 'פרטי הזמנה'}
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center' }}>
+            פרטי הזמנה {booking.bookingNumber ? `${booking.bookingNumber}` : ''} - {booking.firstName} {booking.lastName}
+          </Typography>
           <Chip 
             label={bookingStatusText[booking.status]}
             icon={statusColors.icon}

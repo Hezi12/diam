@@ -299,17 +299,15 @@ const BookingsCalendar = ({
             width: '100%',
             height: '100%'
           }}>
-            <Typography 
-              sx={{ 
-                fontWeight: 600, 
-                fontSize: '0.85rem',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                width: '100%',
-                mt: '-2px' // מזיז את הטקסט מעט למעלה
-              }}
-            >
+            {/* שם האורח */}
+            <Typography variant="body2" sx={{ 
+              color: `rgba(34, 34, 34, 0.9)`, 
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              width: '100%'
+            }}>
               {booking.firstName ? `${booking.firstName} ${booking.lastName || ''}` : 'ללא שם'}
             </Typography>
             
@@ -507,7 +505,7 @@ const BookingsCalendar = ({
                   color: isToday(day) ? locationColors.main : 'text.primary',
                   fontSize: '0.9rem'
                 }}>
-                  {format(day, 'dd/MM/yyyy')}
+                  {format(day, 'dd/MM')}
                 </Typography>
               </Box>
             ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography } from '@mui/material';
+import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography, Divider } from '@mui/material';
 import axios from 'axios';
 import { format, addDays, subDays, differenceInDays } from 'date-fns';
 import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
@@ -12,6 +12,7 @@ import BookingsCalendar from '../components/bookings/BookingsCalendar';
 import NewBookingForm from '../components/bookings/NewBookingForm';
 import BookingSearchDialog from '../components/bookings/BookingSearchDialog';
 import BookingDetails from '../components/bookings/BookingDetails';
+import ExternalToolbar from '../components/bookings/ExternalToolbar';
 
 /**
  * דף ניהול ההזמנות הראשי
@@ -405,29 +406,72 @@ const Bookings = () => {
     }
   };
   
+  // טעינת ההזמנות - לוגיקה משולבת לחיפוש וטעינה רגילה
+  useEffect(() => {
+    let timer;
+    const fetchData = async () => {
+      setLoading(prev => ({ ...prev, bookings: true }));
+      
+      try {
+        if (searchQuery.trim()) {
+          // מצב חיפוש
+          setIsSearching(true);
+          const response = await axios.get(`/api/bookings/search`, {
+            params: {
+              query: searchQuery,
+              location
+            }
+          });
+          setBookings(response.data);
+        } else {
+          // מצב טעינה רגילה
+          const startStr = format(dateRange.startDate, 'yyyy-MM-dd');
+          const endStr = format(dateRange.endDate, 'yyyy-MM-dd');
+          
+          const response = await axios.get(`/api/bookings/date-range`, {
+            params: {
+              startDate: startStr,
+              endDate: endStr,
+              location
+            }
+          });
+          
+          console.log('הזמנות שהגיעו מהשרת:', response.data);
+          setBookings(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        showNotification('שגיאה בטעינת ההזמנות', 'error');
+      } finally {
+        setLoading(prev => ({ ...prev, bookings: false }));
+        setIsSearching(false);
+      }
+    };
+    
+    // השהייה קצרה למניעת בקשות מיותרות במקרה של הקלדה מהירה
+    timer = setTimeout(fetchData, 300);
+    
+    return () => clearTimeout(timer);
+  }, [location, dateRange.startDate, dateRange.endDate, searchQuery]);
+  
   return (
     <Container sx={{ pb: 4, maxWidth: { xs: '100%', xl: '1400px' } }}>
-      {/* כותרת */}
-      <Typography 
-        variant="h4" 
-        component="h1" 
-        sx={{ 
-          textAlign: 'right', 
-          fontWeight: 600, 
-          mb: 4, 
-          color: colors.text.primary 
-        }}
-      >
-        ניהול הזמנות
-      </Typography>
-      
-      {/* טאבים למעבר בין מיקומים עם חיפוש והזמנה חדשה */}
-      <BookingTabs
-        location={location}
-        onLocationChange={handleLocationChange}
-        onSearchClick={handleSearchClick}
-        onAddBookingClick={() => setNewBookingOpen(true)}
-      />
+      {/* איזור טאבים וסרגל כלים */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        mb: 4
+      }}>
+        {/* טאבים למעבר בין מיקומים */}
+        <BookingTabs
+          location={location}
+          onLocationChange={handleLocationChange}
+        />
+        
+        {/* סרגל כלים עם קישורים לאתרים חיצוניים */}
+        <ExternalToolbar />
+      </Box>
       
       {/* אזור בחירת וניווט תאריכים */}
       <DateNavigation
@@ -435,6 +479,8 @@ const Bookings = () => {
         endDate={dateRange.endDate}
         onDateRangeChange={handleDateRangeChange}
         location={location}
+        onSearchClick={handleSearchClick}
+        onAddBookingClick={() => setNewBookingOpen(true)}
       />
       
       {/* טבלת הזמנות על מסך מלא */}
@@ -493,6 +539,7 @@ const Bookings = () => {
         onSearchChange={handleSearchChange}
         location={location}
         isSearching={isSearching}
+        onBookingClick={handleBookingClick}
       />
       
       {/* הודעות */}

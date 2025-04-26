@@ -183,11 +183,17 @@ exports.createBooking = async (req, res) => {
     
     await newBooking.save();
     
-    // השבת ההזמנה עם פרטי החדר המלאים
+    // החזרת ההזמנה המלאה עם נתוני חדר
     const savedBooking = await Booking.findById(newBooking._id)
       .populate('room', 'roomNumber category basePrice vatPrice');
     
-    res.status(201).json(savedBooking);
+    await savedBooking.populate('room');
+    
+    res.status(201).json({
+      success: true,
+      data: savedBooking,
+      message: `הזמנה מספר ${savedBooking.bookingNumber} נוצרה בהצלחה`
+    });
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ 
@@ -367,34 +373,50 @@ exports.checkRoomAvailability = async (req, res) => {
   }
 };
 
-// חיפוש הזמנות לפי שם האורח, טלפון או מזהה חדר
+// חיפוש הזמנות לפי טקסט חופשי
 exports.searchBookings = async (req, res) => {
   try {
     const { query, location } = req.query;
     
-    if (!query) {
-      return res.status(400).json({ message: 'נדרש מונח חיפוש' });
+    if (!query || query.trim() === '') {
+      return res.status(400).json({ message: 'נדרש טקסט לחיפוש' });
     }
     
-    // בניית שאילתת חיפוש
-    const searchQuery = {
-      $or: [
-        { firstName: { $regex: query, $options: 'i' } },
-        { lastName: { $regex: query, $options: 'i' } },
-        { phone: { $regex: query, $options: 'i' } },
-        { roomNumber: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } }
-      ]
-    };
+    // פיצול מילות המפתח לחיפוש
+    const keywords = query.trim().split(/\s+/).filter(word => word.length > 0);
     
-    // הוספת פילטר לפי מיקום אם נדרש
-    if (location && ['airport', 'rothschild'].includes(location)) {
-      searchQuery.location = location;
+    // יצירת תבנית חיפוש לכל השדות הטקסטואליים
+    const searchPattern = keywords.map(keyword => new RegExp(keyword, 'i'));
+    
+    // בדיקה אם אחת ממילות המפתח היא מספר (לשימוש עבור מספר הזמנה)
+    const numberKeywords = keywords
+      .map(k => parseInt(k))
+      .filter(n => !isNaN(n));
+    
+    // בניית תנאי חיפוש מורכב
+    const searchConditions = [
+      { firstName: { $in: searchPattern } },
+      { lastName: { $in: searchPattern } },
+      { phone: { $in: searchPattern } },
+      { email: { $in: searchPattern } },
+      { roomNumber: { $in: searchPattern } }
+    ];
+    
+    // הוספת חיפוש למספר הזמנה רק אם יש מספרים בחיפוש
+    if (numberKeywords.length > 0) {
+      searchConditions.push({ bookingNumber: { $in: numberKeywords } });
     }
     
-    const bookings = await Booking.find(searchQuery)
+    // הוספת תנאי מיקום אם קיים
+    const filter = location ? 
+      { $and: [{ location }, { $or: searchConditions }] } :
+      { $or: searchConditions };
+    
+    // ביצוע החיפוש
+    const bookings = await Booking.find(filter)
       .populate('room', 'roomNumber category basePrice')
-      .sort({ checkIn: 1 });
+      .sort({ checkIn: -1 }) // הזמנות עדכניות קודם
+      .limit(20); // הגבלה ל-20 תוצאות
     
     res.json(bookings);
   } catch (error) {

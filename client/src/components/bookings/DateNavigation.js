@@ -1,14 +1,53 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Button, Popover, Paper } from '@mui/material';
+import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip, Divider } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import { DateRange } from 'react-date-range';
+import TodayIcon from '@mui/icons-material/Today';
+import SearchIcon from '@mui/icons-material/Search';
+import AddIcon from '@mui/icons-material/Add';
+import { DateRange, Calendar } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { he } from 'date-fns/locale';
-import { format } from 'date-fns';
+import { format, addDays, subDays, differenceInDays } from 'date-fns';
 import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+
+// תוספת CSS לתיקון כיוון החיצים וסגנון הרקע בלוח השנה
+const calendarCustomStyles = `
+  .rdrMonthAndYearWrapper {
+    direction: rtl;
+  }
+  
+  .rdrNextPrevButton {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .rdrNextPrevButton.rdrPprevButton i {
+    margin: 0;
+    transform: rotate(180deg);
+  }
+  
+  .rdrNextPrevButton.rdrNextButton i {
+    margin: 0;
+    transform: rotate(180deg);
+  }
+  
+  .rdrMonths {
+    direction: rtl;
+  }
+  
+  .rdrMonth {
+    direction: rtl;
+  }
+  
+  .rdrCalendarWrapper {
+    direction: rtl;
+  }
+`;
 
 /**
  * רכיב ניווט בין תאריכים לדף ההזמנות
@@ -18,72 +57,99 @@ const DateNavigation = ({
   startDate,
   endDate,
   onDateRangeChange,
-  location
+  location,
+  onSearchClick,
+  onAddBookingClick
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [tempDateRange, setTempDateRange] = useState([
-    {
-      startDate,
-      endDate,
-      key: 'selection'
-    }
-  ]);
+  const [tempDate, setTempDate] = useState(new Date());
 
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
 
   const handleOpenDatePicker = (event) => {
     setAnchorEl(event.currentTarget);
+    // עדכון התאריך הזמני לתאריך הנוכחי בטווח (יום אמצעי בערך)
+    const middleDate = new Date(
+      startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 2
+    );
+    setTempDate(middleDate);
   };
 
   const handleCloseDatePicker = () => {
     setAnchorEl(null);
   };
 
-  const handleDateRangeChange = (item) => {
-    setTempDateRange([item.selection]);
+  const handleDateChange = (date) => {
+    setTempDate(date);
   };
 
-  const handleApplyDateRange = () => {
-    const { startDate, endDate } = tempDateRange[0];
-    onDateRangeChange(startDate, endDate);
+  const handleApplyDate = () => {
+    // קביעת טווח: 3 ימים לפני היום שנבחר ו-6 ימים אחריו
+    const newStartDate = subDays(tempDate, 3);
+    const newEndDate = addDays(tempDate, 6);
+    
+    onDateRangeChange(newStartDate, newEndDate);
     handleCloseDatePicker();
   };
 
   const handlePrevPeriod = () => {
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const newEndDate = new Date(startDate);
-    newEndDate.setDate(newEndDate.getDate() - 1);
-    const newStartDate = new Date(newEndDate);
-    newStartDate.setDate(newStartDate.getDate() - days + 1);
+    // חישוב מספר הימים בטווח הנוכחי
+    const days = differenceInDays(endDate, startDate);
+    
+    // חישוב תאריך סיום חדש (יום לפני תאריך ההתחלה הנוכחי)
+    const newEndDate = subDays(startDate, 1);
+    
+    // חישוב תאריך התחלה חדש (מספר הימים הנוכחי לפני תאריך הסיום החדש)
+    const newStartDate = subDays(newEndDate, days);
+    
+    // עדכון טווח התאריכים
     onDateRangeChange(newStartDate, newEndDate);
   };
 
   const handleNextPeriod = () => {
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const newStartDate = new Date(endDate);
-    newStartDate.setDate(newStartDate.getDate() + 1);
-    const newEndDate = new Date(newStartDate);
-    newEndDate.setDate(newEndDate.getDate() + days - 1);
+    // חישוב מספר הימים בטווח הנוכחי
+    const days = differenceInDays(endDate, startDate);
+    
+    // חישוב תאריך התחלה חדש (יום אחרי תאריך הסיום הנוכחי)
+    const newStartDate = addDays(endDate, 1);
+    
+    // חישוב תאריך סיום חדש (מספר הימים הנוכחי אחרי תאריך ההתחלה החדש)
+    const newEndDate = addDays(newStartDate, days);
+    
+    // עדכון טווח התאריכים
+    onDateRangeChange(newStartDate, newEndDate);
+  };
+
+  const handleGoToToday = () => {
+    const today = new Date();
+    const newStartDate = subDays(today, 3); // 3 ימים אחורה
+    const newEndDate = addDays(today, 6);   // 6 ימים קדימה
     onDateRangeChange(newStartDate, newEndDate);
   };
 
   // פורמט תאריכים עברי
   const formatDateRange = () => {
-    return `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`;
+    return `${format(startDate, 'dd/MM')} - ${format(endDate, 'dd/MM')}`;
   };
 
   const open = Boolean(anchorEl);
 
   return (
     <Paper 
+      elevation={0}
       sx={{ 
-        p: 2,
+        py: 1.5,
+        px: 2,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        mb: 4,
-        ...STYLE_CONSTANTS.card
+        mb: 2.5,
+        borderRadius: '10px',
+        border: '1px solid',
+        borderColor: 'grey.200',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(8px)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -91,43 +157,118 @@ const DateNavigation = ({
           size="small" 
           sx={{ 
             color: locationColors.main,
-            '&:hover': { bgcolor: locationColors.bgLight }
+            '&:hover': { 
+              bgcolor: `${locationColors.main}15`,
+              transform: 'scale(1.05)',
+              transition: 'all 0.2s'
+            }
           }}
           onClick={handlePrevPeriod}
         >
           <ChevronRightIcon />
         </IconButton>
 
-        <Typography variant="subtitle1" sx={{ fontWeight: 500, mx: 2 }}>
-          {formatDateRange()}
-        </Typography>
+        <Tooltip title="בחר תאריך">
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 500, 
+              mx: 2,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              '&:hover': { 
+                color: locationColors.main,
+                transform: 'scale(1.02)',
+                transition: 'all 0.2s'
+              }
+            }}
+            onClick={handleOpenDatePicker}
+          >
+            {formatDateRange()}
+          </Typography>
+        </Tooltip>
         
         <IconButton 
           size="small" 
           sx={{ 
             color: locationColors.main,
-            '&:hover': { bgcolor: locationColors.bgLight }
+            '&:hover': { 
+              bgcolor: `${locationColors.main}15`,
+              transform: 'scale(1.05)',
+              transition: 'all 0.2s'
+            }
           }}
           onClick={handleNextPeriod}
         >
           <ChevronLeftIcon />
         </IconButton>
+
+        <Tooltip title="חזרה לתאריך נוכחי">
+          <IconButton 
+            size="small" 
+            sx={{ 
+              color: locationColors.main,
+              '&:hover': { 
+                bgcolor: `${locationColors.main}15`,
+                transform: 'scale(1.05)',
+                transition: 'all 0.2s'
+              },
+              ml: 1
+            }}
+            onClick={handleGoToToday}
+          >
+            <TodayIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
       
-      <Button 
-        size="small" 
-        startIcon={<CalendarTodayIcon sx={{ marginLeft: '8px', marginRight: '0px' }} />}
-        sx={{ 
-          color: locationColors.main,
-          borderColor: locationColors.main,
-          '&:hover': { bgcolor: locationColors.bgLight },
-          ...STYLE_CONSTANTS.button
-        }}
-        variant="outlined"
-        onClick={handleOpenDatePicker}
-      >
-        בחר תאריכים
-      </Button>
+      {/* כפתורי פעולות נוספות */}
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {onSearchClick && (
+          <Tooltip title="חיפוש הזמנות">
+            <IconButton
+              onClick={onSearchClick}
+              size="small"
+              sx={{ 
+                color: 'text.secondary',
+                bgcolor: 'rgba(0, 0, 0, 0.03)',
+                p: 1,
+                '&:hover': { 
+                  bgcolor: locationColors.bgLight, 
+                  color: locationColors.main,
+                  transform: 'scale(1.05)',
+                  transition: 'all 0.2s'
+                }
+              }}
+            >
+              <SearchIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        
+        {onAddBookingClick && (
+          <Tooltip title="הזמנה חדשה">
+            <IconButton
+              onClick={onAddBookingClick}
+              size="small"
+              sx={{ 
+                ml: 1,
+                color: colors.accent.green,
+                bgcolor: `${colors.accent.green}08`,
+                p: 1,
+                '&:hover': { 
+                  bgcolor: `${colors.accent.green}15`,
+                  transform: 'scale(1.05)',
+                  transition: 'all 0.2s'
+                }
+              }}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
 
       <Popover
         open={open}
@@ -145,44 +286,46 @@ const DateNavigation = ({
           sx: { 
             mt: 1,
             p: 1,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            borderRadius: '12px'
+            boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+            borderRadius: '12px',
+            border: '1px solid',
+            borderColor: 'grey.200',
           }
         }}
       >
-        <Box>
-          <DateRange
-            onChange={handleDateRangeChange}
-            moveRangeOnFirstSelection={false}
-            months={1}
-            ranges={tempDateRange}
-            direction="horizontal"
-            locale={he}
-            weekdayDisplayFormat="EEEEE"
-            rangeColors={[locationColors.main]}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button 
-              onClick={handleCloseDatePicker} 
-              sx={{ 
-                mr: 1,
-                color: colors.text.secondary,
-                textTransform: 'none'
-              }}
+        <style dangerouslySetInnerHTML={{ __html: calendarCustomStyles }} />
+        <Box sx={{ minWidth: 300 }}>
+          <div style={{ direction: 'rtl' }}>
+            <Calendar
+              date={tempDate}
+              onChange={handleDateChange}
+              locale={he}
+              direction="horizontal"
+            />
+          </div>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            mt: 1, 
+            borderTop: '1px solid',
+            borderColor: 'grey.100',
+            pt: 1
+          }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleCloseDatePicker}
+              sx={{ ml: 1, borderRadius: '8px' }}
             >
               ביטול
             </Button>
-            <Button 
-              onClick={handleApplyDateRange} 
+            <Button
               variant="contained"
-              sx={{
+              size="small"
+              onClick={handleApplyDate}
+              sx={{ 
                 bgcolor: locationColors.main,
-                '&:hover': { 
-                  bgcolor: locationColors.main, 
-                  filter: 'brightness(0.9)' 
-                },
-                textTransform: 'none',
-                boxShadow: 'none',
+                '&:hover': { bgcolor: locationColors.dark },
                 borderRadius: '8px'
               }}
             >

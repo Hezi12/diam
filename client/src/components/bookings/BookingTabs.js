@@ -2,15 +2,13 @@ import React from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import FlightIcon from '@mui/icons-material/Flight';
 import HomeIcon from '@mui/icons-material/Home';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
 import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
 
 /**
  * רכיב המאפשר מעבר בין מיקומי המלון השונים (Airport/Rothschild)
  * בסגנון העיצוב החדש עם אייקונים בלבד
  */
-const BookingTabs = ({ location, onLocationChange, onSearchClick, onAddBookingClick }) => {
+const BookingTabs = ({ location, onLocationChange }) => {
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = {
     airport: colors.airport,
@@ -18,7 +16,7 @@ const BookingTabs = ({ location, onLocationChange, onSearchClick, onAddBookingCl
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Tooltip title="Airport Guest House">
           <IconButton
@@ -45,33 +43,6 @@ const BookingTabs = ({ location, onLocationChange, onSearchClick, onAddBookingCl
             }}
           >
             <HomeIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Tooltip title="חיפוש הזמנות">
-          <IconButton
-            onClick={onSearchClick}
-            sx={{ 
-              color: 'text.secondary',
-              '&:hover': { bgcolor: locationColors[location].bgLight, color: locationColors[location].main }
-            }}
-          >
-            <SearchIcon />
-          </IconButton>
-        </Tooltip>
-        
-        <Tooltip title="הזמנה חדשה">
-          <IconButton
-            onClick={onAddBookingClick}
-            sx={{ 
-              ml: 1,
-              color: colors.accent.green,
-              '&:hover': { bgcolor: `${colors.accent.green}15` }
-            }}
-          >
-            <AddIcon />
           </IconButton>
         </Tooltip>
       </Box>

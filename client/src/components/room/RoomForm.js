@@ -238,16 +238,16 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
     
     // חישוב אוטומטי של מחירים עם/בלי מע"מ
     if (name === 'basePriceNoVat') {
-      const withVat = Math.round(parseFloat(value || 0) * 1.18);
+      const withVat = parseFloat((parseFloat(value || 0) * 1.18).toFixed(2));
       setFormData((prev) => ({ ...prev, basePriceWithVat: withVat || '' }));
     } else if (name === 'basePriceWithVat') {
-      const noVat = Math.round(parseFloat(value || 0) / 1.18);
+      const noVat = parseFloat((parseFloat(value || 0) / 1.18).toFixed(2));
       setFormData((prev) => ({ ...prev, basePriceNoVat: noVat || '' }));
     } else if (name === 'fridayPriceNoVat') {
-      const withVat = Math.round(parseFloat(value || 0) * 1.18);
+      const withVat = parseFloat((parseFloat(value || 0) * 1.18).toFixed(2));
       setFormData((prev) => ({ ...prev, fridayPriceWithVat: withVat || '' }));
     } else if (name === 'fridayPriceWithVat') {
-      const noVat = Math.round(parseFloat(value || 0) / 1.18);
+      const noVat = parseFloat((parseFloat(value || 0) / 1.18).toFixed(2));
       setFormData((prev) => ({ ...prev, fridayPriceNoVat: noVat || '' }));
     }
   };
@@ -274,10 +274,10 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
     const processedData = {
       roomNumber: formData.roomNumber,
       category: formData.category,
-      basePrice: parseInt(formData.basePriceNoVat, 10) || 0,
-      vatPrice: parseInt(formData.basePriceWithVat, 10) || 0,
-      fridayPrice: parseInt(formData.fridayPriceNoVat, 10) || 0,
-      fridayVatPrice: parseInt(formData.fridayPriceWithVat, 10) || 0,
+      basePrice: parseFloat(formData.basePriceNoVat) || 0,
+      vatPrice: parseFloat(formData.basePriceWithVat) || 0,
+      fridayPrice: parseFloat(formData.fridayPriceNoVat) || 0,
+      fridayVatPrice: parseFloat(formData.fridayPriceWithVat) || 0,
       baseOccupancy: parseInt(formData.baseOccupancy, 10) || 2,
       maxOccupancy: parseInt(formData.maxOccupancy, 10) || 2,
       extraGuestCharge: parseInt(formData.extraGuestCharge, 10) || 0,
