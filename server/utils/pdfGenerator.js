@@ -12,14 +12,16 @@ const moment = require('moment');
 const generateInvoicePdf = async (invoice, outputPath = null) => {
   return new Promise((resolve, reject) => {
     try {
+      console.log('מתחיל ליצור קובץ PDF עבור חשבונית', invoice.invoiceNumber || 'חדשה');
+      
       // יצירת מסמך PDF חדש
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
         info: {
-          Title: `חשבונית ${invoice.invoiceNumber}`,
+          Title: `חשבונית ${invoice.invoiceNumber || 'חדשה'}`,
           Author: 'Diam Apartments',
-          Subject: `חשבונית עבור ${invoice.customer.name}`
+          Subject: `חשבונית עבור ${invoice.customer?.name || 'לקוח'}`
         }
       });
 
@@ -27,39 +29,52 @@ const generateInvoicePdf = async (invoice, outputPath = null) => {
       doc.font('Hebrew').text('', 0, 0, { align: 'right' });
 
       // שמירת הקובץ - אם לא צוין נתיב, נשמור בתיקיית הפרויקט
-      const fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
+      let fileName = 'invoice_draft.pdf';
+      if (invoice.invoiceNumber) {
+        fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
+      }
+      
       const filePath = outputPath || path.join(__dirname, '../', 'uploads', 'invoices', fileName);
+      console.log('נתיב קובץ PDF:', filePath);
       
       // וידוא שתיקיית היעד קיימת
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
+        console.log(`יוצר תיקייה: ${dir}`);
         fs.mkdirSync(dir, { recursive: true });
       }
       
       // יצירת stream כתיבה לקובץ
       const stream = fs.createWriteStream(filePath);
+      stream.on('error', (err) => {
+        console.error('שגיאה בכתיבת קובץ PDF:', err);
+        reject(err);
+      });
+      
       doc.pipe(stream);
 
       // הוספת תוכן החשבונית
-      addHeader(doc, invoice);
-      addInvoiceInfo(doc, invoice);
-      addCustomerInfo(doc, invoice);
-      addServiceDetails(doc, invoice);
-      addPaymentDetails(doc, invoice);
-      addFooter(doc, invoice);
+      try {
+        addHeader(doc, invoice);
+        addInvoiceInfo(doc, invoice);
+        addCustomerInfo(doc, invoice);
+        addServiceDetails(doc, invoice);
+        addPaymentDetails(doc, invoice);
+        addFooter(doc, invoice);
+      } catch (contentError) {
+        console.error('שגיאה בהוספת תוכן לPDF:', contentError);
+      }
 
       // סגירת המסמך - ישמור את הקובץ
       doc.end();
 
       // כשהכתיבה תסתיים, נחזיר את נתיב הקובץ
       stream.on('finish', () => {
+        console.log('הקובץ נוצר בהצלחה:', filePath);
         resolve(filePath);
       });
-
-      stream.on('error', (error) => {
-        reject(error);
-      });
     } catch (error) {
+      console.error('שגיאה ביצירת PDF:', error);
       reject(error);
     }
   });

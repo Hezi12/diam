@@ -13,6 +13,8 @@ const { generateInvoicePdf } = require('../utils/pdfGenerator');
  */
 exports.createInvoice = async (req, res) => {
   try {
+    console.log('מתחיל יצירת חשבונית חדשה, נתונים שהתקבלו:', JSON.stringify(req.body));
+    
     const {
       booking: bookingId,
       customer,
@@ -21,15 +23,38 @@ exports.createInvoice = async (req, res) => {
       paymentDetails
     } = req.body;
 
+    // וידוא שהנתונים שהתקבלו תקינים
+    if (!bookingId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'נדרש מזהה הזמנה ליצירת חשבונית' 
+      });
+    }
+
     // וידוא שקיימת הזמנה תקפה
     const booking = await Booking.findById(bookingId).populate('room');
     if (!booking) {
-      return res.status(404).json({ success: false, message: 'ההזמנה לא נמצאה' });
+      console.error(`ההזמנה עם מזהה ${bookingId} לא נמצאה במערכת`);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'ההזמנה לא נמצאה' 
+      });
     }
 
+    console.log(`נמצאה הזמנה: ${booking._id}, מיקום: ${booking.location}`);
+
     // חישוב ערכים לפי נתוני ההזמנה
-    const subtotal = booking.isTourist ? booking.price : (booking.price / 1.17).toFixed(2);
-    const vatAmount = booking.isTourist ? 0 : (booking.price - subtotal).toFixed(2);
+    let subtotal, vatAmount;
+    try {
+      subtotal = booking.isTourist ? booking.price : parseFloat((booking.price / 1.17).toFixed(2));
+      vatAmount = booking.isTourist ? 0 : parseFloat((booking.price - subtotal).toFixed(2));
+    } catch (calcError) {
+      console.error('שגיאה בחישוב מע"מ:', calcError);
+      subtotal = booking.price;
+      vatAmount = 0;
+    }
+
+    console.log(`חישוב מחירים - סכום לפני מע"מ: ${subtotal}, מע"מ: ${vatAmount}`);
 
     // יצירת אובייקט החשבונית
     const newInvoice = new Invoice({
@@ -40,30 +65,33 @@ exports.createInvoice = async (req, res) => {
         name: customer?.name || `${booking.firstName} ${booking.lastName}`,
         phone: customer?.phone || booking.phone,
         email: customer?.email || booking.email,
-        idNumber: customer?.idNumber,
-        address: customer?.address,
+        idNumber: customer?.idNumber || '',
+        address: customer?.address || '',
         passportNumber: customer?.passportNumber || (booking.isTourist ? 'תייר' : '')
       },
       serviceDetails: {
         description: `לינה ${booking.location === 'airport' ? 'באור יהודה' : 'ברוטשילד'}`,
         fromDate: booking.checkIn,
         toDate: booking.checkOut,
-        nights: booking.nights,
-        roomNumber: booking.roomNumber || (booking.room?.roomNumber || '')
+        nights: booking.nights || 1,
+        roomNumber: booking.roomNumber || (booking.room?.roomNumber || '101')
       },
       paymentDetails: {
-        subtotal: paymentDetails?.subtotal || parseFloat(subtotal),
+        subtotal: paymentDetails?.subtotal || subtotal,
         vatRate: booking.isTourist ? 0 : 17,
-        vatAmount: paymentDetails?.vatAmount || parseFloat(vatAmount),
+        vatAmount: paymentDetails?.vatAmount || vatAmount,
         discount: paymentDetails?.discount || booking.discount || 0,
         total: paymentDetails?.total || booking.price,
         paymentMethod: paymentDetails?.paymentMethod || mapBookingPaymentToInvoicePayment(booking.paymentStatus)
       },
-      notes: notes
+      notes: notes || ''
     });
+
+    console.log('חשבונית מוכנה לשמירה:', JSON.stringify(newInvoice));
 
     // שמירת החשבונית
     await newInvoice.save();
+    console.log(`חשבונית נשמרה בהצלחה עם מזהה: ${newInvoice._id}`);
 
     res.status(201).json({
       success: true,
@@ -75,7 +103,8 @@ exports.createInvoice = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'שגיאה ביצירת החשבונית',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'production' ? null : error.stack
     });
   }
 };
