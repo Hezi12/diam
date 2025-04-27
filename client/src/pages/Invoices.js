@@ -43,6 +43,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import CreateInvoiceDialog from '../components/invoices/CreateInvoiceDialog';
 import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
+import { useNavigate } from 'react-router-dom';
 
 const documentTypesHebrew = {
   invoice: 'חשבונית מס',
@@ -77,7 +78,11 @@ const statusColors = {
 const Invoices = () => {
   const { user } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const colors = STYLE_CONSTANTS.colors;
+  
+  // הגדרת שפה
+  const [isEnglish, setIsEnglish] = useState(false);
   
   // מצב נתוני חשבוניות
   const [invoices, setInvoices] = useState([]);
@@ -110,51 +115,23 @@ const Invoices = () => {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      // בניית קווריסטרינג לפילטרים
-      const queryParams = [];
-      
-      // דף ומספר שורות
-      queryParams.push(`page=${page + 1}`);
-      queryParams.push(`limit=${rowsPerPage}`);
-      
-      // חיפוש
-      if (searchTerm) {
-        queryParams.push(`customer=${encodeURIComponent(searchTerm)}`);
+      const response = await axios.get('/api/invoices');
+      setInvoices(response.data);
+      // אם יש תמיכה בדפדוף בשרת
+      if (response.data.pagination && response.data.invoices) {
+        setInvoices(response.data.invoices);
+        setTotal(response.data.pagination.total);
+      } else {
+        // אם אין מבנה דפדוף, פשוט משתמשים בתשובה
+        setInvoices(response.data);
+        setTotal(response.data.length);
       }
-      
-      // פילטרים
-      if (filters.status) {
-        queryParams.push(`status=${filters.status}`);
-      }
-      
-      if (filters.documentType) {
-        queryParams.push(`documentType=${filters.documentType}`);
-      }
-      
-      if (filters.fromDate) {
-        queryParams.push(`fromDate=${filters.fromDate.toISOString()}`);
-      }
-      
-      if (filters.toDate) {
-        queryParams.push(`toDate=${filters.toDate.toISOString()}`);
-      }
-      
-      if (filters.minAmount) {
-        queryParams.push(`minAmount=${filters.minAmount}`);
-      }
-      
-      if (filters.maxAmount) {
-        queryParams.push(`maxAmount=${filters.maxAmount}`);
-      }
-      
-      const queryString = queryParams.join('&');
-      const response = await axios.get(`/api/invoices?${queryString}`);
-      
-      setInvoices(response.data.invoices);
-      setTotal(response.data.pagination.total);
     } catch (error) {
-      console.error('שגיאה בטעינת חשבוניות:', error);
-      enqueueSnackbar('שגיאה בטעינת חשבוניות', { variant: 'error' });
+      console.error('Error fetching invoices:', error);
+      enqueueSnackbar(
+        isEnglish ? 'Failed to load invoices' : 'טעינת החשבוניות נכשלה',
+        { variant: 'error' }
+      );
     } finally {
       setLoading(false);
     }
@@ -193,7 +170,7 @@ const Invoices = () => {
   // הורדת חשבונית מהשרת
   const handleDownloadInvoice = async (invoiceId) => {
     try {
-      const response = await axios.get(`/api/invoices/${invoiceId}`, { responseType: 'blob' });
+      const response = await axios.get(`/api/invoices/${invoiceId}/pdf`, { responseType: 'blob' });
       
       // יצירת קישור להורדה
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -207,10 +184,16 @@ const Invoices = () => {
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      enqueueSnackbar('החשבונית הורדה בהצלחה', { variant: 'success' });
+      enqueueSnackbar(
+        isEnglish ? 'Invoice downloaded successfully' : 'החשבונית הורדה בהצלחה',
+        { variant: 'success' }
+      );
     } catch (error) {
       console.error('שגיאה בהורדת חשבונית:', error);
-      enqueueSnackbar('שגיאה בהורדת החשבונית', { variant: 'error' });
+      enqueueSnackbar(
+        isEnglish ? 'Error downloading invoice' : 'שגיאה בהורדת החשבונית',
+        { variant: 'error' }
+      );
     }
   };
   
@@ -224,39 +207,52 @@ const Invoices = () => {
   const handleCancelInvoice = async () => {
     if (!invoiceToCancel) return;
     
-    try {
-      await axios.patch(`/api/invoices/${invoiceToCancel._id}/cancel`, { 
-        reason: 'בוטל ע"י משתמש' 
-      });
-      
-      enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
-      
-      // טעינה מחדש של החשבוניות
-      fetchInvoices();
-      
-      // סגירת הדיאלוג
-      setCancelConfirmOpen(false);
-      setInvoiceToCancel(null);
-    } catch (error) {
-      console.error('שגיאה בביטול חשבונית:', error);
-      enqueueSnackbar('שגיאה בביטול החשבונית: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+    if (window.confirm(isEnglish ? 'Are you sure you want to cancel this invoice?' : 'האם אתה בטוח שברצונך לבטל חשבונית זו?')) {
+      setLoading(true);
+      try {
+        await axios.post(`/api/invoices/${invoiceToCancel._id}/cancel`);
+        // רענון רשימת החשבוניות
+        fetchInvoices();
+        enqueueSnackbar(
+          isEnglish ? 'Invoice cancelled successfully' : 'החשבונית בוטלה בהצלחה',
+          { variant: 'success' }
+        );
+        // סגירת הדיאלוג
+        setCancelConfirmOpen(false);
+        setInvoiceToCancel(null);
+      } catch (error) {
+        console.error('Error cancelling invoice:', error);
+        enqueueSnackbar(
+          isEnglish ? 'Failed to cancel invoice' : 'ביטול החשבונית נכשל',
+          { variant: 'error' }
+        );
+      } finally {
+        setLoading(false);
+      }
     }
   };
   
   // יצירת חשבונית זיכוי
-  const handleCreateCreditInvoice = async (originalInvoiceId) => {
-    try {
-      const response = await axios.post(`/api/invoices/${originalInvoiceId}/credit`, {
-        reason: 'זיכוי לבקשת לקוח'
-      });
-      
-      enqueueSnackbar('חשבונית זיכוי נוצרה בהצלחה', { variant: 'success' });
-      
-      // טעינה מחדש של החשבוניות
-      fetchInvoices();
-    } catch (error) {
-      console.error('שגיאה ביצירת חשבונית זיכוי:', error);
-      enqueueSnackbar('שגיאה ביצירת חשבונית זיכוי: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+  const handleCreditInvoice = async (id) => {
+    if (window.confirm(isEnglish ? 'Are you sure you want to create a credit note for this invoice?' : 'האם אתה בטוח שברצונך ליצור חשבונית זיכוי?')) {
+      setLoading(true);
+      try {
+        await axios.post(`/api/invoices/${id}/credit`);
+        // רענון רשימת החשבוניות
+        fetchInvoices();
+        enqueueSnackbar(
+          isEnglish ? 'Credit note created successfully' : 'חשבונית זיכוי נוצרה בהצלחה',
+          { variant: 'success' }
+        );
+      } catch (error) {
+        console.error('Error creating credit note:', error);
+        enqueueSnackbar(
+          isEnglish ? 'Failed to create credit note' : 'יצירת חשבונית זיכוי נכשלה',
+          { variant: 'error' }
+        );
+      } finally {
+        setLoading(false);
+      }
     }
   };
   
@@ -520,7 +516,7 @@ const Invoices = () => {
                             <IconButton 
                               size="small" 
                               sx={{ color: colors.accent.orange }}
-                              onClick={() => handleCreateCreditInvoice(invoice._id)}
+                              onClick={() => handleCreditInvoice(invoice._id)}
                             >
                               <CopyIcon fontSize="small" />
                             </IconButton>

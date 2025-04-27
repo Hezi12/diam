@@ -7,11 +7,19 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import reportWebVitals from './reportWebVitals';
 
-// הגדרת ברירת מחדל של axios לשרת המקומי
-// שימוש בכתובת קבועה במקום משתנה סביבה שלא מתעדכן בוורסל
-const API_URL = 'https://diam-loy6.onrender.com';
+// הגדרת ברירת מחדל של axios לשרת
+// בדיקה אם האפליקציה רצה בסביבת פיתוח מקומית או על שרת מרוחק
+const isLocalhost = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+
+// בסביבת פיתוח מקומית נשתמש בכתובת המקומית, אחרת בשרת המרוחק
+const API_URL = isLocalhost 
+  ? 'http://localhost:3200' 
+  : 'https://diam-loy6.onrender.com';
+
 console.log('API URL:', API_URL);
 axios.defaults.baseURL = API_URL;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 // וידוא שלא יהיו כפילויות של "/api" בנתיבים של קריאות ה-API
 axios.interceptors.request.use(config => {
