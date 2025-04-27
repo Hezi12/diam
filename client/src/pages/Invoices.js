@@ -45,8 +45,6 @@ import CreateInvoiceDialog from '../components/invoices/CreateInvoiceDialog';
 import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'https://diam-server.onrender.com';
-
 const documentTypesHebrew = {
   invoice: 'חשבונית מס',
   invoice_receipt: 'חשבונית מס/קבלה',
@@ -110,6 +108,8 @@ const Invoices = () => {
   // מצב דיאלוגים
   const [createInvoiceDialogOpen, setCreateInvoiceDialogOpen] = useState(false);
   const [viewInvoiceId, setViewInvoiceId] = useState(null);
+  const [viewInvoiceUrl, setViewInvoiceUrl] = useState(null);
+  const [viewInvoiceDialogOpen, setViewInvoiceDialogOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [invoiceToCancel, setInvoiceToCancel] = useState(null);
   
@@ -121,6 +121,7 @@ const Invoices = () => {
     const fetchInvoices = async () => {
       setLoading(true);
       try {
+        const API_BASE_URL = 'https://diam-server.onrender.com';
         const response = await axios.get(`${API_BASE_URL}/api/invoices`);
         setInvoices(response.data);
         // אם יש תמיכה בדפדוף בשרת
@@ -144,7 +145,7 @@ const Invoices = () => {
     };
 
     fetchInvoices();
-  }, [refresh, enqueueSnackbar, isEnglish]);
+  }, [refresh]);
   
   // טיפול בשינוי דף
   const handleChangePage = (event, newPage) => {
@@ -171,22 +172,34 @@ const Invoices = () => {
     setPage(0);
   };
   
-  // הורדת חשבונית
-  const handleDownloadInvoice = async (id, invoiceNumber) => {
+  // צפייה בחשבונית
+  const handleViewInvoice = async (id, invoiceNumber) => {
     try {
-      // בדיקה שה-ID אכן קיים
-      if (!id) {
-        throw new Error('מזהה חשבונית לא תקין');
-      }
-      
+      const API_BASE_URL = 'https://diam-server.onrender.com';
       const response = await axios.get(`${API_BASE_URL}/api/invoices/${id}/pdf`, {
         responseType: 'blob'
       });
       
-      // בדיקה שהתקבל קובץ
-      if (!response.data || response.data.size === 0) {
-        throw new Error('לא התקבל קובץ PDF מהשרת');
-      }
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      setViewInvoiceUrl(url);
+      setViewInvoiceDialogOpen(true);
+      
+    } catch (error) {
+      console.error('שגיאה בטעינת החשבונית:', error);
+      enqueueSnackbar(
+        isEnglish ? 'Error loading invoice' : 'שגיאה בטעינת החשבונית',
+        { variant: 'error' }
+      );
+    }
+  };
+  
+  // הורדת חשבונית
+  const handleDownloadInvoice = async (id, invoiceNumber) => {
+    try {
+      const API_BASE_URL = 'https://diam-server.onrender.com';
+      const response = await axios.get(`${API_BASE_URL}/api/invoices/${id}/pdf`, {
+        responseType: 'blob'
+      });
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -194,12 +207,7 @@ const Invoices = () => {
       link.setAttribute('download', `חשבונית-${invoiceNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
-      
-      // ניקוי ה-DOM לאחר ההורדה
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        link.remove();
-      }, 100);
+      link.remove();
       
       enqueueSnackbar(
         isEnglish ? 'Invoice downloaded successfully' : 'החשבונית הורדה בהצלחה',
@@ -207,24 +215,8 @@ const Invoices = () => {
       );
     } catch (error) {
       console.error('שגיאה בהורדת החשבונית:', error);
-      
-      // הודעת שגיאה מותאמת לפי סוג הבעיה
-      let errorMessage = 'שגיאה בהורדת החשבונית';
-      
-      if (error.response) {
-        // שגיאת שרת עם קוד שגיאה
-        if (error.response.status === 404) {
-          errorMessage = 'לא נמצא קובץ PDF לחשבונית זו';
-        } else if (error.response.status === 500) {
-          errorMessage = 'שגיאת שרת בעת ניסיון להוריד את החשבונית';
-        }
-      } else if (error.message) {
-        // שגיאה עם הודעה ספציפית
-        errorMessage = error.message;
-      }
-      
       enqueueSnackbar(
-        isEnglish ? 'Error downloading invoice: ' + errorMessage : errorMessage,
+        isEnglish ? 'Error downloading invoice' : 'שגיאה בהורדת החשבונית',
         { variant: 'error' }
       );
     }
@@ -238,30 +230,23 @@ const Invoices = () => {
   
   // ביטול חשבונית
   const handleCancelInvoice = async (id) => {
-    try {
-      await axios.put(`${API_BASE_URL}/api/invoices/${id}/cancel`);
-      setRefresh(prev => !prev);
-      enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
-      // סגירת הדיאלוג אם פתוח
-      setCancelConfirmOpen(false);
-    } catch (error) {
-      console.error('שגיאה בביטול החשבונית:', error);
-      
-      let errorMessage = 'שגיאה בביטול החשבונית';
-      
-      if (error.response && error.response.data && error.response.data.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
+    if (window.confirm('האם אתה בטוח שברצונך לבטל חשבונית זו?')) {
+      try {
+        const API_BASE_URL = 'https://diam-server.onrender.com';
+        await axios.put(`${API_BASE_URL}/api/invoices/${id}/cancel`);
+        setRefresh(prev => !prev);
+        enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
+      } catch (error) {
+        console.error('שגיאה בביטול החשבונית:', error);
+        enqueueSnackbar('שגיאה בביטול החשבונית', { variant: 'error' });
       }
-      
-      enqueueSnackbar(errorMessage, { variant: 'error' });
     }
   };
   
   // יצירת חשבונית זיכוי
   const handleCreditInvoice = async (id) => {
     try {
+      const API_BASE_URL = 'https://diam-server.onrender.com';
       await axios.post(`${API_BASE_URL}/api/invoices/${id}/credit`);
       setRefresh(prev => !prev);
       enqueueSnackbar('חשבונית זיכוי נוצרה בהצלחה', { variant: 'success' });
@@ -495,7 +480,7 @@ const Invoices = () => {
                           <IconButton 
                             size="small" 
                             color="primary"
-                            onClick={() => setViewInvoiceId(invoice._id)}
+                            onClick={() => handleViewInvoice(invoice._id, invoice.invoiceNumber)}
                           >
                             <ViewIcon fontSize="small" />
                           </IconButton>
@@ -594,6 +579,42 @@ const Invoices = () => {
               בטל חשבונית
             </Button>
           </Box>
+        </Box>
+      </Dialog>
+      
+      {/* דיאלוג צפייה בחשבונית */}
+      <Dialog 
+        open={viewInvoiceDialogOpen} 
+        onClose={() => {
+          setViewInvoiceDialogOpen(false);
+          setTimeout(() => {
+            setViewInvoiceUrl(null);
+          }, 300);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => setViewInvoiceDialogOpen(false)}
+          >
+            סגור
+          </Button>
+        </Box>
+        <Box sx={{ height: '80vh', width: '100%' }}>
+          {viewInvoiceUrl && (
+            <iframe 
+              src={viewInvoiceUrl} 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                border: 'none' 
+              }}
+              title="צפייה בחשבונית"
+            />
+          )}
         </Box>
       </Dialog>
     </Container>
