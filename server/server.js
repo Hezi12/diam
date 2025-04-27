@@ -88,14 +88,16 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // טעינת נתיבי API
-const authRoutes = require('./routes/auth');
-const roomsRoutes = require('./routes/rooms');
 const bookingsRoutes = require('./routes/bookings');
+const roomsRoutes = require('./routes/rooms');
+const authRoutes = require('./routes/auth');
+const invoicesRoutes = require('./routes/invoices');
 
-// הגדרת נתיבי API
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomsRoutes);
+// הגדרת נתיבים
 app.use('/api/bookings', bookingsRoutes);
+app.use('/api/rooms', roomsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/invoices', invoicesRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {

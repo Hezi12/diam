@@ -10,6 +10,7 @@ import theme from './theme';
 // קומפוננטים לעמודים
 import Dashboard from './pages/Dashboard';
 import Bookings from './pages/Bookings';
+import Invoices from './pages/Invoices';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
 import AirportRooms from './pages/settings/rooms/AirportRooms';
@@ -76,6 +77,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Bookings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoices"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Invoices />
                   </Layout>
                 </ProtectedRoute>
               }

@@ -8,8 +8,6 @@ import {
   Typography,
   Box,
   Paper,
-  Grid,
-  TextField,
   IconButton,
   CircularProgress,
   Table,
@@ -18,37 +16,47 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  InputAdornment,
-  FormControl,
-  InputLabel,
+  Snackbar,
+  Alert,
+  Switch,
+  FormControlLabel,
+  TextField,
   Select,
   MenuItem,
-  Snackbar,
-  Alert
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Print as PrintIcon,
+  Receipt as ReceiptIcon,
+  Translate as TranslateIcon,
   Save as SaveIcon,
-  Receipt as ReceiptIcon
+  Print as PrintIcon,
+  Upload as UploadIcon
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import axios from 'axios';
+import { useSnackbar } from 'notistack';
 
 /**
  * דיאלוג יצירת חשבונית
+ * תואם לדרישות חוק מס ערך מוסף בישראל
  */
 const CreateInvoiceDialog = ({ 
   open, 
   onClose, 
   bookingData, 
+  onSave = null,
   businessInfo = {
-    name: "דיאם אירוח בע״מ",
-    address: "רחוב רוטשילד 12, תל אביב",
+    name: "דיאם אס הוטלס",
+    name_en: "Diam S Hotels",
+    address: "רוטשילד 79, פתח תקווה",
+    address_en: "Rothschild St., Petah Tikva 79",
     phone: "03-1234567",
-    email: "info@diam.co.il",
-    website: "www.diam.co.il",
-    taxId: "123456789"
+    email: "info@diamhotels.co.il",
+    website: "www.diamhotels.co.il",
+    taxId: "516679909"
   }
 }) => {
   // סטייל בסיסי
@@ -64,37 +72,55 @@ const CreateInvoiceDialog = ({
     blue: '#0071e3',
     orange: '#f7971e'
   };
+  
+  // מצב שפת החשבונית (עברית/אנגלית)
+  const [isEnglish, setIsEnglish] = useState(false);
+
+  // הוק להודעות מערכת
+  const { enqueueSnackbar } = useSnackbar();
 
   // מצב החשבונית
   const [invoiceData, setInvoiceData] = useState({
     invoiceNumber: '',
+    documentType: 'invoice', // חשבונית מס, חשבונית מס/קבלה
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: new Date().toISOString().split('T')[0],
-    customerName: '',
-    customerAddress: '',
-    customerPhone: '',
-    customerEmail: '',
+    customer: {
+      name: '',
+      identifier: '', // ת.ז או ח.פ.
+      address: '',
+      phone: '',
+      email: ''
+    },
     items: [
       {
-        description: 'לינה בדיאם',
+        description: 'לינה',
+        description_en: 'Accommodation',
+        roomType: '',
+        dateRange: '',
+        dateRange_en: '',
         quantity: 1,
-        price: 0,
-        total: 0
+        unitPrice: 0,
+        totalPrice: 0
       }
     ],
     subtotal: 0,
-    tax: 0,
+    taxRate: 17,
+    taxAmount: 0,
     discount: 0,
     total: 0,
     notes: '',
-    paymentMethod: 'מזומן'
+    paymentMethod: 'cash',
+    paymentDetails: {
+      cardLastDigits: '',
+      checkNumber: '',
+      bankTransferRef: '',
+      otherDetails: ''
+    }
   });
 
   // מצב טעינה
   const [isLoading, setIsLoading] = useState(false);
-
-  // מצב הדפסה
-  const [isPrinting, setIsPrinting] = useState(false);
   
   // מצב התראות
   const [snackbar, setSnackbar] = useState({
@@ -106,35 +132,9 @@ const CreateInvoiceDialog = ({
   // רפרנס לתוכן החשבונית
   const invoiceContentRef = useRef(null);
 
-  // יצירת מספר חשבונית אוטומטי
-  useEffect(() => {
-    if (!invoiceData.invoiceNumber) {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      
-      // בפרויקט אמיתי נקבל את המספר הרץ מהשרת
-      // כאן אנחנו פשוט משתמשים במספר רנדומלי לצורך הדגמה
-      const randomNumber = Math.floor(Math.random() * 999) + 1;
-      const serialNumber = String(randomNumber).padStart(3, '0');
-      
-      const autoInvoiceNumber = `${year}-${month}-${serialNumber}`;
-      
-      setInvoiceData(prev => ({
-        ...prev,
-        invoiceNumber: autoInvoiceNumber
-      }));
-    }
-  }, [invoiceData.invoiceNumber]);
-
   // עדכון נתוני החשבונית מנתוני ההזמנה
   useEffect(() => {
     if (bookingData) {
-      // חישוב טקסט של מספר לילות
-      const nightsText = bookingData.nights === 1 
-        ? 'לילה אחד' 
-        : `${bookingData.nights} לילות`;
-
       // חישוב תאריכי שהייה
       const checkInDate = new Date(bookingData.checkIn);
       const checkOutDate = new Date(bookingData.checkOut);
@@ -142,101 +142,55 @@ const CreateInvoiceDialog = ({
       const formattedCheckIn = checkInDate.toLocaleDateString('he-IL');
       const formattedCheckOut = checkOutDate.toLocaleDateString('he-IL');
       
-      // תיאור מלא של השירות
-      const serviceDescription = `לינה בדיאם - ${nightsText} (${formattedCheckIn} - ${formattedCheckOut})`;
+      const formattedCheckInEn = checkInDate.toLocaleDateString('en-US');
+      const formattedCheckOutEn = checkOutDate.toLocaleDateString('en-US');
+      
+      // תיאור של השירות
+      const serviceDescription = `לינה`;
+      const serviceDescriptionEn = `Accommodation`;
+      const dateRange = `${formattedCheckIn} - ${formattedCheckOut}`;
+      const dateRangeEn = `${formattedCheckInEn} - ${formattedCheckOutEn}`;
       
       // חישוב סכומים
-      const subtotal = bookingData.price || 0;
-      const tax = bookingData.isTourist ? 0 : Math.round(subtotal * 0.17);
-      const total = subtotal;
-
+      const priceWithTax = bookingData.price || 0;
+      const taxRate = 17;
+      const subtotal = priceWithTax / 1.17; // מחיר לפני מע"מ
+      const taxAmount = priceWithTax - subtotal; // סכום המע"מ
+      const pricePerNight = subtotal / (bookingData.nights || 1);
+      
       setInvoiceData(prev => ({
         ...prev,
-        customerName: `${bookingData.firstName} ${bookingData.lastName}`,
-        customerPhone: bookingData.phone || '',
-        customerEmail: bookingData.email || '',
+        customer: {
+          ...prev.customer,
+          name: `${bookingData.firstName} ${bookingData.lastName}`,
+          phone: bookingData.phone || '',
+          email: bookingData.email || ''
+        },
+        checkInDate: formattedCheckIn,
+        checkOutDate: formattedCheckOut,
+        checkInDateEn: formattedCheckInEn,
+        checkOutDateEn: formattedCheckOutEn,
+        nights: bookingData.nights || 1,
         items: [
           {
             description: serviceDescription,
+            description_en: serviceDescriptionEn,
+            roomType: bookingData.roomType || 'חדר',
+            roomType_en: bookingData.roomType_en || 'Room',
+            dateRange: dateRange,
+            dateRange_en: dateRangeEn,
             quantity: bookingData.nights || 1,
-            price: bookingData.pricePerNight || 0,
-            total: subtotal
+            unitPrice: parseFloat(pricePerNight.toFixed(2)),
+            totalPrice: parseFloat(subtotal.toFixed(2))
           }
         ],
-        subtotal: subtotal,
-        tax: tax,
-        total: total,
-        isTourist: bookingData.isTourist || false
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        taxRate: taxRate,
+        taxAmount: parseFloat(taxAmount.toFixed(2)),
+        total: parseFloat(priceWithTax.toFixed(2))
       }));
     }
   }, [bookingData]);
-
-  // הוספת פריט לחשבונית
-  const addItem = () => {
-    setInvoiceData({
-      ...invoiceData,
-      items: [
-        ...invoiceData.items,
-        {
-          description: '',
-          quantity: 1,
-          price: 0,
-          total: 0
-        }
-      ]
-    });
-  };
-
-  // עדכון פרטי פריט בחשבונית
-  const updateItem = (index, field, value) => {
-    const updatedItems = [...invoiceData.items];
-    updatedItems[index][field] = value;
-    
-    // אם שינינו כמות או מחיר, נעדכן את הסכום
-    if (field === 'quantity' || field === 'price') {
-      updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].price;
-    }
-    
-    // חישוב סיכום מחדש
-    const subtotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
-    const tax = invoiceData.isTourist ? 0 : Math.round(subtotal * 0.17);
-    
-    setInvoiceData({
-      ...invoiceData,
-      items: updatedItems,
-      subtotal: subtotal,
-      tax: tax,
-      total: subtotal
-    });
-  };
-
-  // מחיקת פריט מהחשבונית
-  const removeItem = (index) => {
-    const updatedItems = invoiceData.items.filter((_, i) => i !== index);
-    
-    // חישוב סיכום מחדש
-    const subtotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
-    const tax = invoiceData.isTourist ? 0 : Math.round(subtotal * 0.17);
-    
-    setInvoiceData({
-      ...invoiceData,
-      items: updatedItems,
-      subtotal: subtotal,
-      tax: tax,
-      total: subtotal
-    });
-  };
-
-  // הדפסת החשבונית
-  const handlePrint = () => {
-    setIsPrinting(true);
-    
-    // הדפסה באמצעות דפדפן
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 500);
-  };
 
   // יצירת קובץ PDF מהחשבונית
   const generatePDF = async () => {
@@ -264,51 +218,49 @@ const CreateInvoiceDialog = ({
         }
       `;
       document.head.appendChild(printStyles);
-      
-      // הגדרת אפשרויות של html2canvas
-      const options = {
+
+      const content = invoiceContentRef.current;
+      const canvas = await html2canvas(content, {
         scale: 2,
         useCORS: true,
-        logging: false,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      };
+        logging: false
+      });
 
-      // יצירת תמונה מהתוכן
-      const canvas = await html2canvas(invoiceContentRef.current, options);
-      
-      // מחיקת סגנון ההדפסה
       document.head.removeChild(printStyles);
-      
-      const imgData = canvas.toDataURL('image/png');
 
-      // יצירת PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      // חישוב יחס הגובה/רוחב של התמונה
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      
-      // מיקום והוספת התמונה ל-PDF
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      pdf.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
+      const ratio = canvas.width / canvas.height;
+      const imgWidth = pdfWidth;
+      const imgHeight = imgWidth / ratio;
 
-      // שם הקובץ
-      const fileName = `חשבונית_${invoiceData.invoiceNumber || 'חדשה'}_${invoiceData.customerName.replace(/\s+/g, '_')}.pdf`;
-      
-      return { pdf, fileName };
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+      // שם קובץ שמשלב את מספר החשבונית והתאריך
+      const fileName = `חשבונית-${invoiceData.invoiceNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+
+      return { pdf, fileName, imgData };
     } catch (error) {
       console.error('שגיאה ביצירת PDF:', error);
+      setSnackbar({
+        open: true,
+        message: isEnglish ? 'Error generating PDF' : 'שגיאה ביצירת קובץ PDF',
+        severity: 'error'
+      });
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // שמירת החשבונית
+  // שמירת החשבונית בשרת
   const handleSave = async () => {
     setIsLoading(true);
     
@@ -316,28 +268,111 @@ const CreateInvoiceDialog = ({
       // יצירת קובץ PDF
       const pdfResult = await generatePDF();
       
+      if (!pdfResult) {
+        throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
+      }
+      
+      const { pdf, fileName } = pdfResult;
+      
+      // יצירת אובייקט FormData לשליחת הקובץ
+      const pdfBlob = pdf.output('blob');
+      
+      // שליחת הנתונים לשרת
+      const invoiceDataToSend = {
+        documentType: invoiceData.documentType,
+        customer: invoiceData.customer,
+        items: invoiceData.items,
+        subtotal: invoiceData.subtotal,
+        taxRate: invoiceData.taxRate,
+        taxAmount: invoiceData.taxAmount,
+        discount: invoiceData.discount,
+        total: invoiceData.total,
+        issueDate: invoiceData.issueDate,
+        dueDate: invoiceData.dueDate,
+        notes: invoiceData.notes,
+        paymentMethod: invoiceData.paymentMethod,
+        paymentDetails: invoiceData.paymentDetails,
+        business: businessInfo
+      };
+      
+      // אם יש הזמנה קשורה, מוסיף את המזהה שלה
+      if (bookingData && bookingData._id) {
+        invoiceDataToSend.booking = bookingData._id;
+      }
+      
+      // שליחת נתוני החשבונית לשרת
+      const response = await axios.post('/api/invoices', {
+        invoiceData: invoiceDataToSend,
+        bookingId: bookingData?._id
+      });
+      
+      // קבלת מזהה החשבונית שנוצרה
+      const { invoice } = response.data;
+      
+      // העלאת קובץ ה-PDF לשרת
+      const formData = new FormData();
+      formData.append('pdf', pdfBlob, fileName);
+      
+      await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // שמירת הקובץ לוקאלית
+      pdf.save(fileName);
+      
+      // קריאה לפונקציית השמירה החיצונית אם קיימת
+      if (onSave && typeof onSave === 'function') {
+        onSave(invoice);
+      }
+      
+      // הצגת הודעת הצלחה
+      enqueueSnackbar(
+        isEnglish ? 'Invoice saved successfully' : 'החשבונית נשמרה בהצלחה',
+        { variant: 'success' }
+      );
+      
+      // סגירת הדיאלוג
+      onClose();
+    } catch (error) {
+      console.error('שגיאה בשמירת החשבונית:', error);
+      
+      enqueueSnackbar(
+        isEnglish 
+          ? 'An error occurred while saving the invoice' 
+          : 'אירעה שגיאה בשמירת החשבונית: ' + (error.response?.data?.message || error.message),
+        { variant: 'error' }
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // טיפול בהורדת PDF בלבד
+  const handleDownloadPdf = async () => {
+    setIsLoading(true);
+    try {
+      // יצירת קובץ PDF
+      const pdfResult = await generatePDF();
+      
       if (pdfResult) {
         const { pdf, fileName } = pdfResult;
-        
         // הורדת הקובץ
         pdf.save(fileName);
         
-        // הצגת הודעת הצלחה
-        setSnackbar({
-          open: true,
-          message: 'החשבונית נשמרה בהצלחה',
-          severity: 'success'
-        });
-      } else {
-        throw new Error('שגיאה ביצירת קובץ PDF');
+        enqueueSnackbar(
+          isEnglish ? 'PDF downloaded successfully' : 'ה-PDF הורד בהצלחה',
+          { variant: 'success' }
+        );
       }
     } catch (error) {
-      console.error('שגיאה בשמירת החשבונית:', error);
-      setSnackbar({
-        open: true,
-        message: 'אירעה שגיאה בשמירת החשבונית',
-        severity: 'error'
-      });
+      console.error('שגיאה בהורדת PDF:', error);
+      
+      enqueueSnackbar(
+        isEnglish ? 'Error downloading PDF' : 'שגיאה בהורדת ה-PDF',
+        { variant: 'error' }
+      );
     } finally {
       setIsLoading(false);
     }
@@ -346,6 +381,56 @@ const CreateInvoiceDialog = ({
   // סגירת התראה
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  // פונקציה לפורמט הצגת מספרים עם 2 ספרות עשרוניות
+  const formatPrice = (price) => {
+    return price?.toFixed(2) || "0.00";
+  };
+  
+  // החלפת שפת החשבונית
+  const handleLanguageToggle = () => {
+    setIsEnglish(!isEnglish);
+  };
+  
+  // עדכון סוג המסמך
+  const handleDocumentTypeChange = (event) => {
+    setInvoiceData(prev => ({
+      ...prev,
+      documentType: event.target.value
+    }));
+  };
+  
+  // עדכון פרטי לקוח
+  const handleCustomerChange = (field) => (event) => {
+    setInvoiceData(prev => ({
+      ...prev,
+      customer: {
+        ...prev.customer,
+        [field]: event.target.value
+      }
+    }));
+  };
+  
+  // עדכון אמצעי תשלום
+  const handlePaymentMethodChange = (event) => {
+    setInvoiceData(prev => ({
+      ...prev,
+      paymentMethod: event.target.value
+    }));
+  };
+
+  // הכותרת המתאימה לסוג המסמך
+  const getDocumentTitle = () => {
+    if (isEnglish) {
+      return invoiceData.documentType === 'invoice_receipt' 
+        ? 'Tax Invoice / Receipt - Original' 
+        : 'Tax Invoice - Original';
+    } else {
+      return invoiceData.documentType === 'invoice_receipt' 
+        ? 'חשבונית מס/קבלה - מקור' 
+        : 'חשבונית מס - מקור';
+    }
   };
 
   return (
@@ -375,315 +460,346 @@ const CreateInvoiceDialog = ({
           py: 1
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <ReceiptIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">יצירת חשבונית</Typography>
-        </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: accentColors.red }}>
           <CloseIcon />
         </IconButton>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FormControlLabel
+            control={
+              <Switch 
+                checked={isEnglish}
+                onChange={handleLanguageToggle}
+                color="primary"
+                size="small"
+              />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <TranslateIcon fontSize="small" sx={{ mr: 0.5 }} />
+                <Typography variant="body2">
+                  {isEnglish ? 'English' : 'עברית'}
+                </Typography>
+              </Box>
+            }
+            labelPlacement="start"
+          />
+        </Box>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+            <ReceiptIcon sx={{ mr: 1 }} />
+            {isEnglish ? 'Create Invoice' : 'יצירת חשבונית'}
+          </Typography>
+        </Box>
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
+        {/* פאנל הגדרות */}
+        <Paper sx={{ p: 2, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>{isEnglish ? 'Document Type' : 'סוג מסמך'}</InputLabel>
+              <Select
+                value={invoiceData.documentType}
+                onChange={handleDocumentTypeChange}
+                label={isEnglish ? 'Document Type' : 'סוג מסמך'}
+              >
+                <MenuItem value="invoice">{isEnglish ? 'Tax Invoice' : 'חשבונית מס'}</MenuItem>
+                <MenuItem value="invoice_receipt">{isEnglish ? 'Tax Invoice/Receipt' : 'חשבונית מס/קבלה'}</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>{isEnglish ? 'Payment Method' : 'אמצעי תשלום'}</InputLabel>
+              <Select
+                value={invoiceData.paymentMethod}
+                onChange={handlePaymentMethodChange}
+                label={isEnglish ? 'Payment Method' : 'אמצעי תשלום'}
+              >
+                <MenuItem value="cash">{isEnglish ? 'Cash' : 'מזומן'}</MenuItem>
+                <MenuItem value="credit_card">{isEnglish ? 'Credit Card' : 'כרטיס אשראי'}</MenuItem>
+                <MenuItem value="bank_transfer">{isEnglish ? 'Bank Transfer' : 'העברה בנקאית'}</MenuItem>
+                <MenuItem value="check">{isEnglish ? 'Check' : 'צ\'ק'}</MenuItem>
+                <MenuItem value="other">{isEnglish ? 'Other' : 'אחר'}</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              label={isEnglish ? 'Customer ID/Business ID' : 'ת.ז/ח.פ'}
+              variant="outlined"
+              size="small"
+              value={invoiceData.customer.identifier}
+              onChange={handleCustomerChange('identifier')}
+              sx={{ minWidth: 200 }}
+            />
+            
+            <TextField
+              label={isEnglish ? 'Customer Address' : 'כתובת'}
+              variant="outlined"
+              size="small"
+              value={invoiceData.customer.address}
+              onChange={handleCustomerChange('address')}
+              sx={{ minWidth: 200, flexGrow: 1 }}
+            />
+          </Box>
+        </Paper>
+      
         <div ref={invoiceContentRef} id="invoice-content">
           {/* ראש החשבונית - פרטי עסק */}
           <Paper sx={{ p: 3, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {businessInfo.name}
-                </Typography>
-                <Typography variant="body2">{businessInfo.address}</Typography>
-                <Typography variant="body2">טלפון: {businessInfo.phone}</Typography>
-                <Typography variant="body2">מייל: {businessInfo.email}</Typography>
-                <Typography variant="body2">ע.מ/ח.פ: {businessInfo.taxId}</Typography>
-              </Grid>
-              <Grid item xs={6} sx={{ textAlign: 'left' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    חשבונית מס/קבלה
-                  </Typography>
-                  <TextField
-                    label="מספר חשבונית"
-                    variant="outlined"
-                    size="small"
-                    value={invoiceData.invoiceNumber}
-                    onChange={(e) => setInvoiceData({ ...invoiceData, invoiceNumber: e.target.value })}
-                    sx={{ mb: 1, width: '150px' }}
-                  />
-                  <TextField
-                    label="תאריך הוצאה"
-                    type="date"
-                    variant="outlined"
-                    size="small"
-                    value={invoiceData.issueDate}
-                    onChange={(e) => setInvoiceData({ ...invoiceData, issueDate: e.target.value })}
-                    sx={{ mb: 1, width: '150px' }}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
-
-          {/* פרטי לקוח */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-              פרטי לקוח
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="שם הלקוח"
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={invoiceData.customerName}
-                  onChange={(e) => setInvoiceData({ ...invoiceData, customerName: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="כתובת"
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={invoiceData.customerAddress}
-                  onChange={(e) => setInvoiceData({ ...invoiceData, customerAddress: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="טלפון"
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={invoiceData.customerPhone}
-                  onChange={(e) => setInvoiceData({ ...invoiceData, customerPhone: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="דוא״ל"
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={invoiceData.customerEmail}
-                  onChange={(e) => setInvoiceData({ ...invoiceData, customerEmail: e.target.value })}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-
-          {/* טבלת פריטים */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-              פירוט שירותים
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>תיאור</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>כמות</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>מחיר</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>סה״כ</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {invoiceData.items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <TextField
-                          fullWidth
-                          variant="outlined"
-                          size="small"
-                          value={item.description}
-                          onChange={(e) => updateItem(index, 'description', e.target.value)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          type="number"
-                          variant="outlined"
-                          size="small"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                          InputProps={{ inputProps: { min: 1 } }}
-                          sx={{ width: '70px' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          type="number"
-                          variant="outlined"
-                          size="small"
-                          value={item.price}
-                          onChange={(e) => updateItem(index, 'price', Number(e.target.value))}
-                          InputProps={{
-                            startAdornment: <InputAdornment position="start">₪</InputAdornment>
-                          }}
-                          sx={{ width: '120px' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          ₪{item.total}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => removeItem(index)}
-                          sx={{ color: accentColors.red }}
-                          disabled={invoiceData.items.length === 1}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Box sx={{ mt: 2 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={addItem}
-                sx={{ 
-                  borderColor: accentColors.blue, 
-                  color: accentColors.blue,
-                  '&:hover': { borderColor: accentColors.blue, opacity: 0.8 }  
-                }}
-              >
-                הוספת פריט
-              </Button>
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {isEnglish ? businessInfo.name_en : businessInfo.name}
+              </Typography>
+              <Typography variant="body2">{isEnglish ? businessInfo.address_en : businessInfo.address}</Typography>
+              <Typography variant="body2">{isEnglish ? 'Phone: ' : 'טלפון: '}{businessInfo.phone}</Typography>
+              <Typography variant="body2">{isEnglish ? 'Email: ' : 'דוא"ל: '}{businessInfo.email}</Typography>
+              <Typography variant="body2">{isEnglish ? 'Website: ' : 'אתר: '}{businessInfo.website}</Typography>
+              <Typography variant="body2">{isEnglish ? 'Tax ID: ' : 'ח.פ/ע.מ: '}{businessInfo.taxId}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              {isEnglish ? (
+                <>
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      Invoice Number: {invoiceData.invoiceNumber || 'Will be generated'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      Date: {new Date(invoiceData.issueDate).toLocaleDateString('en-US')}
+                    </Typography>
+                  </Box>
+                </>
+              ) : (
+                <>
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      תאריך: {new Date(invoiceData.issueDate).toLocaleDateString('he-IL')}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      מספר חשבונית: {invoiceData.invoiceNumber || 'יופק אוטומטית'}
+                    </Typography>
+                  </Box>
+                </>
+              )}
             </Box>
           </Paper>
 
-          {/* סיכום ואפשרויות נוספות */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 3, height: '100%', borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  אמצעי תשלום והערות
+          <Paper sx={{ p: 3, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
+              {getDocumentTitle()}
+            </Typography>
+            
+            <Box sx={{ mb: 3, textAlign: isEnglish ? 'left' : 'right' }}>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                {isEnglish ? 'To:' : 'לכבוד:'}
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {invoiceData.customer.name || (isEnglish ? 'Customer Name' : 'שם הלקוח')}
+              </Typography>
+              {invoiceData.customer.identifier && (
+                <Typography variant="body2">
+                  {isEnglish ? 'ID/Business ID: ' : 'ת.ז/ח.פ: '}{invoiceData.customer.identifier}
                 </Typography>
-                <FormControl fullWidth variant="outlined" size="small" sx={{ mb: 2 }}>
-                  <InputLabel>אמצעי תשלום</InputLabel>
-                  <Select
-                    value={invoiceData.paymentMethod}
-                    onChange={(e) => setInvoiceData({ ...invoiceData, paymentMethod: e.target.value })}
-                    label="אמצעי תשלום"
-                  >
-                    <MenuItem value="מזומן">מזומן</MenuItem>
-                    <MenuItem value="אשראי">כרטיס אשראי</MenuItem>
-                    <MenuItem value="העברה בנקאית">העברה בנקאית</MenuItem>
-                    <MenuItem value="ביט">ביט</MenuItem>
-                    <MenuItem value="פייבוקס">פייבוקס</MenuItem>
-                    <MenuItem value="אחר">אחר</MenuItem>
-                  </Select>
-                </FormControl>
-                <TextField
-                  label="הערות"
-                  multiline
-                  rows={4}
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  value={invoiceData.notes}
-                  onChange={(e) => setInvoiceData({ ...invoiceData, notes: e.target.value })}
-                />
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  סיכום
+              )}
+              {invoiceData.customer.address && (
+                <Typography variant="body2">
+                  {isEnglish ? 'Address: ' : 'כתובת: '}{invoiceData.customer.address}
                 </Typography>
+              )}
+              {invoiceData.customer.phone && (
+                <Typography variant="body2">
+                  {isEnglish ? 'Phone: ' : 'טלפון: '}{invoiceData.customer.phone}
+                </Typography>
+              )}
+              {invoiceData.customer.email && (
+                <Typography variant="body2">
+                  {isEnglish ? 'Email: ' : 'דוא"ל: '}{invoiceData.customer.email}
+                </Typography>
+              )}
+            </Box>
+
+            {/* טבלת פריטים */}
+            <TableContainer>
+              {isEnglish ? (
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Price per Night</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Nights</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Dates</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {invoiceData.items.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                          ₪{formatPrice(item.totalPrice)}
+                        </TableCell>
+                        <TableCell align="center">
+                          ₪{formatPrice(item.unitPrice)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {item.quantity || 1}
+                        </TableCell>
+                        <TableCell align="center">
+                          {item.dateRange_en || '04/28/2025 - 04/27/2025'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {item.description_en || 'Accommodation'} - {item.roomType_en || 'Room'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>תיאור</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>תאריכים</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>לילות</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>מחיר ללילה</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>סה"כ</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {invoiceData.items.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell align="center">
+                          {item.description || 'לינה'} - {item.roomType || 'חדר'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {item.dateRange || '28/04/2025 - 27/04/2025'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {item.quantity || 1}
+                        </TableCell>
+                        <TableCell align="center">
+                          ₪{formatPrice(item.unitPrice)}
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                          ₪{formatPrice(item.totalPrice)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TableContainer>
+
+            {/* סיכום חשבונית */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+              <Box sx={{ width: '250px' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>סכום ביניים:</Typography>
-                  <Typography>₪{invoiceData.subtotal}</Typography>
+                  <Typography variant="body1">{isEnglish ? 'Subtotal:' : 'סכום לפני מע"מ:'}</Typography>
+                  <Typography variant="body1">₪{formatPrice(invoiceData.subtotal)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>מע״מ ({invoiceData.isTourist ? 'פטור - תייר' : '17%'}):</Typography>
-                  <Typography>₪{invoiceData.tax}</Typography>
+                  <Typography variant="body1">{isEnglish ? `VAT (${invoiceData.taxRate}%):` : `מע"מ (${invoiceData.taxRate}%):`}</Typography>
+                  <Typography variant="body1">₪{formatPrice(invoiceData.taxAmount)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography>הנחה:</Typography>
-                  <TextField
-                    type="number"
-                    variant="outlined"
-                    size="small"
-                    value={invoiceData.discount}
-                    onChange={(e) => {
-                      const discount = Number(e.target.value);
-                      setInvoiceData({
-                        ...invoiceData,
-                        discount: discount,
-                        total: invoiceData.subtotal - discount
-                      });
-                    }}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₪</InputAdornment>
-                    }}
-                    sx={{ width: '120px' }}
-                  />
+                {invoiceData.discount > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body1">{isEnglish ? 'Discount:' : 'הנחה:'}</Typography>
+                    <Typography variant="body1" sx={{ color: accentColors.green }}>-₪{formatPrice(invoiceData.discount)}</Typography>
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', pt: 1, mt: 1 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{isEnglish ? 'Total:' : 'סה"כ לתשלום:'}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>₪{formatPrice(invoiceData.total)}</Typography>
                 </Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    bgcolor: 'rgba(0, 0, 0, 0.05)',
-                    p: 2,
-                    borderRadius: '4px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  <Typography variant="h6">סה״כ לתשלום:</Typography>
-                  <Typography variant="h6">₪{invoiceData.total - invoiceData.discount}</Typography>
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
+              </Box>
+            </Box>
+            
+            {/* פרטי תשלום */}
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                {isEnglish ? 'Payment Method: ' : 'אמצעי תשלום: '}
+                {isEnglish 
+                  ? {'cash': 'Cash', 'credit_card': 'Credit Card', 'bank_transfer': 'Bank Transfer', 'check': 'Check', 'other': 'Other'}[invoiceData.paymentMethod] 
+                  : {'cash': 'מזומן', 'credit_card': 'כרטיס אשראי', 'bank_transfer': 'העברה בנקאית', 'check': 'צ\'ק', 'other': 'אחר'}[invoiceData.paymentMethod]
+                }
+              </Typography>
+            </Box>
+            
+            {/* הערות */}
+            {invoiceData.notes && (
+              <Box sx={{ mt: 2, p: 1, borderTop: '1px dashed #ddd' }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  {isEnglish ? 'Notes:' : 'הערות:'}
+                </Typography>
+                <Typography variant="body2">{invoiceData.notes}</Typography>
+              </Box>
+            )}
+            
+            {/* חותמת */}
+            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+              <Typography variant="caption" sx={{ textAlign: 'center', fontStyle: 'italic' }}>
+                {isEnglish 
+                  ? 'This document was created digitally and is valid without signature according to tax authority regulations'
+                  : 'מסמך זה הופק באופן ממוחשב והינו תקף ללא חתימה בהתאם לתקנות'
+                }
+              </Typography>
+            </Box>
+          </Paper>
         </div>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
-        <Button
-          variant="outlined"
-          startIcon={<PrintIcon />}
-          onClick={handlePrint}
-          disabled={isPrinting}
-        >
-          {isPrinting ? <CircularProgress size={24} /> : 'הדפסה'}
-        </Button>
-        <Box>
-          <Button onClick={onClose} sx={{ mx: 1 }}>
-            ביטול
-          </Button>
+      <DialogActions sx={{ p: 2, borderTop: '1px solid #ddd' }}>
+        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          {/* כפתור שמירה */}
           <Button
             variant="contained"
-            color="primary"
-            onClick={handleSave}
             startIcon={<SaveIcon />}
+            onClick={handleSave}
             disabled={isLoading}
-            sx={{ bgcolor: accentColors.green, '&:hover': { bgcolor: '#058c61' } }}
+            sx={{
+              bgcolor: accentColors.blue,
+              color: 'white',
+              '&:hover': { bgcolor: '#0058b1' }
+            }}
           >
-            {isLoading ? <CircularProgress size={24} color="inherit" /> : 'שמירה כ-PDF'}
+            {isLoading ? (
+              <CircularProgress size={24} sx={{ color: 'white' }} />
+            ) : isEnglish ? 'Save Invoice' : 'שמור חשבונית'}
+          </Button>
+          
+          {/* כפתור הורדת PDF */}
+          <Button
+            variant="outlined"
+            startIcon={<PrintIcon />}
+            onClick={handleDownloadPdf}
+            disabled={isLoading}
+            sx={{ color: accentColors.blue, borderColor: accentColors.blue }}
+          >
+            {isEnglish ? 'Download PDF' : 'הורד PDF'}
+          </Button>
+          
+          {/* כפתור ביטול */}
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            disabled={isLoading}
+            sx={{ color: accentColors.red, borderColor: accentColors.red }}
+          >
+            {isEnglish ? 'Cancel' : 'ביטול'}
           </Button>
         </Box>
       </DialogActions>
 
-      {/* התראות */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>

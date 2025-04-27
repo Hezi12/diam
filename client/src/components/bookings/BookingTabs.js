@@ -10,10 +10,6 @@ import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
  */
 const BookingTabs = ({ location, onLocationChange }) => {
   const colors = STYLE_CONSTANTS.colors;
-  const locationColors = {
-    airport: colors.airport,
-    rothschild: colors.rothschild
-  };
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
