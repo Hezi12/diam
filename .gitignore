@@ -1,26 +1,33 @@
-# Node.js
+# Dependencies
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-.pnpm-debug.log
+/.pnp
+.pnp.js
 
-# Environment
+# Production build
+/client/build/
+
+# Logs and databases
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Build
-/client/build
-/dist
+# IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
 
-# Logs
-logs
-*.log
-
-# OS
+# Operating System Files
 .DS_Store
 .DS_Store?
 ._*
@@ -29,12 +36,21 @@ logs
 ehthumbs.db
 Thumbs.db
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+# Uploaded Files
+/server/uploads/
+/server/public/
+/uploads/
 
-# Uploads
-/uploads/*
-!/uploads/.gitkeep 
+# Testing
+/coverage
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.cache/
+dist/
+.temp
+.tmp 

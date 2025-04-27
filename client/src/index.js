@@ -5,21 +5,14 @@ import axios from 'axios';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
-import reportWebVitals from './reportWebVitals';
+import { API_URL } from './config/apiConfig';
+import logService from './services/logService';
 
 // הגדרת ברירת מחדל של axios לשרת
-// בדיקה אם האפליקציה רצה בסביבת פיתוח מקומית או על שרת מרוחק
-const isLocalhost = window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1';
-
-// בסביבת פיתוח מקומית נשתמש בכתובת המקומית, אחרת בשרת המרוחק
-const API_URL = isLocalhost 
-  ? 'http://localhost:3200' 
-  : 'https://diam-loy6.onrender.com';
-
-console.log('API URL:', API_URL);
 axios.defaults.baseURL = API_URL;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+logService.info('API URL:', API_URL);
 
 // וידוא שלא יהיו כפילויות של "/api" בנתיבים של קריאות ה-API
 axios.interceptors.request.use(config => {
@@ -28,7 +21,7 @@ axios.interceptors.request.use(config => {
   // בדיקה אם ה-URL כבר מכיל כתובת מלאה (עם פרוטוקול)
   if (config.url && (config.url.startsWith('http://') || config.url.startsWith('https://'))) {
     // אם כן, לא נשנה את הכתובת כלל
-    console.log(`Sending request to full URL: ${config.url}`);
+    logService.info(`Sending request to full URL: ${config.url}`);
     return config;
   }
   
@@ -37,7 +30,7 @@ axios.interceptors.request.use(config => {
     config.url = '/api' + (config.url.startsWith('/') ? config.url : '/' + config.url);
   }
   
-  console.log(`Sending request to: ${axios.defaults.baseURL}${config.url}`);
+  logService.info(`Sending request to: ${axios.defaults.baseURL}${config.url}`);
   return config;
 });
 
@@ -45,9 +38,9 @@ axios.interceptors.request.use(config => {
 const token = localStorage.getItem('token');
 if (token) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  console.log('Found token in localStorage, adding to request headers');
+  logService.info('Found token in localStorage, adding to request headers');
 } else {
-  console.log('No token found in localStorage');
+  logService.info('No token found in localStorage');
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -59,6 +52,4 @@ root.render(
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
-);
-
-reportWebVitals(); 
+); 

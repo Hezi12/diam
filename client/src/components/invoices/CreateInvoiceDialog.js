@@ -24,26 +24,21 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
-  Grid,
-  Tabs,
-  Tab,
-  TabPanel,
-  InputAdornment,
-  Checkbox
+  InputLabel
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Receipt as ReceiptIcon,
   Translate as TranslateIcon,
   Save as SaveIcon,
-  Print as PrintIcon,
-  Upload as UploadIcon
+  Print as PrintIcon
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
+import invoiceService from '../../services/invoiceService';
+import logService from '../../services/logService';
 
 /**
  * דיאלוג יצירת חשבונית
@@ -67,16 +62,21 @@ const CreateInvoiceDialog = ({
 }) => {
   // סטייל בסיסי
   const style = {
-    borderRadius: '8px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    borderRadius: '4px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+    fontFamily: 'Assistant, Arial, sans-serif'
   };
 
   // צבעי אקסנט
   const accentColors = {
-    green: '#06a271',
-    red: '#e34a6f',
-    blue: '#0071e3',
-    orange: '#f7971e'
+    primary: '#333333',
+    secondary: '#555555',
+    accent: '#007bff',
+    light: '#f8f9fa',
+    dark: '#343a40',
+    border: '#dee2e6',
+    success: '#28a745',
+    error: '#dc3545'
   };
   
   // מצב שפת החשבונית (עברית/אנגלית)
@@ -227,22 +227,27 @@ const CreateInvoiceDialog = ({
 
       const content = invoiceContentRef.current;
       const canvas = await html2canvas(content, {
-        scale: 2,
+        scale: 2.5, // הגדלת רזולוציה משמעותית (במקום 1.0)
         useCORS: true,
-        logging: false
+        logging: false,
+        imageTimeout: 0,
+        backgroundColor: 'white',
+        allowTaint: false,
+        letterRendering: true, // שיפור רנדור של אותיות/גופנים
       });
 
       document.head.removeChild(printStyles);
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0); // שימוש ב-PNG באיכות מלאה
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true,
+        hotfixes: ['px_scaling'] // פתרון חלופי לבעיות סקלינג בספריית jsPDF
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
       const ratio = canvas.width / canvas.height;
       const imgWidth = pdfWidth;
       const imgHeight = imgWidth / ratio;
@@ -266,44 +271,86 @@ const CreateInvoiceDialog = ({
     }
   };
 
-  // שמירת החשבונית בשרת
+  // טיפול בשמירת החשבונית
   const handleSave = async () => {
     setIsLoading(true);
     let pdfResult = null;
     
     try {
-      // הכנת נתוני החשבונית לשליחה
+      // בדיקת תקינות נתונים לפני שליחה
+      if (!invoiceData.customer || !invoiceData.customer.name) {
+        throw new Error(isEnglish ? 'Customer details are required' : 'פרטי הלקוח הינם שדות חובה');
+      }
+      
+      if (!Array.isArray(invoiceData.items) || invoiceData.items.length === 0) {
+        throw new Error(isEnglish ? 'At least one item is required' : 'יש להוסיף לפחות פריט אחד');
+      }
+      
+      // בניית אובייקט החשבונית במבנה הנדרש עבור השרת
       const invoiceDataToSend = {
+        issueDate: new Date().toISOString(),
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+        status: 'active',
+        paymentStatus: 'unpaid',
+        paymentMethod: invoiceData.paymentMethod || 'cash',
+        businessInfo: {
+          name: businessInfo.name,
+          address: businessInfo.address,
+          phone: businessInfo.phone,
+          email: businessInfo.email,
+          website: businessInfo.website,
+          taxId: businessInfo.taxId,
+        },
         customer: {
           name: invoiceData.customer.name,
           email: invoiceData.customer.email,
           phone: invoiceData.customer.phone,
           address: invoiceData.customer.address,
-          city: '',
-          taxId: invoiceData.customer.identifier,
+          city: invoiceData.customer.city || '',
+          taxId: invoiceData.customer.identifier || '',
         },
-        items: invoiceData.items,
-        subtotal: invoiceData.subtotal,
-        taxRate: invoiceData.taxRate,
-        taxAmount: invoiceData.taxAmount,
-        total: invoiceData.total,
-        notes: invoiceData.notes,
-        documentType: invoiceData.documentType,
-        bookingId: bookingData?._id || null,
+        items: invoiceData.items.map(item => ({
+          description: item.description,
+          description_en: item.description_en || '',
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount || 0,
+          taxRate: invoiceData.taxRate,
+          totalPrice: parseFloat((item.quantity * item.unitPrice).toFixed(2)),
+          dateRange: item.dateRange || '',
+          dateRange_en: item.dateRange_en || ''
+        })),
+        subtotal: parseFloat(invoiceData.subtotal) || 0,
+        taxRate: parseFloat(invoiceData.taxRate) || 17,
+        taxAmount: parseFloat(invoiceData.taxAmount) || 0,
+        total: parseFloat(invoiceData.total) || 0,
+        notes: invoiceData.notes || '',
+        documentType: invoiceData.documentType || 'invoice',
         language: isEnglish ? 'en' : 'he',
       };
       
-      console.log('שולח נתוני חשבונית:', invoiceDataToSend);
+      // נבדוק שיש סכום תקין לחשבונית
+      if (invoiceDataToSend.total <= 0) {
+        throw new Error(isEnglish ? 'Invoice total amount must be greater than zero' : 'סכום החשבונית חייב להיות גדול מאפס');
+      }
+
+      // מזהה ההזמנה יועבר כפרמטר נפרד
+      const bookingId = bookingData?._id || null;
       
-      // שליחת החשבונית לשרת - משתמש בנתיב יחסי
-      const response = await axios.post('/api/invoices', invoiceDataToSend);
-      const invoice = response.data;
+      if (bookingId) {
+        logService.info('מקשר חשבונית להזמנה ID:', bookingId);
+      }
       
-      console.log('חשבונית נשמרה בהצלחה:', invoice);
+      logService.info('שולח נתוני חשבונית:', invoiceDataToSend);
+      
+      // שליחת החשבונית לשרת באמצעות שירות החשבוניות
+      const invoice = await invoiceService.createInvoice(invoiceDataToSend, bookingId);
+      
+      logService.info('חשבונית נשמרה בהצלחה:', invoice);
       
       // יצירת קובץ PDF
       pdfResult = await generatePDF();
-      console.log('PDF נוצר בהצלחה');
+      logService.info('PDF נוצר בהצלחה');
       
       if (!pdfResult) {
         throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
@@ -311,20 +358,50 @@ const CreateInvoiceDialog = ({
       
       const { pdf, fileName } = pdfResult;
       
+      // קודם כל שומרים את הקובץ מקומית!
+      pdf.save(fileName);
+      enqueueSnackbar(
+        isEnglish 
+          ? 'PDF saved locally successfully' 
+          : 'קובץ ה-PDF נשמר מקומית בהצלחה',
+        { variant: 'success' }
+      );
+      
       // יצירת אובייקט FormData לשליחת הקובץ
       const pdfBlob = pdf.output('blob');
+      const fileSize = pdfBlob.size / (1024 * 1024); // גודל ב-MB
       
-      // העלאת קובץ ה-PDF לשרת
-      const formData = new FormData();
-      formData.append('pdf', pdfBlob, fileName);
-      
-      await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+      // רק אם הקובץ מספיק קטן, ננסה להעלות אותו לשרת
+      if (fileSize <= 5) { // מגבילים ל-5MB לוודא שזה עובר
+        try {
+          const formData = new FormData();
+          formData.append('pdf', pdfBlob, fileName);
+          
+          await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          logService.info('PDF נשלח לשרת בהצלחה');
+        } catch (pdfError) {
+          logService.error('שגיאה בשליחת ה-PDF לשרת:', pdfError);
+          enqueueSnackbar(
+            isEnglish 
+              ? 'Error uploading PDF to server, but it was saved locally' 
+              : 'שגיאה בהעלאת ה-PDF לשרת, אך הוא נשמר מקומית',
+            { variant: 'warning' }
+          );
         }
-      });
-      
-      console.log('PDF נשלח לשרת בהצלחה');
+      } else {
+        // הקובץ גדול מדי, מדווחים שהוא נשמר מקומית בלבד
+        enqueueSnackbar(
+          isEnglish 
+            ? 'PDF file too large for server upload, saved locally only' 
+            : 'קובץ ה-PDF גדול מדי לשרת, נשמר מקומית בלבד',
+          { variant: 'info' }
+        );
+      }
       
       // הצגת הודעת הצלחה
       enqueueSnackbar(
@@ -339,9 +416,9 @@ const CreateInvoiceDialog = ({
       }
       
     } catch (error) {
-      console.error('שגיאה בשמירת החשבונית:', error);
+      logService.error('שגיאה בשמירת החשבונית:', error);
       
-      // במקרה של שגיאה, נשמור את החשבונית מקומית בלבד
+      // במקרה של שגיאה, ננסה עדיין לשמור את החשבונית מקומית בלבד
       try {
         if (pdfResult) {
           pdfResult.pdf.save(pdfResult.fileName);
@@ -353,13 +430,13 @@ const CreateInvoiceDialog = ({
           );
         }
       } catch (saveError) {
-        console.error('שגיאה גם בהורדה מקומית:', saveError);
+        logService.error('שגיאה גם בהורדה מקומית:', saveError);
       }
       
       enqueueSnackbar(
         isEnglish 
-          ? 'An error occurred while saving the invoice' 
-          : 'אירעה שגיאה בשמירת החשבונית: ' + (error.response?.data?.message || error.message),
+          ? 'An error occurred while saving the invoice: ' + (error.response?.data?.error || error.message)
+          : 'אירעה שגיאה בשמירת החשבונית: ' + (error.response?.data?.error || error.message),
         { variant: 'error' }
       );
     } finally {
@@ -471,14 +548,14 @@ const CreateInvoiceDialog = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: `1px solid ${accentColors.blue}`,
-          bgcolor: 'rgba(0, 113, 227, 0.08)',
-          color: accentColors.blue,
+          borderBottom: `1px solid ${accentColors.border}`,
+          bgcolor: accentColors.light,
+          color: accentColors.primary,
           px: 3,
           py: 1
         }}
       >
-        <IconButton onClick={onClose} size="small" sx={{ color: accentColors.red }}>
+        <IconButton onClick={onClose} size="small" sx={{ color: accentColors.error }}>
           <CloseIcon />
         </IconButton>
         
@@ -514,7 +591,7 @@ const CreateInvoiceDialog = ({
 
       <DialogContent sx={{ p: 3 }}>
         {/* פאנל הגדרות */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
+        <Paper sx={{ p: 2, mb: 3, borderRadius: style.borderRadius, boxShadow: 'none', border: `1px solid ${accentColors.border}` }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
               <InputLabel>{isEnglish ? 'Document Type' : 'סוג מסמך'}</InputLabel>
@@ -565,41 +642,78 @@ const CreateInvoiceDialog = ({
       
         <div ref={invoiceContentRef} id="invoice-content">
           {/* ראש החשבונית - פרטי עסק */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-            <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Paper 
+            sx={{ 
+              p: 0, 
+              mb: 3, 
+              borderRadius: style.borderRadius, 
+              boxShadow: 'none',
+              border: `1px solid ${accentColors.border}`,
+              overflow: 'hidden'
+            }}
+          >
+            {/* כותרת עליונה */}
+            <Box 
+              sx={{ 
+                bgcolor: accentColors.light, 
+                p: 3, 
+                color: accentColors.dark,
+                textAlign: 'center',
+                borderBottom: `1px solid ${accentColors.border}`
+              }}
+            >
               <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                 {isEnglish ? businessInfo.name_en : businessInfo.name}
               </Typography>
-              <Typography variant="body2">{isEnglish ? businessInfo.address_en : businessInfo.address}</Typography>
-              <Typography variant="body2">{isEnglish ? 'Phone: ' : 'טלפון: '}{businessInfo.phone}</Typography>
-              <Typography variant="body2">{isEnglish ? 'Email: ' : 'דוא"ל: '}{businessInfo.email}</Typography>
-              <Typography variant="body2">{isEnglish ? 'Website: ' : 'אתר: '}{businessInfo.website}</Typography>
-              <Typography variant="body2">{isEnglish ? 'Tax ID: ' : 'ח.פ/ע.מ: '}{businessInfo.taxId}</Typography>
+              <Typography variant="body2">
+                {isEnglish ? businessInfo.address_en : businessInfo.address}
+              </Typography>
+              <Typography variant="body2">
+                {isEnglish ? 'Phone: ' : 'טלפון: '}{businessInfo.phone} | 
+                {isEnglish ? ' Email: ' : ' דוא"ל: '}{businessInfo.email}
+              </Typography>
+              <Typography variant="body2">
+                {isEnglish ? 'Tax ID: ' : 'ח.פ/ע.מ: '}{businessInfo.taxId}
+              </Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+            
+            {/* מידע חשבונית */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: 'white' }}>
               {isEnglish ? (
                 <>
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                      Invoice Number: {invoiceData.invoiceNumber || 'Will be generated'}
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: accentColors.dark }}>
+                      Invoice Number: 
+                      <Box component="span" sx={{ color: accentColors.dark, ml: 1, fontWeight: 'normal' }}>
+                        {invoiceData.invoiceNumber || 'Will be generated'}
+                      </Box>
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      Date: {new Date(invoiceData.issueDate).toLocaleDateString('en-US')}
+                    <Typography variant="body2" sx={{ mb: 1, color: accentColors.dark }}>
+                      Date: 
+                      <Box component="span" sx={{ fontWeight: 'bold', ml: 1 }}>
+                        {new Date(invoiceData.issueDate).toLocaleDateString('en-US')}
+                      </Box>
                     </Typography>
                   </Box>
                 </>
               ) : (
                 <>
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      תאריך: {new Date(invoiceData.issueDate).toLocaleDateString('he-IL')}
+                    <Typography variant="body2" sx={{ mb: 1, color: accentColors.dark }}>
+                      תאריך: 
+                      <Box component="span" sx={{ fontWeight: 'bold', mr: 1 }}>
+                        {new Date(invoiceData.issueDate).toLocaleDateString('he-IL')}
+                      </Box>
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                      מספר חשבונית: {invoiceData.invoiceNumber || 'יופק אוטומטית'}
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: accentColors.dark }}>
+                      מספר חשבונית: 
+                      <Box component="span" sx={{ color: accentColors.dark, mr: 1, fontWeight: 'normal' }}>
+                        {invoiceData.invoiceNumber || 'יופק אוטומטית'}
+                      </Box>
                     </Typography>
                   </Box>
                 </>
@@ -607,13 +721,47 @@ const CreateInvoiceDialog = ({
             </Box>
           </Paper>
 
-          <Paper sx={{ p: 3, mb: 3, borderRadius: style.borderRadius, boxShadow: style.boxShadow }}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
+          <Paper 
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              borderRadius: style.borderRadius, 
+              boxShadow: 'none',
+              border: `1px solid ${accentColors.border}`
+            }}
+          >            
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 'bold', 
+                mb: 3, 
+                textAlign: 'center',
+                color: accentColors.primary,
+                borderBottom: `1px solid ${accentColors.border}`,
+                pb: 2
+              }}
+            >
               {getDocumentTitle()}
             </Typography>
             
-            <Box sx={{ mb: 3, textAlign: isEnglish ? 'left' : 'right' }}>
-              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            <Box 
+              sx={{ 
+                mb: 3, 
+                p: 2,
+                border: `1px solid ${accentColors.border}`,
+                borderRadius: '4px',
+                bgcolor: accentColors.light,
+                textAlign: isEnglish ? 'left' : 'right'
+              }}
+            >
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  mb: 1, 
+                  color: accentColors.dark,
+                  fontWeight: 'bold'
+                }}
+              >
                 {isEnglish ? 'To:' : 'לכבוד:'}
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
@@ -642,21 +790,21 @@ const CreateInvoiceDialog = ({
             </Box>
 
             {/* טבלת פריטים */}
-            <TableContainer>
+            <TableContainer sx={{ mb: 3, border: `1px solid ${accentColors.border}`, borderRadius: '4px', overflow: 'hidden' }}>
               {isEnglish ? (
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Total</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Price per Night</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Nights</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Dates</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                    <TableRow sx={{ bgcolor: accentColors.light }}>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Total</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Price per Night</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Nights</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Dates</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Description</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {invoiceData.items.map((item, index) => (
-                      <TableRow key={index}>
+                      <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
                         <TableCell align="center" sx={{ fontWeight: 'bold' }}>
                           ₪{formatPrice(item.totalPrice)}
                         </TableCell>
@@ -679,17 +827,17 @@ const CreateInvoiceDialog = ({
               ) : (
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>תיאור</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>תאריכים</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>לילות</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>מחיר ללילה</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>סה"כ</TableCell>
+                    <TableRow sx={{ bgcolor: accentColors.light }}>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>תיאור</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>תאריכים</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>לילות</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>מחיר ללילה</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>סה"כ</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {invoiceData.items.map((item, index) => (
-                      <TableRow key={index}>
+                      <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
                         <TableCell align="center">
                           {item.description || 'לינה'} - {item.roomType || 'חדר'}
                         </TableCell>
@@ -714,22 +862,58 @@ const CreateInvoiceDialog = ({
 
             {/* סיכום חשבונית */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-              <Box sx={{ width: '250px' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Box 
+                sx={{ 
+                  width: '250px', 
+                  border: `1px solid ${accentColors.border}`,
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}
+              >
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 1.5,
+                    bgcolor: accentColors.light
+                  }}
+                >
                   <Typography variant="body1">{isEnglish ? 'Subtotal:' : 'סכום לפני מע"מ:'}</Typography>
                   <Typography variant="body1">₪{formatPrice(invoiceData.subtotal)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 1.5
+                  }}
+                >
                   <Typography variant="body1">{isEnglish ? `VAT (${invoiceData.taxRate}%):` : `מע"מ (${invoiceData.taxRate}%):`}</Typography>
                   <Typography variant="body1">₪{formatPrice(invoiceData.taxAmount)}</Typography>
                 </Box>
                 {invoiceData.discount > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      p: 1.5,
+                      bgcolor: 'rgba(40, 167, 69, 0.05)'
+                    }}
+                  >
                     <Typography variant="body1">{isEnglish ? 'Discount:' : 'הנחה:'}</Typography>
-                    <Typography variant="body1" sx={{ color: accentColors.green }}>-₪{formatPrice(invoiceData.discount)}</Typography>
+                    <Typography variant="body1" sx={{ color: accentColors.success }}>-₪{formatPrice(invoiceData.discount)}</Typography>
                   </Box>
                 )}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ddd', pt: 1, mt: 1 }}>
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 1.5,
+                    borderTop: `1px solid ${accentColors.border}`,
+                    bgcolor: accentColors.light,
+                    fontWeight: 'bold'
+                  }}
+                >
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{isEnglish ? 'Total:' : 'סה"כ לתשלום:'}</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>₪{formatPrice(invoiceData.total)}</Typography>
                 </Box>
@@ -737,19 +921,30 @@ const CreateInvoiceDialog = ({
             </Box>
             
             {/* פרטי תשלום */}
-            <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Box 
+              sx={{ 
+                mt: 4, 
+                textAlign: 'center',
+                p: 2,
+                bgcolor: accentColors.light,
+                borderRadius: '4px',
+                border: `1px solid ${accentColors.border}`
+              }}
+            >
               <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                 {isEnglish ? 'Payment Method: ' : 'אמצעי תשלום: '}
+                <Box component="span" sx={{ fontWeight: 'normal' }}>
                 {isEnglish 
                   ? {'cash': 'Cash', 'credit_card': 'Credit Card', 'bank_transfer': 'Bank Transfer', 'check': 'Check', 'other': 'Other'}[invoiceData.paymentMethod] 
                   : {'cash': 'מזומן', 'credit_card': 'כרטיס אשראי', 'bank_transfer': 'העברה בנקאית', 'check': 'צ\'ק', 'other': 'אחר'}[invoiceData.paymentMethod]
                 }
+                </Box>
               </Typography>
             </Box>
             
             {/* הערות */}
             {invoiceData.notes && (
-              <Box sx={{ mt: 2, p: 1, borderTop: '1px dashed #ddd' }}>
+              <Box sx={{ mt: 2, p: 2, borderTop: '1px dashed #ddd' }}>
                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                   {isEnglish ? 'Notes:' : 'הערות:'}
                 </Typography>
@@ -758,8 +953,21 @@ const CreateInvoiceDialog = ({
             )}
             
             {/* חותמת */}
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-              <Typography variant="caption" sx={{ textAlign: 'center', fontStyle: 'italic' }}>
+            <Box 
+              sx={{ 
+                mt: 4, 
+                display: 'flex', 
+                justifyContent: 'center'
+              }}
+            >
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  textAlign: 'center', 
+                  fontStyle: 'italic',
+                  color: accentColors.secondary
+                }}
+              >
                 {isEnglish 
                   ? 'This document was created digitally and is valid without signature according to tax authority regulations'
                   : 'מסמך זה הופק באופן ממוחשב והינו תקף ללא חתימה בהתאם לתקנות'
@@ -770,7 +978,7 @@ const CreateInvoiceDialog = ({
         </div>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, borderTop: '1px solid #ddd' }}>
+      <DialogActions sx={{ p: 2, borderTop: `1px solid ${accentColors.border}` }}>
         <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
           {/* כפתור שמירה */}
           <Button
@@ -779,9 +987,9 @@ const CreateInvoiceDialog = ({
             onClick={handleSave}
             disabled={isLoading}
             sx={{
-              bgcolor: accentColors.blue,
+              bgcolor: accentColors.accent,
               color: 'white',
-              '&:hover': { bgcolor: '#0058b1' }
+              '&:hover': { bgcolor: '#0069d9' }
             }}
           >
             {isLoading ? (
@@ -795,7 +1003,7 @@ const CreateInvoiceDialog = ({
             startIcon={<PrintIcon />}
             onClick={handleDownloadPdf}
             disabled={isLoading}
-            sx={{ color: accentColors.blue, borderColor: accentColors.blue }}
+            sx={{ color: accentColors.accent, borderColor: accentColors.accent }}
           >
             {isEnglish ? 'Download PDF' : 'הורד PDF'}
           </Button>
@@ -805,7 +1013,7 @@ const CreateInvoiceDialog = ({
             variant="outlined"
             onClick={onClose}
             disabled={isLoading}
-            sx={{ color: accentColors.red, borderColor: accentColors.red }}
+            sx={{ color: accentColors.error, borderColor: accentColors.error }}
           >
             {isEnglish ? 'Cancel' : 'ביטול'}
           </Button>

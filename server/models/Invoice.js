@@ -10,7 +10,7 @@ const InvoiceSchema = new Schema({
   invoiceNumber: {
     type: String,
     required: true,
-    unique: true
+    index: { unique: true }
   },
   
   // סוג מסמך: חשבונית מס, חשבונית מס/קבלה, חשבונית זיכוי
@@ -149,9 +149,6 @@ const InvoiceSchema = new Schema({
     ref: 'User'
   }
 }, { timestamps: true });
-
-// וידוא שמספר החשבונית ייחודי
-InvoiceSchema.index({ invoiceNumber: 1 }, { unique: true });
 
 // הוספת אינדקסים נוספים לחיפוש יעיל
 InvoiceSchema.index({ issueDate: -1 });

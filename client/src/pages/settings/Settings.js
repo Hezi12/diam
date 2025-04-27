@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Grid, Card, Typography, Paper, Button, Divider } from '@mui/material';
 import { AirplanemodeActive, Apartment, KeyboardArrowLeft } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
-import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
 
 const Settings = () => {
   const colors = STYLE_CONSTANTS.colors;

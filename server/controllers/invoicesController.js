@@ -6,42 +6,103 @@ const { v4: uuidv4 } = require('uuid');
 
 /**
  * יצירת חשבונית חדשה
+ * @param {Object} req - בקשת HTTP
+ * @param {Object} res - תגובת HTTP
+ * @returns {Promise<void>}
  */
 exports.createInvoice = async (req, res) => {
   try {
     const { invoiceData, bookingId } = req.body;
     
-    // אם יש מזהה הזמנה, מקשר את החשבונית להזמנה
-    if (bookingId) {
-      const booking = await Booking.findById(bookingId);
-      if (!booking) {
-        return res.status(404).json({ success: false, message: 'ההזמנה לא נמצאה' });
-      }
-      invoiceData.booking = bookingId;
+    // בדיקה שהנתונים נשלחו במבנה הנכון
+    if (!invoiceData) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'נתוני החשבונית חסרים. אנא שלח את הנתונים במבנה הנכון (invoiceData)' 
+      });
     }
+
+    // בדיקה שפרטי הלקוח קיימים
+    if (!invoiceData.customer || !invoiceData.customer.name) {
+      return res.status(400).json({
+        success: false,
+        error: 'פרטי הלקוח חסרים או לא תקינים'
+      });
+    }
+
+    // קבלת מספר חשבונית חדש ממסד הנתונים
+    const invoiceNumber = await getNextInvoiceNumber();
     
-    // הוספת מידע על היוצר
-    invoiceData.createdBy = req.user._id;
-    
-    // קבלת המספר הבא בסדרה
-    const nextInvoiceNumber = await getNextInvoiceNumber();
-    invoiceData.invoiceNumber = nextInvoiceNumber;
-    
-    // יצירת חשבונית חדשה
-    const invoice = new Invoice(invoiceData);
+    // יצירת אובייקט חשבונית עם מספר חשבונית ייחודי
+    const invoice = new Invoice({
+      ...invoiceData,
+      invoiceNumber,
+      status: invoiceData.status || 'active' // שימוש בסטטוס ברירת מחדל אם לא סופק
+    });
+
+    // קישור להזמנה אם נשלח מזהה הזמנה
+    if (bookingId) {
+      try {
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+          return res.status(404).json({ 
+            success: false, 
+            error: `הזמנה עם מזהה ${bookingId} לא נמצאה` 
+          });
+        }
+        
+        // קישור בין החשבונית להזמנה
+        invoice.booking = bookingId;
+        
+        // אם אין פרטי לקוח בחשבונית, השתמש בפרטי הלקוח מההזמנה
+        if (!invoice.customer || Object.keys(invoice.customer).length === 0) {
+          invoice.customer = booking.customer;
+        }
+        
+        // עדכון ההזמנה עם מזהה החשבונית
+        booking.invoice = invoice._id;
+        await booking.save();
+      } catch (bookingError) {
+        console.error('שגיאה בטיפול בהזמנה:', bookingError);
+        return res.status(500).json({
+          success: false,
+          error: 'שגיאה בקישור החשבונית להזמנה',
+          details: bookingError.message
+        });
+      }
+    }
+
+    // שמירת החשבונית החדשה
     await invoice.save();
-    
+
     res.status(201).json({
       success: true,
-      invoice,
-      invoiceNumber: nextInvoiceNumber
+      message: 'חשבונית נוצרה בהצלחה',
+      invoice
     });
   } catch (error) {
     console.error('שגיאה ביצירת חשבונית:', error);
+    
+    // טיפול בשגיאות ולידציה
+    if (error.name === 'ValidationError') {
+      const validationErrors = {};
+      
+      // מיפוי שגיאות הולידציה
+      Object.keys(error.errors).forEach(key => {
+        validationErrors[key] = error.errors[key].message;
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: 'שגיאת ולידציה',
+        validationErrors
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'אירעה שגיאה ביצירת החשבונית',
-      error: error.message
+      error: 'שגיאת שרת בעת יצירת חשבונית',
+      details: error.message
     });
   }
 };

@@ -77,8 +77,8 @@ app.use(cors(corsOptions));
 // פתרון נוסף: הוספת מידלוור ספציפי לבקשות preflight
 app.options('*', cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('dev'));
 
 // הגדרת headers לפתרון בעיות CORS - מוודא שכל הנתיבים מקבלים את ה-headers הנכונים
@@ -137,7 +137,38 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'שגיאת שרת פנימית' });
 });
 
-// הפעלת השרת
-app.listen(PORT, () => {
+// הפעלת השרת עם טיפול בשגיאות
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// טיפול בשגיאות בשרת
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Trying again in 5 seconds...`);
+    setTimeout(() => {
+      server.close();
+      server.listen(PORT);
+    }, 5000);
+  } else {
+    console.error('Server error:', error);
+  }
+});
+
+// טיפול בסגירת השרת בצורה תקינה
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    // ניתוק ממסד הנתונים - תיקון השיטה כדי להסיר את ה-callback
+    mongoose.connection.close()
+      .then(() => {
+        console.log('MongoDB connection closed');
+        process.exit(0);
+      })
+      .catch(err => {
+        console.error('Error closing MongoDB connection:', err);
+        process.exit(1);
+      });
+  });
 }); 

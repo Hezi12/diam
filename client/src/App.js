@@ -12,11 +12,11 @@ import Dashboard from './pages/Dashboard';
 import Bookings from './pages/Bookings';
 import Invoices from './pages/Invoices';
 import Login from './pages/Login';
-import Settings from './pages/Settings';
+import Settings from './pages/settings/Settings';
 import AirportRooms from './pages/settings/rooms/AirportRooms';
 import RothschildRooms from './pages/settings/rooms/RothschildRooms';
-import AirportSite from './pages/AirportSite';
-import RothschildSite from './pages/RothschildSite';
+import AirportSite from './pages/sites/AirportSite';
+import RothschildSite from './pages/sites/RothschildSite';
 
 // קומפוננטים של מערכת העיצוב החדשה
 import DesignSystem from './design-system/DesignSystem';
