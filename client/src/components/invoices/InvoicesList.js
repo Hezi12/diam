@@ -191,17 +191,15 @@ const InvoicesList = ({
     );
   };
   
-  // פעולת הורדת חשבונית
+  // פעולת הורדת חשבונית - שונתה לניווט לדף פרטי החשבונית
   const handleDownload = (invoiceId) => {
     try {
-      // שימוש בכתובת מלאה של השרת - הצעה: להשתמש ב-diam-loy6 במקום diam-api
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://diam-loy6.onrender.com';
-      const downloadUrl = `${apiUrl}/api/invoices/${invoiceId}/download`;
-      console.log('פותח קישור להורדה:', downloadUrl);
-      window.open(downloadUrl, '_blank');
+      console.log('מעביר לדף פרטי החשבונית:', invoiceId);
+      // במקום הורדה - ניווט לדף פרטי החשבונית
+      onViewInvoice(invoiceId);
     } catch (error) {
-      console.error('שגיאה בפתיחת חלון הורדה:', error);
-      alert('אירעה שגיאה בניסיון להוריד את החשבונית');
+      console.error('שגיאה בניווט לדף החשבונית:', error);
+      alert('אירעה שגיאה בניסיון להציג את החשבונית');
     }
   };
   
