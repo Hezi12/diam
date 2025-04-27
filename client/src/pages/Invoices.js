@@ -116,19 +116,13 @@ const Invoices = () => {
   // מצב רענון
   const [refresh, setRefresh] = useState(false);
   
-  // אפקט לטעינת חשבוניות
-  useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices, refresh]);
-  
-  // פונקציה לטעינת החשבוניות מהשרת
-  const fetchInvoices = useCallback(async (page = 1, filters = {}) => {
+  // פונקציה לטעינת החשבוניות מהשרת - חייבת להיות מוגדרת לפני השימוש ב-useEffect
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({
-        page,
-        limit: rowsPerPage,
-        ...filters
+        page: page + 1,
+        limit: rowsPerPage
       }).toString();
 
       const response = await axios.get(`/api/invoices?${queryParams}`);
@@ -154,17 +148,21 @@ const Invoices = () => {
         setInvoices([]);
         setTotal(0);
       }
-      
-      setLoading(false);
     } catch (error) {
       console.error('שגיאה בטעינת חשבוניות:', error);
       enqueueSnackbar(
         isEnglish ? 'Error loading invoices' : 'שגיאה בטעינת חשבוניות',
         { variant: 'error' }
       );
+    } finally {
       setLoading(false);
     }
-  }, [rowsPerPage, isEnglish, enqueueSnackbar]);
+  }, [page, rowsPerPage, isEnglish, enqueueSnackbar]);
+  
+  // אפקט לטעינת חשבוניות - רק אחרי שהפונקציה הוגדרה לעיל
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices, refresh]);
   
   // טיפול בשינוי דף
   const handleChangePage = (event, newPage) => {

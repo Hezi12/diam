@@ -272,46 +272,38 @@ const CreateInvoiceDialog = ({
     let pdfResult = null;
     
     try {
-      // יצירת אובייקט נתוני החשבונית לשליחה
+      // הכנת נתוני החשבונית לשליחה
       const invoiceDataToSend = {
-        documentType: invoiceData.documentType,
-        customer: invoiceData.customer,
+        customer: {
+          name: invoiceData.customer.name,
+          email: invoiceData.customer.email,
+          phone: invoiceData.customer.phone,
+          address: invoiceData.customer.address,
+          city: '',
+          taxId: invoiceData.customer.identifier,
+        },
         items: invoiceData.items,
         subtotal: invoiceData.subtotal,
         taxRate: invoiceData.taxRate,
         taxAmount: invoiceData.taxAmount,
-        discount: invoiceData.discount,
         total: invoiceData.total,
-        issueDate: invoiceData.issueDate,
-        dueDate: invoiceData.dueDate,
         notes: invoiceData.notes,
-        paymentMethod: invoiceData.paymentMethod,
-        paymentDetails: invoiceData.paymentDetails,
-        business: businessInfo
+        documentType: invoiceData.documentType,
+        bookingId: bookingData?._id || null,
+        language: isEnglish ? 'en' : 'he',
       };
       
-      // אם יש הזמנה קשורה, מוסיף את המזהה שלה
-      if (bookingData && bookingData._id) {
-        invoiceDataToSend.booking = bookingData._id;
-      }
+      console.log('שולח נתוני חשבונית:', invoiceDataToSend);
       
-      // שליחת נתוני החשבונית לשרת
-      const response = await axios.post(`/api/invoices`, {
-        invoiceData: invoiceDataToSend,
-        bookingId: bookingData?._id
-      });
+      // שליחת החשבונית לשרת - משתמש בנתיב יחסי
+      const response = await axios.post('/api/invoices', invoiceDataToSend);
+      const invoice = response.data;
       
-      // קבלת נתוני החשבונית שנוצרה כולל מספר החשבונית
-      const { invoice } = response.data;
+      console.log('חשבונית נשמרה בהצלחה:', invoice);
       
-      // עדכון מספר החשבונית במצב המקומי
-      setInvoiceData(prev => ({
-        ...prev,
-        invoiceNumber: invoice.invoiceNumber
-      }));
-      
-      // יצירת קובץ PDF עם מספר החשבונית החדש
+      // יצירת קובץ PDF
       pdfResult = await generatePDF();
+      console.log('PDF נוצר בהצלחה');
       
       if (!pdfResult) {
         throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
@@ -332,14 +324,7 @@ const CreateInvoiceDialog = ({
         }
       });
       
-      // שמירת הקובץ לוקאלית עם מספר החשבונית שהתקבל מהשרת
-      const serverInvoiceFileName = `חשבונית-${invoice.invoiceNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(serverInvoiceFileName);
-      
-      // קריאה לפונקציית השמירה החיצונית אם קיימת
-      if (onSave && typeof onSave === 'function') {
-        onSave(invoice);
-      }
+      console.log('PDF נשלח לשרת בהצלחה');
       
       // הצגת הודעת הצלחה
       enqueueSnackbar(
@@ -349,8 +334,10 @@ const CreateInvoiceDialog = ({
         { variant: 'success' }
       );
       
-      // סגירת הדיאלוג
-      onClose();
+      if (onSave && typeof onSave === 'function') {
+        onSave(invoice);
+      }
+      
     } catch (error) {
       console.error('שגיאה בשמירת החשבונית:', error);
       
