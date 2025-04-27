@@ -193,6 +193,7 @@ const InvoicesList = ({
   
   // פעולת הורדת חשבונית
   const handleDownload = (invoiceId) => {
+    // פתיחת הקישור להורדה ישירה ב-API
     window.open(`/api/invoices/${invoiceId}/download`, '_blank');
   };
   

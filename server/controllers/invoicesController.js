@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { generateInvoicePdf } = require('../utils/pdfGenerator');
+const PDFDocument = require('pdfkit');
+const moment = require('moment');
 
 /**
  * הפקת חשבונית חדשה
@@ -510,141 +512,92 @@ function mapBookingPaymentToInvoicePayment(bookingPaymentStatus) {
 }
 
 /**
- * הפקת חשבונית PDF
+ * יצירת PDF של חשבונית
  * @route GET /api/invoices/:id/pdf
  * @access Private
  */
 exports.generatePdf = async (req, res) => {
   try {
-    console.log('מתחיל תהליך הפקת PDF, ID חשבונית:', req.params.id);
     const { id } = req.params;
-
-    // וידוא מזהה תקף
+    
+    // בדיקת תקינות ה-ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('מזהה חשבונית לא תקין:', id);
-      return res.status(400).json({
-        success: false,
-        message: 'מזהה חשבונית לא תקין'
-      });
+      return res.status(400).json({ success: false, message: 'מזהה חשבונית לא תקין' });
     }
 
-    // שליפת החשבונית
-    console.log('מנסה למצוא חשבונית במסד הנתונים');
+    // מציאת החשבונית במסד הנתונים עם המידע המלא של ההזמנה והחדר
     const invoice = await Invoice.findById(id)
-      .populate('booking', 'bookingNumber firstName lastName checkIn checkOut')
       .populate({
         path: 'booking',
         populate: {
           path: 'room',
-          select: 'roomNumber category'
+          model: 'Room'
         }
       });
-
+    
     if (!invoice) {
-      console.error('החשבונית לא נמצאה:', id);
-      return res.status(404).json({
-        success: false,
-        message: 'החשבונית לא נמצאה'
-      });
-    }
-    
-    console.log('חשבונית נמצאה:', invoice._id);
-
-    // בדיקה שכל השדות החובה קיימים
-    const requiredFields = ['customer', 'serviceDetails', 'paymentDetails'];
-    for (const field of requiredFields) {
-      if (!invoice[field]) {
-        console.error(`שדה חובה חסר בחשבונית: ${field}`);
-        return res.status(400).json({
-          success: false,
-          message: `שדה חובה חסר בחשבונית: ${field}`
-        });
-      }
+      return res.status(404).json({ success: false, message: 'החשבונית לא נמצאה' });
     }
 
-    // בדיקה אם אנחנו בסביבת render.com
-    const isRenderEnvironment = process.env.RENDER === 'true';
-    let invoicesDir;
-    
-    if (isRenderEnvironment) {
-      // בסביבת render משתמשים בתיקייה זמנית
-      invoicesDir = '/tmp';
-      console.log('סביבת render זוהתה, שימוש בתיקייה זמנית:', invoicesDir);
-    } else {
-      // בסביבה מקומית
-      invoicesDir = path.join(__dirname, '../uploads/invoices');
-    }
-
-    // וידוא שתיקיית היעד קיימת
-    if (!fs.existsSync(invoicesDir)) {
-      console.log(`יוצר תיקיית ${invoicesDir}`);
-      fs.mkdirSync(invoicesDir, { recursive: true });
-    }
-
-    // הפקת ה-PDF
-    console.log('מתחיל להפיק PDF');
-    const fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
-    const outputPath = path.join(invoicesDir, fileName);
-    console.log('נתיב ליצירת קובץ PDF:', outputPath);
-    
     try {
-      const pdfPath = await generateInvoicePdf(invoice, outputPath);
-      console.log('PDF נוצר בהצלחה:', pdfPath);
-
-      // שינוי סטטוס החשבונית ל-issued אם היא בסטטוס draft
-      if (invoice.status === 'draft') {
-        console.log('עדכון סטטוס החשבונית ל-issued');
-        invoice.status = 'issued';
-        await invoice.save();
-        console.log('סטטוס חשבונית עודכן בהצלחה');
-      }
-
-      // בדיקה שהקובץ אכן נוצר
-      if (!fs.existsSync(pdfPath)) {
-        throw new Error('הקובץ לא נוצר בנתיב שצוין');
-      }
-
-      // החזרת נתיב יחסי
-      let relativePath;
-      if (isRenderEnvironment) {
-        // בסביבת render נשתמש בנתיב מלא (זמני)
-        relativePath = pdfPath;
-      } else {
-        // בסביבה מקומית נחזיר נתיב יחסי
-        relativePath = pdfPath.replace(/^.*\/uploads/, '/uploads');
-      }
-      
-      console.log('מחזיר נתיב:', relativePath);
-      
-      res.status(200).json({
-        success: true,
-        data: {
-          pdfPath: relativePath,
-          invoiceNumber: invoice.invoiceNumber,
-          absolutePath: pdfPath // רק לצורכי דיבוג
-        },
-        message: 'החשבונית הופקה בהצלחה'
+      // יצירת מסמך PDF
+      const doc = new PDFDocument({ 
+        margin: 50,
+        size: 'A4'
       });
-    } catch (pdfError) {
-      console.error('שגיאה בהפקת ה-PDF:', pdfError);
-      console.error('פירוט השגיאה:', pdfError.stack);
+
+      // הגדרת זרם למשלוח קובץ
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        
+        // עדכון סטטוס החשבונית ל-'issued' אם היא טיוטה
+        if (invoice.status === 'draft') {
+          const updateInvoice = async () => {
+            invoice.status = 'issued';
+            invoice.issueDate = new Date();
+            await invoice.save();
+            console.log(`החשבונית ${invoice.invoiceNumber} עודכנה לסטטוס 'issued'`);
+          };
+          
+          updateInvoice().catch(err => console.error('שגיאה בעדכון סטטוס החשבונית:', err));
+        }
+
+        // החזרת מידע על החשבונית והתוכן של ה-PDF ב-base64
+        res.status(200).json({
+          success: true,
+          invoiceNumber: invoice.invoiceNumber,
+          pdfData: pdfData.toString('base64')
+        });
+      });
       
-      return res.status(500).json({
-        success: false,
-        message: 'שגיאה בהפקת ה-PDF',
-        error: pdfError.message,
-        stack: process.env.NODE_ENV === 'production' ? null : pdfError.stack
+      // הוספת תוכן החשבונית ל-PDF
+      addHeader(doc, invoice);
+      addInvoiceInfo(doc, invoice);
+      addCustomerInfo(doc, invoice);
+      addServiceDetails(doc, invoice);
+      addPaymentDetails(doc, invoice);
+      addFooter(doc, invoice);
+      
+      // סיום המסמך לאחר הוספת כל התוכן
+      doc.end();
+      console.log(`PDF של חשבונית ${invoice.invoiceNumber} נוצר בהצלחה`);
+      
+    } catch (pdfError) {
+      console.error('שגיאה ביצירת PDF:', pdfError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'שגיאה ביצירת קובץ PDF', 
+        error: pdfError.message 
       });
     }
   } catch (error) {
-    console.error('שגיאה כללית בהפקת חשבונית PDF:', error);
-    console.error('פירוט השגיאה:', error.stack);
-    
-    res.status(500).json({
-      success: false,
-      message: 'שגיאה בהפקת חשבונית PDF',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'production' ? null : error.stack
+    console.error('שגיאה כללית ביצירת PDF של חשבונית:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'שגיאה ביצירת PDF של חשבונית', 
+      error: error.message 
     });
   }
 };
@@ -657,75 +610,216 @@ exports.generatePdf = async (req, res) => {
 exports.downloadPdf = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // וידוא מזהה תקף
+    
+    // בדיקת תקינות ה-ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'מזהה חשבונית לא תקין'
-      });
+      return res.status(400).json({ success: false, message: 'מזהה חשבונית לא תקין' });
     }
 
-    // שליפת החשבונית
-    const invoice = await Invoice.findById(id);
+    // מציאת החשבונית במסד הנתונים עם המידע המלא של ההזמנה והחדר
+    const invoice = await Invoice.findById(id)
+      .populate({
+        path: 'booking',
+        populate: {
+          path: 'room',
+          model: 'Room'
+        }
+      });
+    
     if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: 'החשבונית לא נמצאה'
+      return res.status(404).json({ success: false, message: 'החשבונית לא נמצאה' });
+    }
+
+    try {
+      // יצירת מסמך PDF
+      const doc = new PDFDocument({ 
+        margin: 50,
+        size: 'A4'
+      });
+
+      // הגדרת כותרות לתשובה להורדת PDF
+      const fileName = `invoice_${invoice.invoiceNumber.replace(/[/\\?%*:|"<>]/g, '-')}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      
+      // חיבור זרם התשובה ל-PDF
+      doc.pipe(res);
+      
+      // הוספת תוכן החשבונית ל-PDF
+      addHeader(doc, invoice);
+      addInvoiceInfo(doc, invoice);
+      addCustomerInfo(doc, invoice);
+      addServiceDetails(doc, invoice);
+      addPaymentDetails(doc, invoice);
+      addFooter(doc, invoice);
+      
+      // עדכון סטטוס החשבונית ל-'issued' אם היא טיוטה
+      if (invoice.status === 'draft') {
+        invoice.status = 'issued';
+        invoice.issueDate = new Date();
+        await invoice.save();
+        console.log(`החשבונית ${invoice.invoiceNumber} עודכנה לסטטוס 'issued'`);
+      }
+      
+      // סיום המסמך וסגירת הזרם
+      doc.end();
+      console.log(`PDF של חשבונית ${invoice.invoiceNumber} נשלח להורדה`);
+      
+    } catch (pdfError) {
+      console.error('שגיאה ביצירת PDF להורדה:', pdfError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'שגיאה ביצירת קובץ PDF להורדה', 
+        error: pdfError.message 
       });
     }
-
-    // בדיקה אם אנחנו בסביבת render.com
-    const isRenderEnvironment = process.env.RENDER === 'true';
-    let invoicesDir;
-    
-    if (isRenderEnvironment) {
-      // בסביבת render משתמשים בתיקייה זמנית
-      invoicesDir = '/tmp';
-    } else {
-      // בסביבה מקומית
-      invoicesDir = path.join(__dirname, '../uploads/invoices');
-    }
-
-    // הפקת ה-PDF אם עוד לא קיים
-    const fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
-    const filePath = path.join(invoicesDir, fileName);
-    
-    // בדיקה אם הקובץ כבר קיים
-    let pdfPath;
-    try {
-      const fs = require('fs');
-      if (fs.existsSync(filePath)) {
-        pdfPath = filePath;
-      } else {
-        // אם הקובץ לא קיים, ניצור אותו
-        pdfPath = await generateInvoicePdf(invoice, filePath);
-      }
-    } catch (err) {
-      // אם יש שגיאה, ניצור את הקובץ מחדש
-      pdfPath = await generateInvoicePdf(invoice, filePath);
-    }
-
-    // שליחת הקובץ להורדה
-    res.download(pdfPath, fileName, (err) => {
-      if (err) {
-        console.error('שגיאה בהורדת הקובץ:', err);
-        res.status(500).json({
-          success: false,
-          message: 'שגיאה בהורדת הקובץ',
-          error: err.message
-        });
-      }
-    });
   } catch (error) {
-    console.error('שגיאה בהורדת חשבונית:', error);
-    res.status(500).json({
-      success: false,
-      message: 'שגיאה בהורדת החשבונית',
-      error: error.message
+    console.error('שגיאה כללית בהורדת PDF של חשבונית:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'שגיאה בהורדת PDF של חשבונית', 
+      error: error.message 
     });
   }
 };
+
+// פונקציות עזר ליצירת PDF
+function formatCurrency(amount) {
+  return amount.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' });
+}
+
+function formatDate(dateString) {
+  return moment(dateString).format('DD/MM/YYYY');
+}
+
+function formatPaymentMethod(method) {
+  const methods = {
+    'cash': 'מזומן',
+    'credit': 'כרטיס אשראי',
+    'bank': 'העברה בנקאית',
+    'check': 'צ\'ק',
+    'other': 'אחר'
+  };
+  return methods[method] || method;
+}
+
+function addHeader(doc, invoice) {
+  // לוגו וכותרת החשבונית
+  doc.fontSize(18)
+     .font('Helvetica-Bold')
+     .text('DIAM APARTMENTS', { align: 'center' })
+     .moveDown(0.5);
+  
+  doc.fontSize(14)
+     .text('חשבונית מס / קבלה', { align: 'center' })
+     .moveDown(1);
+}
+
+function addInvoiceInfo(doc, invoice) {
+  doc.fontSize(10)
+     .font('Helvetica')
+     .text(`מספר חשבונית: ${invoice.invoiceNumber}`, { align: 'right' })
+     .text(`תאריך הפקה: ${formatDate(invoice.issueDate || new Date())}`, { align: 'right' })
+     .text(`סטטוס: ${invoice.status === 'issued' ? 'הופקה' : 'טיוטה'}`, { align: 'right' })
+     .moveDown(1);
+}
+
+function addCustomerInfo(doc, invoice) {
+  doc.fontSize(12)
+     .font('Helvetica-Bold')
+     .text('פרטי לקוח:', { align: 'right' })
+     .moveDown(0.5);
+  
+  doc.fontSize(10)
+     .font('Helvetica')
+     .text(`שם: ${invoice.customer.name}`, { align: 'right' })
+     .text(`מספר זיהוי: ${invoice.customer.idNumber || 'לא צוין'}`, { align: 'right' })
+     .text(`כתובת: ${invoice.customer.address || 'לא צוינה'}`, { align: 'right' })
+     .text(`טלפון: ${invoice.customer.phone || 'לא צוין'}`, { align: 'right' })
+     .text(`דוא"ל: ${invoice.customer.email || 'לא צוין'}`, { align: 'right' })
+     .moveDown(1);
+}
+
+function addServiceDetails(doc, invoice) {
+  doc.fontSize(12)
+     .font('Helvetica-Bold')
+     .text('פרטי השירות:', { align: 'right' })
+     .moveDown(0.5);
+  
+  // כותרות טבלה
+  let rowTop = doc.y;
+  const colWidth = (doc.page.width - 100) / 4;
+  
+  doc.font('Helvetica-Bold')
+     .text('תיאור', doc.page.width - 50 - colWidth, rowTop, { width: colWidth, align: 'right' })
+     .text('תאריכים', doc.page.width - 50 - colWidth * 2, rowTop, { width: colWidth, align: 'right' })
+     .text('מחיר', doc.page.width - 50 - colWidth * 3, rowTop, { width: colWidth, align: 'right' })
+     .text('סכום', doc.page.width - 50 - colWidth * 4, rowTop, { width: colWidth, align: 'right' });
+  
+  rowTop += 20;
+  doc.font('Helvetica')
+     .text(`אירוח ב${invoice.booking?.room?.name || 'חדר'}`, doc.page.width - 50 - colWidth, rowTop, { width: colWidth, align: 'right' });
+  
+  // טווח תאריכים
+  if (invoice.booking) {
+    const checkIn = formatDate(invoice.booking.checkIn);
+    const checkOut = formatDate(invoice.booking.checkOut);
+    doc.text(`${checkIn} - ${checkOut}`, doc.page.width - 50 - colWidth * 2, rowTop, { width: colWidth, align: 'right' });
+  } else {
+    doc.text('לא צוין', doc.page.width - 50 - colWidth * 2, rowTop, { width: colWidth, align: 'right' });
+  }
+  
+  // מחיר ללילה וסה"כ
+  const pricePerNight = invoice.booking?.pricePerNight || 0;
+  const totalAmount = invoice.totalAmount || 0;
+  
+  doc.text(formatCurrency(pricePerNight), doc.page.width - 50 - colWidth * 3, rowTop, { width: colWidth, align: 'right' })
+     .text(formatCurrency(totalAmount), doc.page.width - 50 - colWidth * 4, rowTop, { width: colWidth, align: 'right' });
+  
+  // קו סיכום
+  rowTop += 30;
+  doc.moveTo(50, rowTop)
+     .lineTo(doc.page.width - 50, rowTop)
+     .stroke();
+  
+  // סה"כ
+  rowTop += 10;
+  doc.font('Helvetica-Bold')
+     .text('סה"כ לתשלום:', doc.page.width - 50 - colWidth * 2, rowTop, { width: colWidth * 2, align: 'right' })
+     .text(formatCurrency(totalAmount), doc.page.width - 50 - colWidth * 4, rowTop, { width: colWidth, align: 'right' });
+  
+  doc.moveDown(2);
+}
+
+function addPaymentDetails(doc, invoice) {
+  doc.fontSize(12)
+     .font('Helvetica-Bold')
+     .text('פרטי תשלום:', { align: 'right' })
+     .moveDown(0.5);
+  
+  doc.fontSize(10)
+     .font('Helvetica')
+     .text(`שיטת תשלום: ${formatPaymentMethod(invoice.paymentMethod)}`, { align: 'right' })
+     .text(`סכום ששולם: ${formatCurrency(invoice.paidAmount || 0)}`, { align: 'right' })
+     .text(`תאריך תשלום: ${invoice.paymentDate ? formatDate(invoice.paymentDate) : 'לא צוין'}`, { align: 'right' })
+     .text(`סטטוס תשלום: ${invoice.isPaid ? 'שולם' : 'טרם שולם'}`, { align: 'right' })
+     .moveDown(1);
+  
+  if (invoice.notes) {
+    doc.fontSize(10)
+       .text(`הערות: ${invoice.notes}`, { align: 'right' })
+       .moveDown(1);
+  }
+}
+
+function addFooter(doc, invoice) {
+  const footerY = doc.page.height - 50;
+  
+  doc.fontSize(8)
+     .font('Helvetica')
+     .text('DIAM APARTMENTS | טלפון: 123-456-7890 | דוא"ל: info@diamapartments.com', 50, footerY, { align: 'center', width: doc.page.width - 100 })
+     .text('© כל הזכויות שמורות - DIAM APARTMENTS', 50, footerY + 15, { align: 'center', width: doc.page.width - 100 });
+}
 
 // Export all controllers
 module.exports = {
