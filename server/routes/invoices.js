@@ -56,4 +56,7 @@ router.post('/:id/credit', invoicesController.createCreditInvoice);
 // נתיב לשמירת קובץ PDF עם CORS מותאם
 router.post('/:id/pdf', cors(corsOptions), upload.single('pdf'), invoicesController.saveInvoicePdf);
 
+// נתיב להורדת קובץ PDF של חשבונית
+router.get('/:id/pdf', cors(corsOptions), invoicesController.getInvoicePdf);
+
 module.exports = router; 

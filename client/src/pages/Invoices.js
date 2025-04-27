@@ -21,9 +21,7 @@ import {
   MenuItem,
   TextField,
   Chip,
-  Divider,
   Dialog,
-  Grid,
   Tooltip
 } from '@mui/material';
 import { 
@@ -31,10 +29,7 @@ import {
   Search as SearchIcon, 
   FilterList as FilterIcon, 
   Download as DownloadIcon,
-  CalendarMonth as CalendarIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
   FileCopy as CopyIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -44,6 +39,7 @@ import { useAuth } from '../context/AuthContext';
 import CreateInvoiceDialog from '../components/invoices/CreateInvoiceDialog';
 import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
 import { useNavigate } from 'react-router-dom';
+import invoiceService from '../services/invoiceService';
 
 const documentTypesHebrew = {
   invoice: 'חשבונית מס',
@@ -107,9 +103,6 @@ const Invoices = () => {
   
   // מצב דיאלוגים
   const [createInvoiceDialogOpen, setCreateInvoiceDialogOpen] = useState(false);
-  const [viewInvoiceId, setViewInvoiceId] = useState(null);
-  const [viewInvoiceUrl, setViewInvoiceUrl] = useState(null);
-  const [viewInvoiceDialogOpen, setViewInvoiceDialogOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [invoiceToCancel, setInvoiceToCancel] = useState(null);
   
@@ -189,26 +182,6 @@ const Invoices = () => {
     setPage(0);
   };
   
-  // צפייה בחשבונית
-  const handleViewInvoice = async (id, invoiceNumber) => {
-    try {
-      const response = await axios.get(`/api/invoices/${id}/pdf`, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      setViewInvoiceUrl(url);
-      setViewInvoiceDialogOpen(true);
-      
-    } catch (error) {
-      console.error('שגיאה בטעינת החשבונית:', error);
-      enqueueSnackbar(
-        isEnglish ? 'Error loading invoice' : 'שגיאה בטעינת החשבונית',
-        { variant: 'error' }
-      );
-    }
-  };
-  
   // הורדת חשבונית
   const handleDownloadInvoice = async (id, invoiceNumber) => {
     try {
@@ -247,12 +220,12 @@ const Invoices = () => {
   const handleCancelInvoice = async (id) => {
     if (window.confirm('האם אתה בטוח שברצונך לבטל חשבונית זו?')) {
       try {
-        await axios.post(`/api/invoices/${id}/cancel`);
+        await invoiceService.cancelInvoice(id);
         setRefresh(prev => !prev);
         enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
       } catch (error) {
         console.error('שגיאה בביטול החשבונית:', error);
-        enqueueSnackbar('שגיאה בביטול החשבונית', { variant: 'error' });
+        enqueueSnackbar(`שגיאה בביטול החשבונית: ${error.message || 'נסה שוב מאוחר יותר'}`, { variant: 'error' });
       }
     }
   };
@@ -260,12 +233,12 @@ const Invoices = () => {
   // יצירת חשבונית זיכוי
   const handleCreditInvoice = async (id) => {
     try {
-      await axios.post(`/api/invoices/${id}/credit`);
+      await invoiceService.createCreditInvoice(id);
       setRefresh(prev => !prev);
       enqueueSnackbar('חשבונית זיכוי נוצרה בהצלחה', { variant: 'success' });
     } catch (error) {
       console.error('שגיאה ביצירת חשבונית זיכוי:', error);
-      enqueueSnackbar('שגיאה ביצירת חשבונית זיכוי', { variant: 'error' });
+      enqueueSnackbar(`שגיאה ביצירת חשבונית זיכוי: ${error.message || 'נסה שוב מאוחר יותר'}`, { variant: 'error' });
     }
   };
   
@@ -488,17 +461,6 @@ const Invoices = () => {
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                        {/* צפייה בחשבונית */}
-                        <Tooltip title="צפייה בחשבונית">
-                          <IconButton 
-                            size="small" 
-                            color="primary"
-                            onClick={() => handleViewInvoice(invoice._id, invoice.invoiceNumber)}
-                          >
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        
                         {/* הורדת PDF */}
                         <Tooltip title="הורד PDF">
                           <IconButton 
@@ -592,42 +554,6 @@ const Invoices = () => {
               בטל חשבונית
             </Button>
           </Box>
-        </Box>
-      </Dialog>
-      
-      {/* דיאלוג צפייה בחשבונית */}
-      <Dialog 
-        open={viewInvoiceDialogOpen} 
-        onClose={() => {
-          setViewInvoiceDialogOpen(false);
-          setTimeout(() => {
-            setViewInvoiceUrl(null);
-          }, 300);
-        }}
-        maxWidth="md"
-        fullWidth
-      >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={() => setViewInvoiceDialogOpen(false)}
-          >
-            סגור
-          </Button>
-        </Box>
-        <Box sx={{ height: '80vh', width: '100%' }}>
-          {viewInvoiceUrl && (
-            <iframe 
-              src={viewInvoiceUrl} 
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                border: 'none' 
-              }}
-              title="צפייה בחשבונית"
-            />
-          )}
         </Box>
       </Dialog>
     </Container>

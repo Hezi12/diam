@@ -43,13 +43,13 @@ exports.createInvoice = async (req, res) => {
     // קישור להזמנה אם נשלח מזהה הזמנה
     if (bookingId) {
       try {
-        const booking = await Booking.findById(bookingId);
-        if (!booking) {
+      const booking = await Booking.findById(bookingId);
+      if (!booking) {
           return res.status(404).json({ 
             success: false, 
             error: `הזמנה עם מזהה ${bookingId} לא נמצאה` 
           });
-        }
+      }
         
         // קישור בין החשבונית להזמנה
         invoice.booking = bookingId;
@@ -74,7 +74,7 @@ exports.createInvoice = async (req, res) => {
 
     // שמירת החשבונית החדשה
     await invoice.save();
-
+    
     res.status(201).json({
       success: true,
       message: 'חשבונית נוצרה בהצלחה',
@@ -350,6 +350,62 @@ exports.createCreditInvoice = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'אירעה שגיאה ביצירת חשבונית זיכוי',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * הורדת קובץ PDF של חשבונית
+ */
+exports.getInvoicePdf = async (req, res) => {
+  try {
+    // הוספת headers לטיפול בבעיות CORS
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    const invoice = await Invoice.findById(req.params.id);
+    
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'החשבונית לא נמצאה'
+      });
+    }
+    
+    // אם אין קובץ PDF מקושר לחשבונית
+    if (!invoice.pdfUrl) {
+      return res.status(404).json({
+        success: false,
+        message: 'לא נמצא קובץ PDF לחשבונית זו'
+      });
+    }
+    
+    // הסרת הקידומת "/uploads/" מהנתיב
+    const relativePath = invoice.pdfUrl.replace(/^\/uploads\//, '');
+    const filePath = path.join(process.env.UPLOAD_DIR || 'uploads', relativePath);
+    
+    // בדיקה שהקובץ קיים
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'קובץ ה-PDF לא נמצא במערכת'
+      });
+    }
+    
+    // שליחת הקובץ ללקוח
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
+    
+    // שליחת הקובץ כמענה לבקשה
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('שגיאה בהורדת קובץ PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'אירעה שגיאה בהורדת קובץ ה-PDF',
       error: error.message
     });
   }

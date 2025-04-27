@@ -46,23 +46,6 @@ const invoiceService = {
   },
 
   /**
-   * הורדת קובץ PDF של חשבונית
-   * @param {string} invoiceId - מזהה החשבונית
-   * @returns {Promise<Blob>} קובץ PDF
-   */
-  downloadInvoice: async (invoiceId) => {
-    try {
-      const response = await axios.get(API_ENDPOINTS.invoices.pdf(invoiceId), {
-        responseType: 'blob'
-      });
-      return response.data;
-    } catch (error) {
-      const errorInfo = errorService.handleApiError(error, 'download invoice PDF');
-      throw errorInfo;
-    }
-  },
-
-  /**
    * יצירת חשבונית חדשה
    * @param {Object} invoiceData - פרטי החשבונית
    * @param {string|null} bookingId - מזהה ההזמנה (אופציונלי)
@@ -203,6 +186,60 @@ const invoiceService = {
       return response.data;
     } catch (error) {
       const errorInfo = errorService.handleApiError(error, 'email invoice');
+      throw errorInfo;
+    }
+  },
+
+  /**
+   * עיבוד תשלום
+   * @param {string} invoiceId - מזהה החשבונית
+   * @param {Object} paymentData - פרטי התשלום
+   * @returns {Promise<Object>} אישור התשלום
+   */
+  processPayment: async (invoiceId, paymentData) => {
+    try {
+      const response = await axios.post(API_ENDPOINTS.invoices.processPayment(invoiceId), paymentData);
+      return response.data;
+    } catch (error) {
+      const errorInfo = errorService.handleApiError(error, 'process payment');
+      throw errorInfo;
+    }
+  },
+
+  /**
+   * ביטול חשבונית
+   * @param {string} invoiceId - מזהה החשבונית
+   * @param {string} reason - סיבת הביטול (אופציונלי)
+   * @returns {Promise<Object>} - נתוני החשבונית המבוטלת
+   */
+  cancelInvoice: async (invoiceId, reason = '') => {
+    try {
+      logService.info(`מבקש לבטל חשבונית ${invoiceId}`);
+      const response = await axios.patch(API_ENDPOINTS.invoices.cancel(invoiceId), { reason });
+      logService.info('החשבונית בוטלה בהצלחה');
+      return response.data;
+    } catch (error) {
+      logService.error('שגיאה בביטול חשבונית:', error);
+      const errorInfo = errorService.handleApiError(error, 'cancel invoice');
+      throw errorInfo;
+    }
+  },
+
+  /**
+   * יצירת חשבונית זיכוי
+   * @param {string} invoiceId - מזהה החשבונית המקורית
+   * @param {string} [reason] - סיבת הזיכוי
+   * @returns {Promise<Object>} פרטי חשבונית הזיכוי
+   */
+  createCreditInvoice: async (invoiceId, reason) => {
+    try {
+      logService.info(`יוצר חשבונית זיכוי עבור חשבונית ${invoiceId}`);
+      const response = await axios.post(API_ENDPOINTS.invoices.credit(invoiceId), { reason });
+      logService.info('חשבונית זיכוי נוצרה בהצלחה:', response.data);
+      return response.data;
+    } catch (error) {
+      logService.error('שגיאה ביצירת חשבונית זיכוי:', error);
+      const errorInfo = errorService.handleApiError(error, 'create credit invoice');
       throw errorInfo;
     }
   }

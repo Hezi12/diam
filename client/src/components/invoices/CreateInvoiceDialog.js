@@ -226,33 +226,68 @@ const CreateInvoiceDialog = ({
       document.head.appendChild(printStyles);
 
       const content = invoiceContentRef.current;
+      
+      // שיפור איכות התמונה על ידי הגדלת הסקייל והוספת פרמטרים לשיפור רנדור טקסט
       const canvas = await html2canvas(content, {
-        scale: 2.5, // הגדלת רזולוציה משמעותית (במקום 1.0)
+        scale: 3.0, // הגדלת רזולוציה ל-3.0 (מ-2.5) לחדות גבוהה יותר
         useCORS: true,
         logging: false,
         imageTimeout: 0,
         backgroundColor: 'white',
         allowTaint: false,
-        letterRendering: true, // שיפור רנדור של אותיות/גופנים
+        letterRendering: true,
+        removeContainer: true,
+        foreignObjectRendering: true, // ניסיון להשתמש ב-foreignObject לרנדור טוב יותר
+        onclone: (clonedDoc) => {
+          // שינוי גופנים בעותק המסמך כדי להבטיח רנדור חד יותר
+          const style = clonedDoc.createElement('style');
+          style.innerHTML = `
+            * {
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: optimizeLegibility;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+        }
       });
 
       document.head.removeChild(printStyles);
 
-      const imgData = canvas.toDataURL('image/png', 1.0); // שימוש ב-PNG באיכות מלאה
+      // שימוש באיכות מקסימלית ללא דחיסה עבור PNG
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      
+      // הגדרות PDF משופרות
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
-        compress: true,
-        hotfixes: ['px_scaling'] // פתרון חלופי לבעיות סקלינג בספריית jsPDF
+        compress: false, // ביטול דחיסה כדי לשמור על איכות
+        precision: 16, // דיוק גבוה יותר לפיקסלים
+        hotfixes: ['px_scaling', 'px_scaling']
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const ratio = canvas.width / canvas.height;
-      const imgWidth = pdfWidth;
-      const imgHeight = imgWidth / ratio;
-
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // חישוב יחס גודל אופטימלי
+      const contentRatio = canvas.width / canvas.height;
+      const pageRatio = pdfWidth / pdfHeight;
+      
+      let imgWidth, imgHeight;
+      
+      if (contentRatio > pageRatio) {
+        // התמונה רחבה יותר מהדף - נקבע את הרוחב ונחשב את הגובה בהתאם
+        imgWidth = pdfWidth;
+        imgHeight = pdfWidth / contentRatio;
+      } else {
+        // התמונה גבוהה יותר או שווה לדף - נקבע את הגובה ונחשב את הרוחב בהתאם
+        imgHeight = pdfHeight;
+        imgWidth = pdfHeight * contentRatio;
+      }
+      
+      // הוספת התמונה לדף ה-PDF עם איכות גבוהה וללא דחיסה
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
 
       // שם קובץ שמשלב את מספר החשבונית והתאריך
       const fileName = `חשבונית-${invoiceData.invoiceNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
@@ -315,7 +350,7 @@ const CreateInvoiceDialog = ({
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discount: item.discount || 0,
-          taxRate: invoiceData.taxRate,
+        taxRate: invoiceData.taxRate,
           totalPrice: parseFloat((item.quantity * item.unitPrice).toFixed(2)),
           dateRange: item.dateRange || '',
           dateRange_en: item.dateRange_en || ''
@@ -374,15 +409,15 @@ const CreateInvoiceDialog = ({
       // רק אם הקובץ מספיק קטן, ננסה להעלות אותו לשרת
       if (fileSize <= 5) { // מגבילים ל-5MB לוודא שזה עובר
         try {
-          const formData = new FormData();
-          formData.append('pdf', pdfBlob, fileName);
-          
-          await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          });
-          
+      const formData = new FormData();
+      formData.append('pdf', pdfBlob, fileName);
+      
+      await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
           logService.info('PDF נשלח לשרת בהצלחה');
         } catch (pdfError) {
           logService.error('שגיאה בשליחת ה-PDF לשרת:', pdfError);
