@@ -116,6 +116,11 @@ const Invoices = () => {
   // מצב רענון
   const [refresh, setRefresh] = useState(false);
   
+  // אפקט לטעינת חשבוניות
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices, refresh]);
+  
   // פונקציה לטעינת החשבוניות מהשרת
   const fetchInvoices = useCallback(async (page = 1, filters = {}) => {
     setLoading(true);
@@ -128,8 +133,28 @@ const Invoices = () => {
 
       const response = await axios.get(`/api/invoices?${queryParams}`);
       
-      setInvoices(response.data.invoices);
-      setTotal(response.data.total);
+      console.log('תשובה מהשרת - חשבוניות:', response.data);
+      console.log('מבנה התשובה:', {
+        האם_יש_מערך: Array.isArray(response.data),
+        האם_יש_שדה_invoices: response.data && response.data.invoices,
+        האם_יש_שדה_total: response.data && response.data.total
+      });
+      
+      if (Array.isArray(response.data)) {
+        // אם התשובה היא מערך ישיר של חשבוניות
+        setInvoices(response.data);
+        setTotal(response.data.length);
+      } else if (response.data && response.data.invoices) {
+        // אם התשובה במבנה {invoices: [...], total: X}
+        setInvoices(response.data.invoices);
+        setTotal(response.data.total || response.data.invoices.length);
+      } else {
+        // אין מבנה מוכר
+        console.error('מבנה תשובה לא מוכר:', response.data);
+        setInvoices([]);
+        setTotal(0);
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('שגיאה בטעינת חשבוניות:', error);
@@ -139,7 +164,7 @@ const Invoices = () => {
       );
       setLoading(false);
     }
-  }, [rowsPerPage, isEnglish]);
+  }, [rowsPerPage, isEnglish, enqueueSnackbar]);
   
   // טיפול בשינוי דף
   const handleChangePage = (event, newPage) => {
