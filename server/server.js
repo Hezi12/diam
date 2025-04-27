@@ -91,7 +91,7 @@ mongoose.connect(process.env.MONGODB_URI)
 const authRoutes = require('./routes/auth');
 const roomsRoutes = require('./routes/rooms');
 const bookingsRoutes = require('./routes/bookings');
-const invoicesRoutes = require('./routes/invoices');
+const invoicesRoutes = require('./routes/invoice_routes');
 
 // הגדרת נתיבי API
 app.use('/api/auth', authRoutes);
