@@ -25,6 +25,13 @@ axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.interceptors.request.use(config => {
   // בדיקת חיבור לשרת לפני כל בקשה
   
+  // בדיקה אם ה-URL כבר מכיל כתובת מלאה (עם פרוטוקול)
+  if (config.url && (config.url.startsWith('http://') || config.url.startsWith('https://'))) {
+    // אם כן, לא נשנה את הכתובת כלל
+    console.log(`Sending request to full URL: ${config.url}`);
+    return config;
+  }
+  
   // פישוט ההיגיון: נוסיף /api אם הוא חסר בנתיב
   if (config.url && !config.url.startsWith('/api/')) {
     config.url = '/api' + (config.url.startsWith('/') ? config.url : '/' + config.url);

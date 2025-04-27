@@ -116,36 +116,30 @@ const Invoices = () => {
   // מצב רענון
   const [refresh, setRefresh] = useState(false);
   
-  // טעינת חשבוניות
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      setLoading(true);
-      try {
-        const API_BASE_URL = 'https://diam-server.onrender.com';
-        const response = await axios.get(`${API_BASE_URL}/api/invoices`);
-        setInvoices(response.data);
-        // אם יש תמיכה בדפדוף בשרת
-        if (response.data.pagination && response.data.invoices) {
-          setInvoices(response.data.invoices);
-          setTotal(response.data.pagination.total);
-        } else {
-          // אם אין מבנה דפדוף, פשוט משתמשים בתשובה
-          setInvoices(response.data);
-          setTotal(response.data.length);
-        }
-      } catch (error) {
-        console.error('שגיאה בטעינת החשבוניות:', error);
-        enqueueSnackbar(
-          isEnglish ? 'Failed to load invoices' : 'טעינת החשבוניות נכשלה',
-          { variant: 'error' }
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  // פונקציה לטעינת החשבוניות מהשרת
+  const fetchInvoices = useCallback(async (page = 1, filters = {}) => {
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        page,
+        limit: rowsPerPage,
+        ...filters
+      }).toString();
 
-    fetchInvoices();
-  }, [refresh]);
+      const response = await axios.get(`/api/invoices?${queryParams}`);
+      
+      setInvoices(response.data.invoices);
+      setTotal(response.data.total);
+      setLoading(false);
+    } catch (error) {
+      console.error('שגיאה בטעינת חשבוניות:', error);
+      enqueueSnackbar(
+        isEnglish ? 'Error loading invoices' : 'שגיאה בטעינת חשבוניות',
+        { variant: 'error' }
+      );
+      setLoading(false);
+    }
+  }, [rowsPerPage, isEnglish]);
   
   // טיפול בשינוי דף
   const handleChangePage = (event, newPage) => {
@@ -175,8 +169,7 @@ const Invoices = () => {
   // צפייה בחשבונית
   const handleViewInvoice = async (id, invoiceNumber) => {
     try {
-      const API_BASE_URL = 'https://diam-server.onrender.com';
-      const response = await axios.get(`${API_BASE_URL}/api/invoices/${id}/pdf`, {
+      const response = await axios.get(`/api/invoices/${id}/pdf`, {
         responseType: 'blob'
       });
       
@@ -196,8 +189,7 @@ const Invoices = () => {
   // הורדת חשבונית
   const handleDownloadInvoice = async (id, invoiceNumber) => {
     try {
-      const API_BASE_URL = 'https://diam-server.onrender.com';
-      const response = await axios.get(`${API_BASE_URL}/api/invoices/${id}/pdf`, {
+      const response = await axios.get(`/api/invoices/${id}/pdf`, {
         responseType: 'blob'
       });
       
@@ -232,8 +224,7 @@ const Invoices = () => {
   const handleCancelInvoice = async (id) => {
     if (window.confirm('האם אתה בטוח שברצונך לבטל חשבונית זו?')) {
       try {
-        const API_BASE_URL = 'https://diam-server.onrender.com';
-        await axios.put(`${API_BASE_URL}/api/invoices/${id}/cancel`);
+        await axios.post(`/api/invoices/${id}/cancel`);
         setRefresh(prev => !prev);
         enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
       } catch (error) {
@@ -246,8 +237,7 @@ const Invoices = () => {
   // יצירת חשבונית זיכוי
   const handleCreditInvoice = async (id) => {
     try {
-      const API_BASE_URL = 'https://diam-server.onrender.com';
-      await axios.post(`${API_BASE_URL}/api/invoices/${id}/credit`);
+      await axios.post(`/api/invoices/${id}/credit`);
       setRefresh(prev => !prev);
       enqueueSnackbar('חשבונית זיכוי נוצרה בהצלחה', { variant: 'success' });
     } catch (error) {

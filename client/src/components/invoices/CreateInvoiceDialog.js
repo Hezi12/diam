@@ -295,11 +295,8 @@ const CreateInvoiceDialog = ({
         invoiceDataToSend.booking = bookingData._id;
       }
       
-      // הגדרת כתובת השרת
-      const API_BASE_URL = 'https://diam-server.onrender.com';
-      
       // שליחת נתוני החשבונית לשרת
-      const response = await axios.post(`${API_BASE_URL}/api/invoices`, {
+      const response = await axios.post(`/api/invoices`, {
         invoiceData: invoiceDataToSend,
         bookingId: bookingData?._id
       });
@@ -329,7 +326,7 @@ const CreateInvoiceDialog = ({
       const formData = new FormData();
       formData.append('pdf', pdfBlob, fileName);
       
-      await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, formData, {
+      await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
