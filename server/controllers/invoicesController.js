@@ -157,7 +157,7 @@ exports.getInvoices = async (req, res) => {
  * @route GET /api/invoices/:id
  * @access Private
  */
-exports.getInvoice = async (req, res) => {
+exports.getInvoiceById = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -591,7 +591,7 @@ exports.downloadPdf = async (req, res) => {
 module.exports = {
   createInvoice: exports.createInvoice,
   getInvoices: exports.getInvoices,
-  getInvoice: exports.getInvoice,
+  getInvoiceById: exports.getInvoiceById,
   updateInvoice: exports.updateInvoice,
   cancelInvoice: exports.cancelInvoice,
   createCreditInvoice: exports.createCreditInvoice,

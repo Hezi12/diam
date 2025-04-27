@@ -1,22 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const invoicesController = require('../controllers/invoicesController');
-const { protect } = require('../middleware/authMiddleware');
+const auth = require('../middleware/auth');
 
-// כל הנתיבים מוגנים ומחייבים אימות
-router.use(protect);
+// כל הנתיבים דורשים אימות
+// נתיב להוספת חשבונית חדשה
+router.post('/', auth, invoicesController.createInvoice);
 
-// נתיבים לניהול חשבוניות
-router.post('/', invoicesController.createInvoice);
-router.get('/', invoicesController.getInvoices);
-router.get('/booking/:bookingId', invoicesController.getInvoicesByBooking);
-router.get('/:id', invoicesController.getInvoice);
-router.put('/:id', invoicesController.updateInvoice);
-router.put('/:id/cancel', invoicesController.cancelInvoice);
-router.post('/:id/credit', invoicesController.createCreditInvoice);
+// נתיב לקבלת כל החשבוניות
+router.get('/', auth, invoicesController.getInvoices);
 
-// נתיבים להפקת והורדת PDF
-router.get('/:id/pdf', invoicesController.generatePdf);
-router.get('/:id/download', invoicesController.downloadPdf);
+// נתיב לקבלת חשבונית ספציפית לפי מזהה
+router.get('/:id', auth, invoicesController.getInvoiceById);
+
+// נתיב לעדכון חשבונית קיימת
+router.put('/:id', auth, invoicesController.updateInvoice);
+
+// נתיב לביטול חשבונית
+router.put('/:id/cancel', auth, invoicesController.cancelInvoice);
+
+// נתיב ליצירת קובץ PDF של חשבונית
+router.get('/:id/pdf', auth, invoicesController.generatePdf);
+
+// נתיב להורדת קובץ PDF של חשבונית
+router.get('/:id/download', auth, invoicesController.downloadPdf);
 
 module.exports = router; 
