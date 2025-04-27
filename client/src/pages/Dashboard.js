@@ -1,124 +1,319 @@
-import React from 'react';
-import { Box, Typography, Paper, Grid, Card, CardContent } from '@mui/material';
-import { Dashboard as DashboardIcon, House as RothschildIcon, Flight as AirportIcon } from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Grid, Alert, Snackbar } from '@mui/material';
+import { isValid } from 'date-fns';
 import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
+import NewBookingForm from '../components/bookings/NewBookingForm';
 
+// קומפוננטות של הדאשבורד
+import DashboardDateNav from '../components/dashboard/DashboardDateNav';
+import LocationSection from '../components/dashboard/LocationSection';
+
+// שירותים ופונקציות עזר
+import { 
+  fetchRooms, 
+  fetchBookings, 
+  getRoomStatus, 
+  saveBooking, 
+  updateBooking, 
+  deleteBooking 
+} from '../components/dashboard/dashboardUtils';
+
+/**
+ * דף הדאשבורד הראשי
+ */
 const Dashboard = () => {
   const colors = STYLE_CONSTANTS.colors;
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [airportRooms, setAirportRooms] = useState([]);
+  const [rothschildRooms, setRothschildRooms] = useState([]);
+  const [airportBookings, setAirportBookings] = useState([]);
+  const [rothschildBookings, setRothschildBookings] = useState([]);
+  const [loading, setLoading] = useState({
+    airportRooms: true,
+    rothschildRooms: true,
+    airportBookings: true,
+    rothschildBookings: true
+  });
+
+  // מצב חלונות ההזמנה
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
+  const [initialData, setInitialData] = useState(null);
+  const [editBookingOpen, setEditBookingOpen] = useState(false);
+  const [editBookingData, setEditBookingData] = useState(null);
+  const [bookingLocation, setBookingLocation] = useState('airport');
+  
+  // מצב הודעות
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success' // 'success', 'error', 'info', 'warning'
+  });
+
+  // טעינת נתונים ראשונית
+  useEffect(() => {
+    fetchRooms('airport', setLoading, setAirportRooms);
+    fetchRooms('rothschild', setLoading, setRothschildRooms);
+  }, []);
+
+  // טעינת הזמנות בכל שינוי תאריך
+  useEffect(() => {
+    fetchBookings('airport', currentDate, setLoading, setAirportBookings);
+    fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+  }, [currentDate]);
+
+  // פונקציה לשינוי תאריך
+  const handleDateChange = (newDate) => {
+    if (newDate instanceof Date && isValid(newDate)) {
+      setCurrentDate(newDate);
+    } else {
+      console.error('Invalid date provided to handleDateChange', newDate);
+    }
+  };
+
+  // פונקציה לטיפול בלחיצה על חדר 
+  const handleRoomClick = (status, room, booking) => {
+    // אם החדר ריק, פתיחת טופס הזמנה חדשה
+    if (status === 'empty') {
+      handleEmptyRoomClick(room);
+    }
+    // אם יש הזמנה, פתיחת טופס עריכה
+    else if (booking) {
+      handleBookingClick(booking);
+    }
+  };
+
+  // פונקציה לטיפול בלחיצה על חדר ריק
+  const handleEmptyRoomClick = (room) => {
+    const checkInDate = new Date(currentDate);
+    const checkOutDate = new Date(currentDate);
+    checkOutDate.setDate(checkOutDate.getDate() + 1);
+
+    const data = {
+      room: room._id,
+      roomNumber: room.roomNumber,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      nights: 1,
+      location: room.location,
+      price: room.basePrice
+    };
+    
+    console.log('מכין נתונים להזמנה חדשה:', data);
+    
+    setBookingLocation(room.location);
+    setInitialData(data);
+    setNewBookingOpen(true);
+  };
+
+  // פונקציה לטיפול בלחיצה על הזמנה קיימת
+  const handleBookingClick = (booking) => {
+    console.log('פתיחת הזמנה קיימת לעריכה:', booking);
+    
+    // העתקת ההזמנה לעריכה
+    setEditBookingData(booking);
+    setBookingLocation(booking.location);
+    setEditBookingOpen(true);
+  };
+  
+  // פונקציה לסגירת חלון ההזמנה החדשה
+  const handleCloseNewBooking = () => {
+    setNewBookingOpen(false);
+    setInitialData(null);
+  };
+  
+  // פונקציה לסגירת חלון עריכת הזמנה
+  const handleCloseEditBooking = () => {
+    setEditBookingOpen(false);
+    setEditBookingData(null);
+  };
+
+  // פונקציה לשמירת הזמנה חדשה
+  const handleSaveBooking = async (bookingData) => {
+    const result = await saveBooking(bookingData, bookingLocation);
+    
+    if (result.success) {
+      setNewBookingOpen(false);
+      
+      // הצגת הודעת הצלחה
+      setNotification({
+        open: true,
+        message: 'ההזמנה נשמרה בהצלחה',
+        severity: 'success'
+      });
+      
+      // רענון הזמנות עם השהייה קצרה
+      setTimeout(() => {
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+      }, 500);
+      
+      return true;
+    } else {
+      // הצגת הודעת שגיאה
+      setNotification({
+        open: true,
+        message: result.error,
+        severity: 'error'
+      });
+      
+      return false;
+    }
+  };
+
+  // פונקציה לעדכון הזמנה קיימת
+  const handleUpdateBooking = async (updatedBookingData) => {
+    const result = await updateBooking(updatedBookingData, bookingLocation);
+    
+    if (result.success) {
+      setEditBookingOpen(false);
+      
+      // הצגת הודעת הצלחה
+      setNotification({
+        open: true,
+        message: 'ההזמנה עודכנה בהצלחה',
+        severity: 'success'
+      });
+      
+      // רענון הזמנות עם השהייה קצרה
+      setTimeout(() => {
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+      }, 500);
+      
+      return true;
+    } else {
+      // הצגת הודעת שגיאה
+      setNotification({
+        open: true,
+        message: result.error,
+        severity: 'error'
+      });
+      
+      return false;
+    }
+  };
+
+  // פונקציה למחיקת הזמנה
+  const handleDeleteBooking = async (bookingId) => {
+    const result = await deleteBooking(bookingId);
+    
+    if (result.success) {
+      setEditBookingOpen(false);
+      
+      // הצגת הודעת הצלחה
+      setNotification({
+        open: true,
+        message: 'ההזמנה נמחקה בהצלחה',
+        severity: 'success'
+      });
+      
+      // רענון הזמנות עם השהייה קצרה
+      setTimeout(() => {
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+      }, 500);
+      
+      return true;
+    } else {
+      // הצגת הודעת שגיאה
+      setNotification({
+        open: true,
+        message: result.error,
+        severity: 'error'
+      });
+      
+      return false;
+    }
+  };
+
+  // סגירת הודעה
+  const handleCloseNotification = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  // קבלת כל החדרים מתאימים למיקום עבור NewBookingForm
+  const getLocationRooms = (location) => {
+    return location === 'airport' ? airportRooms : rothschildRooms;
+  };
+
+  // פונקציה להעברת פרמטר לבדיקת סטטוס חדר
+  const getRoomStatusForCurrentDate = (roomId, bookings) => {
+    return getRoomStatus(roomId, bookings, currentDate);
+  };
 
   return (
-    <Box>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-        <Box 
-          sx={{ 
-            mr: 2, 
-            bgcolor: colors.accent.green + '15', // עם אלפא חלש
-            p: 1, 
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center' 
-          }}
-        >
-          <DashboardIcon sx={{ color: colors.accent.green, fontSize: 28 }} />
-        </Box>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 500 }}>
-          דאשבורד
-        </Typography>
-      </Box>
+    <Box sx={{ px: 1, pb: 4, maxWidth: '1200px', mx: 'auto' }}>
+      {/* אזור ניווט בין תאריכים */}
+      <DashboardDateNav 
+        currentDate={currentDate}
+        onDateChange={handleDateChange}
+      />
       
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 3, 
-          borderRadius: STYLE_CONSTANTS.card.borderRadius, 
-          mb: 4, 
-          borderTop: `3px solid ${colors.accent.green}`,
-          boxShadow: STYLE_CONSTANTS.card.boxShadow
-        }}
-      >
-        <Typography variant="body1">
-          ברוכים הבאים למערכת ניהול בתי האירוח של Diam. מכאן תוכלו לנהל את בתי האירוח השונים.
-        </Typography>
-      </Paper>
-      
-      <Grid container spacing={3}>
+      {/* תצוגת חדרים */}
+      <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <Card 
-            sx={{ 
-              height: '100%', 
-              borderRadius: STYLE_CONSTANTS.card.borderRadius, 
-              boxShadow: STYLE_CONSTANTS.card.boxShadow,
-              transition: 'transform 0.2s ease',
-              borderTop: `3px solid ${colors.rothschild.main}`,
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box 
-                  sx={{ 
-                    mr: 2, 
-                    bgcolor: colors.rothschild.bgLight, 
-                    p: 1.5, 
-                    borderRadius: 2,
-                    display: 'flex'
-                  }}
-                >
-                  <RothschildIcon sx={{ color: colors.rothschild.main, fontSize: 28 }} />
-                </Box>
-                <Typography variant="h6" fontWeight={500}>
-                  רוטשילד
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                נהלו את חדרי האירוח באתר רוטשילד, כולל מחירים, זמינות ותמונות.
-              </Typography>
-            </CardContent>
-          </Card>
+          <LocationSection 
+            location="airport" 
+            rooms={airportRooms} 
+            bookings={airportBookings}
+            loading={loading.airportRooms || loading.airportBookings}
+            onRoomClick={handleRoomClick}
+            getRoomStatus={getRoomStatusForCurrentDate}
+          />
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Card 
-            sx={{ 
-              height: '100%', 
-              borderRadius: STYLE_CONSTANTS.card.borderRadius, 
-              boxShadow: STYLE_CONSTANTS.card.boxShadow,
-              transition: 'transform 0.2s ease',
-              borderTop: `3px solid ${colors.airport.main}`,
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box 
-                  sx={{ 
-                    mr: 2, 
-                    bgcolor: colors.airport.bgLight, 
-                    p: 1.5, 
-                    borderRadius: 2,
-                    display: 'flex'
-                  }}
-                >
-                  <AirportIcon sx={{ color: colors.airport.main, fontSize: 28 }} />
-                </Box>
-                <Typography variant="h6" fontWeight={500}>
-                  Airport Guest House
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                נהלו את חדרי האירוח באתר Airport Guest House, כולל מחירים, זמינות ותמונות.
-              </Typography>
-            </CardContent>
-          </Card>
+          <LocationSection 
+            location="rothschild" 
+            rooms={rothschildRooms} 
+            bookings={rothschildBookings}
+            loading={loading.rothschildRooms || loading.rothschildBookings}
+            onRoomClick={handleRoomClick}
+            getRoomStatus={getRoomStatusForCurrentDate}
+          />
         </Grid>
       </Grid>
+
+      {/* חלון הזמנה חדשה */}
+      {newBookingOpen && (
+        <NewBookingForm
+          open={newBookingOpen}
+          onClose={handleCloseNewBooking}
+          onSave={handleSaveBooking}
+          initialData={initialData}
+          rooms={getLocationRooms(bookingLocation)}
+          location={bookingLocation}
+        />
+      )}
+
+      {/* חלון עריכת הזמנה */}
+      {editBookingOpen && (
+        <NewBookingForm
+          open={editBookingOpen}
+          onClose={handleCloseEditBooking}
+          onSave={handleUpdateBooking}
+          onDelete={handleDeleteBooking}
+          editBooking={editBookingData}
+          rooms={getLocationRooms(bookingLocation)}
+          location={bookingLocation}
+        />
+      )}
+
+      {/* הודעות מערכת */}
+      <Snackbar 
+        open={notification.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotification}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity} 
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
