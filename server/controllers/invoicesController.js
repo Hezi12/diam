@@ -263,7 +263,7 @@ exports.updateInvoice = async (req, res) => {
  * @param {Object} req - בקשת HTTP 
  * @param {Object} res - תשובת HTTP
  */
-const cancelInvoice = async (req, res) => {
+exports.cancelInvoice = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
