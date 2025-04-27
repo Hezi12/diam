@@ -34,6 +34,7 @@ exports.createInvoice = async (req, res) => {
     res.status(201).json({
       success: true,
       invoice,
+      invoiceNumber: nextInvoiceNumber
     });
   } catch (error) {
     console.error('שגיאה ביצירת חשבונית:', error);

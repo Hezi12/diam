@@ -24,7 +24,13 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Grid,
+  Tabs,
+  Tab,
+  TabPanel,
+  InputAdornment,
+  Checkbox
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -266,19 +272,7 @@ const CreateInvoiceDialog = ({
     let pdfResult = null;
     
     try {
-      // יצירת קובץ PDF
-      pdfResult = await generatePDF();
-      
-      if (!pdfResult) {
-        throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
-      }
-      
-      const { pdf, fileName } = pdfResult;
-      
-      // יצירת אובייקט FormData לשליחת הקובץ
-      const pdfBlob = pdf.output('blob');
-      
-      // שליחת הנתונים לשרת
+      // יצירת אובייקט נתוני החשבונית לשליחה
       const invoiceDataToSend = {
         documentType: invoiceData.documentType,
         customer: invoiceData.customer,
@@ -301,27 +295,67 @@ const CreateInvoiceDialog = ({
         invoiceDataToSend.booking = bookingData._id;
       }
       
+      // הגדרת כתובת השרת
+      const API_BASE_URL = 'https://diam-server.onrender.com';
+      
       // שליחת נתוני החשבונית לשרת
-      const response = await axios.post('/api/invoices', {
+      const response = await axios.post(`${API_BASE_URL}/api/invoices`, {
         invoiceData: invoiceDataToSend,
         bookingId: bookingData?._id
       });
       
-      // קבלת מזהה החשבונית שנוצרה
+      // קבלת נתוני החשבונית שנוצרה כולל מספר החשבונית
       const { invoice } = response.data;
       
-      // העלאת קובץ ה-PDF לשרת
-      const formData = new FormData();
-      formData.append('pdf', pdfBlob, fileName);
+      // עדכון מספר החשבונית במצב המקומי
+      setInvoiceData(prev => ({
+        ...prev,
+        invoiceNumber: invoice.invoiceNumber
+      }));
       
-      await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // יצירת קובץ PDF עם מספר החשבונית החדש
+      pdfResult = await generatePDF();
       
-      // שמירת הקובץ לוקאלית
-      pdf.save(fileName);
+      if (!pdfResult) {
+        throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
+      }
+      
+      const { pdf, fileName } = pdfResult;
+      
+      try {
+        // יצירת אובייקט FormData לשליחת הקובץ
+        const pdfBlob = pdf.output('blob');
+        
+        // העלאת קובץ ה-PDF לשרת
+        const formData = new FormData();
+        formData.append('pdf', pdfBlob, fileName);
+        
+        await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        // הודעה שהקובץ נשמר בהצלחה בשרת
+        enqueueSnackbar(
+          isEnglish 
+            ? `Invoice #${invoice.invoiceNumber} saved successfully on server` 
+            : `חשבונית מספר ${invoice.invoiceNumber} נשמרה בהצלחה בשרת`,
+          { variant: 'success' }
+        );
+      } catch (uploadError) {
+        console.error('שגיאה בהעלאת קובץ PDF לשרת:', uploadError);
+        
+        // שמירת הקובץ לוקאלית במקרה של שגיאה בהעלאה לשרת
+        pdf.save(fileName);
+        
+        enqueueSnackbar(
+          isEnglish 
+            ? `Server error: Invoice saved locally` 
+            : `שגיאת שרת: החשבונית נשמרה מקומית`,
+          { variant: 'warning' }
+        );
+      }
       
       // קריאה לפונקציית השמירה החיצונית אם קיימת
       if (onSave && typeof onSave === 'function') {
@@ -330,7 +364,9 @@ const CreateInvoiceDialog = ({
       
       // הצגת הודעת הצלחה
       enqueueSnackbar(
-        isEnglish ? 'Invoice saved successfully' : 'החשבונית נשמרה בהצלחה',
+        isEnglish 
+          ? `Invoice #${invoice.invoiceNumber} created successfully` 
+          : `חשבונית מספר ${invoice.invoiceNumber} נוצרה בהצלחה`,
         { variant: 'success' }
       );
       
