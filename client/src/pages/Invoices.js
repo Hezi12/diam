@@ -174,9 +174,19 @@ const Invoices = () => {
   // הורדת חשבונית
   const handleDownloadInvoice = async (id, invoiceNumber) => {
     try {
+      // בדיקה שה-ID אכן קיים
+      if (!id) {
+        throw new Error('מזהה חשבונית לא תקין');
+      }
+      
       const response = await axios.get(`${API_BASE_URL}/api/invoices/${id}/pdf`, {
         responseType: 'blob'
       });
+      
+      // בדיקה שהתקבל קובץ
+      if (!response.data || response.data.size === 0) {
+        throw new Error('לא התקבל קובץ PDF מהשרת');
+      }
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -184,7 +194,12 @@ const Invoices = () => {
       link.setAttribute('download', `חשבונית-${invoiceNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      // ניקוי ה-DOM לאחר ההורדה
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        link.remove();
+      }, 100);
       
       enqueueSnackbar(
         isEnglish ? 'Invoice downloaded successfully' : 'החשבונית הורדה בהצלחה',
@@ -192,8 +207,24 @@ const Invoices = () => {
       );
     } catch (error) {
       console.error('שגיאה בהורדת החשבונית:', error);
+      
+      // הודעת שגיאה מותאמת לפי סוג הבעיה
+      let errorMessage = 'שגיאה בהורדת החשבונית';
+      
+      if (error.response) {
+        // שגיאת שרת עם קוד שגיאה
+        if (error.response.status === 404) {
+          errorMessage = 'לא נמצא קובץ PDF לחשבונית זו';
+        } else if (error.response.status === 500) {
+          errorMessage = 'שגיאת שרת בעת ניסיון להוריד את החשבונית';
+        }
+      } else if (error.message) {
+        // שגיאה עם הודעה ספציפית
+        errorMessage = error.message;
+      }
+      
       enqueueSnackbar(
-        isEnglish ? 'Error downloading invoice' : 'שגיאה בהורדת החשבונית',
+        isEnglish ? 'Error downloading invoice: ' + errorMessage : errorMessage,
         { variant: 'error' }
       );
     }
@@ -207,15 +238,24 @@ const Invoices = () => {
   
   // ביטול חשבונית
   const handleCancelInvoice = async (id) => {
-    if (window.confirm('האם אתה בטוח שברצונך לבטל חשבונית זו?')) {
-      try {
-        await axios.put(`${API_BASE_URL}/api/invoices/${id}/cancel`);
-        setRefresh(prev => !prev);
-        enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
-      } catch (error) {
-        console.error('שגיאה בביטול החשבונית:', error);
-        enqueueSnackbar('שגיאה בביטול החשבונית', { variant: 'error' });
+    try {
+      await axios.put(`${API_BASE_URL}/api/invoices/${id}/cancel`);
+      setRefresh(prev => !prev);
+      enqueueSnackbar('החשבונית בוטלה בהצלחה', { variant: 'success' });
+      // סגירת הדיאלוג אם פתוח
+      setCancelConfirmOpen(false);
+    } catch (error) {
+      console.error('שגיאה בביטול החשבונית:', error);
+      
+      let errorMessage = 'שגיאה בביטול החשבונית';
+      
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     }
   };
   

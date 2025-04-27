@@ -298,102 +298,122 @@ const CreateInvoiceDialog = ({
       // הגדרת כתובת השרת
       const API_BASE_URL = 'https://diam-server.onrender.com';
       
-      // שליחת נתוני החשבונית לשרת
-      const response = await axios.post(`${API_BASE_URL}/api/invoices`, {
-        invoiceData: invoiceDataToSend,
-        bookingId: bookingData?._id
-      });
-      
-      // קבלת נתוני החשבונית שנוצרה כולל מספר החשבונית
-      const { invoice } = response.data;
-      
-      // עדכון מספר החשבונית במצב המקומי
-      setInvoiceData(prev => ({
-        ...prev,
-        invoiceNumber: invoice.invoiceNumber
-      }));
-      
-      // יצירת קובץ PDF עם מספר החשבונית החדש
-      pdfResult = await generatePDF();
-      
-      if (!pdfResult) {
-        throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
-      }
-      
-      const { pdf, fileName } = pdfResult;
-      
       try {
-        // יצירת אובייקט FormData לשליחת הקובץ
-        const pdfBlob = pdf.output('blob');
-        
-        // העלאת קובץ ה-PDF לשרת
-        const formData = new FormData();
-        formData.append('pdf', pdfBlob, fileName);
-        
-        await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+        // שליחת נתוני החשבונית לשרת
+        const response = await axios.post(`${API_BASE_URL}/api/invoices`, {
+          invoiceData: invoiceDataToSend,
+          bookingId: bookingData?._id
         });
         
-        // הודעה שהקובץ נשמר בהצלחה בשרת
-        enqueueSnackbar(
-          isEnglish 
-            ? `Invoice #${invoice.invoiceNumber} saved successfully on server` 
-            : `חשבונית מספר ${invoice.invoiceNumber} נשמרה בהצלחה בשרת`,
-          { variant: 'success' }
-        );
-      } catch (uploadError) {
-        console.error('שגיאה בהעלאת קובץ PDF לשרת:', uploadError);
+        // קבלת נתוני החשבונית שנוצרה כולל מספר החשבונית
+        const { invoice } = response.data;
         
-        // שמירת הקובץ לוקאלית במקרה של שגיאה בהעלאה לשרת
-        pdf.save(fileName);
+        // עדכון מספר החשבונית במצב המקומי
+        setInvoiceData(prev => ({
+          ...prev,
+          invoiceNumber: invoice.invoiceNumber
+        }));
         
-        enqueueSnackbar(
-          isEnglish 
-            ? `Server error: Invoice saved locally` 
-            : `שגיאת שרת: החשבונית נשמרה מקומית`,
-          { variant: 'warning' }
-        );
-      }
-      
-      // קריאה לפונקציית השמירה החיצונית אם קיימת
-      if (onSave && typeof onSave === 'function') {
-        onSave(invoice);
-      }
-      
-      // הצגת הודעת הצלחה
-      enqueueSnackbar(
-        isEnglish 
-          ? `Invoice #${invoice.invoiceNumber} created successfully` 
-          : `חשבונית מספר ${invoice.invoiceNumber} נוצרה בהצלחה`,
-        { variant: 'success' }
-      );
-      
-      // סגירת הדיאלוג
-      onClose();
-    } catch (error) {
-      console.error('שגיאה בשמירת החשבונית:', error);
-      
-      // במקרה של שגיאה, נשמור את החשבונית מקומית בלבד
-      try {
-        if (pdfResult) {
-          pdfResult.pdf.save(pdfResult.fileName);
+        // יצירת קובץ PDF עם מספר החשבונית החדש
+        pdfResult = await generatePDF();
+        
+        if (!pdfResult) {
+          throw new Error(isEnglish ? 'Error creating PDF file' : 'שגיאה ביצירת קובץ PDF');
+        }
+        
+        const { pdf, fileName } = pdfResult;
+        
+        try {
+          // יצירת אובייקט FormData לשליחת הקובץ
+          const pdfBlob = pdf.output('blob');
+          
+          // העלאת קובץ ה-PDF לשרת
+          const formData = new FormData();
+          formData.append('pdf', pdfBlob, fileName);
+          
+          await axios.post(`${API_BASE_URL}/api/invoices/${invoice._id}/pdf`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          // הצגת הודעת הצלחה מלאה
           enqueueSnackbar(
             isEnglish 
-              ? 'Server error: Invoice downloaded locally instead' 
-              : 'שגיאת שרת: החשבונית הורדה באופן מקומי במקום',
+              ? `Invoice #${invoice.invoiceNumber} saved successfully to server` 
+              : `חשבונית מספר ${invoice.invoiceNumber} נשמרה בהצלחה בשרת`,
+            { variant: 'success' }
+          );
+        } catch (uploadError) {
+          console.error('שגיאה בהעלאת קובץ PDF לשרת:', uploadError);
+          // שמירת הקובץ לוקאלית במקרה של שגיאה בהעלאה
+          pdf.save(fileName);
+          
+          enqueueSnackbar(
+            isEnglish 
+              ? `Invoice saved, but PDF could not be uploaded to server (downloaded locally instead)` 
+              : `החשבונית נשמרה, אך לא ניתן היה להעלות את ה-PDF לשרת (הורד מקומית במקום)`,
             { variant: 'warning' }
           );
         }
-      } catch (saveError) {
-        console.error('שגיאה גם בהורדה מקומית:', saveError);
+        
+        // קריאה לפונקציית השמירה החיצונית אם קיימת
+        if (onSave && typeof onSave === 'function') {
+          onSave(invoice);
+        }
+        
+        // סגירת הדיאלוג
+        onClose();
+      } catch (serverError) {
+        console.error('שגיאה בשמירת החשבונית בשרת:', serverError);
+        
+        // יצירת מספר חשבונית זמני
+        const tempInvoiceNumber = `TEMP-${new Date().getTime().toString().substring(0, 10)}`;
+        
+        // עדכון המצב עם מספר החשבונית הזמני
+        setInvoiceData(prev => ({
+          ...prev,
+          invoiceNumber: tempInvoiceNumber
+        }));
+        
+        // יצירת PDF מקומי עם מספר זמני
+        pdfResult = await generatePDF();
+        
+        if (pdfResult) {
+          // שמירה מקומית בלבד
+          pdfResult.pdf.save(pdfResult.fileName);
+          enqueueSnackbar(
+            isEnglish 
+              ? 'Server error: Invoice saved locally only with temporary number' 
+              : 'שגיאת שרת: החשבונית נשמרה מקומית בלבד עם מספר זמני',
+            { variant: 'warning' }
+          );
+          
+          // יצירת אובייקט חשבונית מדומה לשימוש עם onSave
+          const mockInvoice = {
+            ...invoiceDataToSend,
+            _id: `local-${new Date().getTime()}`,
+            invoiceNumber: tempInvoiceNumber,
+            status: 'local_only'
+          };
+          
+          if (onSave && typeof onSave === 'function') {
+            onSave(mockInvoice);
+          }
+          
+          // סגירת הדיאלוג
+          onClose();
+        } else {
+          throw new Error('שגיאה ביצירת קובץ PDF מקומי');
+        }
       }
+    } catch (error) {
+      console.error('שגיאה כללית בתהליך יצירת החשבונית:', error);
       
       enqueueSnackbar(
         isEnglish 
-          ? 'An error occurred while saving the invoice' 
-          : 'אירעה שגיאה בשמירת החשבונית: ' + (error.response?.data?.message || error.message),
+          ? 'An error occurred while creating the invoice' 
+          : 'אירעה שגיאה ביצירת החשבונית: ' + (error.response?.data?.message || error.message),
         { variant: 'error' }
       );
     } finally {
