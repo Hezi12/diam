@@ -194,11 +194,9 @@ const InvoicesList = ({
   // פעולת הורדת חשבונית
   const handleDownload = (invoiceId) => {
     try {
-      // שימוש בכתובת מלאה של השרת - בלי לכלול /api/ בה
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://diam-api.onrender.com';
-      // וידוא שהכתובת לא מכילה כפילות של /api/
-      const baseUrl = apiUrl.endsWith('/api') ? apiUrl : apiUrl.endsWith('/') ? apiUrl + 'api' : apiUrl + '/api';
-      const downloadUrl = `${baseUrl}/invoices/${invoiceId}/download`;
+      // שימוש בכתובת מלאה של השרת - הצעה: להשתמש ב-diam-loy6 במקום diam-api
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://diam-loy6.onrender.com';
+      const downloadUrl = `${apiUrl}/api/invoices/${invoiceId}/download`;
       console.log('פותח קישור להורדה:', downloadUrl);
       window.open(downloadUrl, '_blank');
     } catch (error) {
