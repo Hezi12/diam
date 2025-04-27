@@ -105,7 +105,7 @@ const CreateInvoiceDialog = ({
       }
     ],
     subtotal: 0,
-    taxRate: 17,
+    taxRate: 18,
     taxAmount: 0,
     discount: 0,
     total: 0,
@@ -153,8 +153,8 @@ const CreateInvoiceDialog = ({
       
       // חישוב סכומים
       const priceWithTax = bookingData.price || 0;
-      const taxRate = 17;
-      const subtotal = priceWithTax / 1.17; // מחיר לפני מע"מ
+      const taxRate = 18;
+      const subtotal = priceWithTax / 1.18; // מחיר לפני מע"מ עם מע"מ 18%
       const taxAmount = priceWithTax - subtotal; // סכום המע"מ
       const pricePerNight = subtotal / (bookingData.nights || 1);
       
@@ -578,7 +578,7 @@ const CreateInvoiceDialog = ({
               {isEnglish ? (
                 <>
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
                       Invoice Number: {invoiceData.invoiceNumber || 'Will be generated'}
                     </Typography>
                   </Box>
@@ -596,7 +596,7 @@ const CreateInvoiceDialog = ({
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
                       מספר חשבונית: {invoiceData.invoiceNumber || 'יופק אוטומטית'}
                     </Typography>
                   </Box>
