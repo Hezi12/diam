@@ -22,9 +22,6 @@ import {
   CircularProgress,
   Alert,
   DialogContentText,
-  Tooltip,
-  alpha,
-  darken
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -42,17 +39,15 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   WhatsApp as WhatsAppIcon,
-  Delete as DeleteIcon,
-  Publish as PublishIcon,
-  ContentCopy as ContentCopyIcon,
-  Description as DescriptionIcon,
-  FontDownload as FontDownloadIcon,
-  Payment as PaymentIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
+
+// רכיב דיאלוג יצירת חשבונית
+import CreateInvoiceDialog from '../invoices/CreateInvoiceDialog';
 
 /**
  * טופס ליצירה/עריכה של הזמנה
@@ -65,8 +60,7 @@ const NewBookingForm = ({
   location,
   editBooking = null, // אופציונלי - הזמנה לעריכה
   initialData = null, // אופציונלי - נתונים התחלתיים
-  onDelete = null, // פונקציה למחיקת הזמנה
-  navigate = null // אופציונלי - פונקציית ניווט
+  onDelete = null // פונקציה למחיקת הזמנה
 }) => {
   // הגדרת צבעים לפי מיקום
   const locationColors = {
@@ -84,8 +78,7 @@ const NewBookingForm = ({
   const accentColors = {
     green: '#06a271',
     red: '#e34a6f',
-    orange: '#f7971e',
-    blue: '#3f51b5'
+    orange: '#f7971e'
   };
 
   // הגדרת סגנון עיצוב
@@ -195,6 +188,9 @@ const NewBookingForm = ({
 
   // מצב חלון אישור המחיקה
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  // מצב חלון יצירת חשבונית
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
 
   // מצב תהליך שליחת הטופס
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -716,36 +712,9 @@ const NewBookingForm = ({
     }
   }, [editBooking]);
 
-  // ניווט לדף יצירת חשבונית עם מזהה ההזמנה
-  const handleCreateInvoice = () => {
-    if (!editBooking?._id) {
-      setError('לא ניתן ליצור חשבונית - יש לשמור את ההזמנה תחילה');
-      return;
-    }
-    
-    if (typeof navigate === 'function') {
-      // סגירת הדיאלוג הנוכחי
-      onClose();
-      // ניווט לדף יצירת חשבונית עם מזהה ההזמנה
-      navigate('/invoices/new', { state: { bookingId: editBooking._id } });
-    } else {
-      console.error('פונקציית ניווט לא זמינה');
-      try {
-        // במקום להציג רק הודעת שגיאה, נפתח חלון חדש עם הקישור הנכון
-        const bookingId = editBooking._id;
-        // הוספת לוג לדיבאג
-        console.log('ניסיון פתיחת חלון חדש עם מזהה הזמנה:', bookingId);
-        
-        // סגירת הדיאלוג הנוכחי לפני פתיחת חלון חדש
-        onClose();
-        
-        // פתיחת הדף בחלון חדש - שימוש בנתיב מלא
-        window.open(`/invoices?bookingId=${bookingId}`, '_blank');
-      } catch (err) {
-        console.error('שגיאה בפתיחת חלון חדש:', err);
-        setError('לא ניתן לפתוח את דף החשבוניות - אנא נסה לגשת לדף החשבוניות ידנית');
-      }
-    }
+  // פתיחת דיאלוג חשבונית
+  const handleInvoiceClick = () => {
+    setInvoiceDialogOpen(true);
   };
 
   return (
@@ -788,7 +757,14 @@ const NewBookingForm = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <ReceiptIcon sx={{ color: currentColors.main, marginRight: '15px' }} />
+          <IconButton 
+            onClick={handleInvoiceClick} 
+            size="small" 
+            sx={{ color: currentColors.main, mr: 1 }}
+            title="יצירת חשבונית"
+          >
+            <ReceiptIcon />
+          </IconButton>
           <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
             <InputLabel>סטטוס תשלום</InputLabel>
             <Select
@@ -849,26 +825,6 @@ const NewBookingForm = ({
               <MenuItem value="other">אחר</MenuItem>
             </Select>
           </FormControl>
-
-          {/* כפתור יצירת חשבונית - מוצג רק במצב עריכה */}
-          {isEditMode && (
-            <Tooltip title="צור חשבונית מהזמנה זו">
-              <IconButton 
-                onClick={handleCreateInvoice}
-                size="small" 
-                sx={{ 
-                  mr: 1,
-                  color: accentColors.blue,
-                  '&:hover': { 
-                    color: darken(accentColors.blue, 0.2),
-                    backgroundColor: alpha(accentColors.blue, 0.1) 
-                  }
-                }}
-              >
-                <DescriptionIcon />
-              </IconButton>
-            </Tooltip>
-          )}
 
           <IconButton onClick={onClose} size="small" sx={{ marginRight: 0, color: accentColors.red }}>
             <CloseIcon />
@@ -1428,6 +1384,13 @@ const NewBookingForm = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* דיאלוג יצירת חשבונית */}
+      <CreateInvoiceDialog
+        open={invoiceDialogOpen}
+        onClose={() => setInvoiceDialogOpen(false)}
+        bookingData={formData}
+      />
     </Dialog>
   );
 };

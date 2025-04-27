@@ -16,8 +16,6 @@ import AirportRooms from './pages/settings/rooms/AirportRooms';
 import RothschildRooms from './pages/settings/rooms/RothschildRooms';
 import AirportSite from './pages/AirportSite';
 import RothschildSite from './pages/RothschildSite';
-import Invoices from './pages/Invoices';
-import ViewInvoice from './pages/ViewInvoice';
 
 // קומפוננטים של מערכת העיצוב החדשה
 import DesignSystem from './design-system/DesignSystem';
@@ -128,26 +126,6 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <AirportSite />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/invoices"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Invoices />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/invoices/:invoiceId"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ViewInvoice />
                   </Layout>
                 </ProtectedRoute>
               }

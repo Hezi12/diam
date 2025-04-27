@@ -31,22 +31,16 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
-import NewBookingForm from './NewBookingForm';
 
 /**
  * רכיב להצגת פרטי הזמנה מלאים
  */
-const BookingDetails = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [booking, setBooking] = useState(null);
   const [editedBooking, setEditedBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [rooms, setRooms] = useState([]);
 
   // הגדרות צבעים לפי סטטוס הזמנה
   const bookingStatusColors = {
@@ -101,13 +95,13 @@ const BookingDetails = () => {
 
   // טעינת מידע ההזמנה בעת פתיחת המודל
   useEffect(() => {
-    if (id) {
+    if (open && bookingId) {
       setLoading(true);
       setError(null);
       
-      console.log('מנסה לטעון הזמנה עם מזהה:', id);
+      console.log('מנסה לטעון הזמנה עם מזהה:', bookingId);
       
-      axios.get(`/api/bookings/single/${id}`)
+      axios.get(`/api/bookings/single/${bookingId}`)
         .then(response => {
           console.log('הזמנה נטענה:', response.data);
           setBooking(response.data);
@@ -121,25 +115,15 @@ const BookingDetails = () => {
           setLoading(false);
         });
     }
-  }, [id]);
+  }, [open, bookingId]);
 
-  // טעינת רשימת החדרים
-  useEffect(() => {
-    axios.get('/api/rooms')
-      .then(response => {
-        setRooms(response.data);
-      })
-      .catch(err => {
-        console.error('שגיאה בטעינת רשימת החדרים:', err);
-      });
-  }, []);
-
-  if (!id) return null;
+  if (!open) return null;
   
   if (loading) {
     return (
       <Dialog 
-        open={true} 
+        open={open} 
+        onClose={onClose} 
         maxWidth="md" 
         fullWidth
         PaperProps={{
@@ -150,7 +134,7 @@ const BookingDetails = () => {
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             טוען פרטי הזמנה...
           </Box>
-          <IconButton onClick={() => navigate(-1)}>
+          <IconButton onClick={onClose}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -164,7 +148,8 @@ const BookingDetails = () => {
   if (error || !booking) {
     return (
       <Dialog 
-        open={true} 
+        open={open} 
+        onClose={onClose} 
         maxWidth="md" 
         fullWidth
         PaperProps={{
@@ -173,7 +158,7 @@ const BookingDetails = () => {
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography>שגיאה בטעינת הזמנה</Typography>
-          <IconButton onClick={() => navigate(-1)}>
+          <IconButton onClick={onClose}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -181,7 +166,7 @@ const BookingDetails = () => {
           <Typography color="error">{error || 'לא ניתן לטעון את פרטי ההזמנה'}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={() => navigate(-1)}>סגירה</Button>
+          <Button variant="contained" onClick={onClose}>סגירה</Button>
         </DialogActions>
       </Dialog>
     );
@@ -192,7 +177,7 @@ const BookingDetails = () => {
   const handleEditToggle = () => {
     if (isEditing) {
       // שמירת השינויים
-      handleUpdateBooking(editedBooking);
+      onEdit(editedBooking);
     }
     setIsEditing(!isEditing);
   };
@@ -214,305 +199,280 @@ const BookingDetails = () => {
     }
   };
 
-  const handleUpdateBooking = (updatedBooking) => {
-    // Implement the logic to update the booking
-    console.log('Updating booking:', updatedBooking);
-  };
-
-  const handleDeleteBooking = (bookingId) => {
-    // Implement the logic to delete the booking
-    console.log('Deleting booking:', bookingId);
-  };
-
   return (
-    <Box sx={{ padding: 3 }}>
-      <Dialog 
-        open={true} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            maxHeight: '90vh'
-          }
-        }}
-      >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center' }}>
-              פרטי הזמנה {booking.bookingNumber ? `${booking.bookingNumber}` : ''} - {booking.firstName} {booking.lastName}
-            </Typography>
-            <Chip 
-              label={bookingStatusText[booking.status]}
-              icon={statusColors.icon}
-              sx={{ 
-                ml: 2, 
-                bgcolor: statusColors.bgColor,
-                color: statusColors.textColor,
-                borderColor: statusColors.borderColor,
-                '& .MuiChip-icon': {
-                  color: statusColors.textColor
-                }
-              }}
-              variant="outlined"
-              size="small"
-            />
-          </Box>
-          <Box>
-            <IconButton onClick={handleEditToggle} sx={{ mr: 1 }}>
-              {isEditing ? <CheckCircleIcon /> : <EditIcon />}
-            </IconButton>
-            <IconButton onClick={() => navigate(-1)}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ py: 2 }}>
-          <Grid container spacing={3}>
-            {/* מידע אישי */}
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" gutterBottom>פרטי אורח</Typography>
-                
-                {isEditing ? (
-                  <>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          label="שם פרטי"
-                          name="firstName"
-                          value={editedBooking.firstName || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          label="שם משפחה"
-                          name="lastName"
-                          value={editedBooking.lastName || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="טלפון"
-                          name="phone"
-                          value={editedBooking.phone || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="דוא״ל"
-                          name="email"
-                          value={editedBooking.email || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="הערות"
-                          name="notes"
-                          value={editedBooking.notes || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          multiline
-                          rows={3}
-                          size="small"
-                        />
-                      </Grid>
-                    </Grid>
-                  </>
-                ) : (
-                  <>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">שם:</Typography>
-                      <Typography variant="body1">{`${booking.firstName} ${booking.lastName}`}</Typography>
-                    </Box>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">טלפון:</Typography>
-                      <Typography variant="body1">{booking.phone || 'לא צוין'}</Typography>
-                    </Box>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">דוא״ל:</Typography>
-                      <Typography variant="body1">{booking.email || 'לא צוין'}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">הערות:</Typography>
-                      <Typography variant="body1">{booking.notes || 'אין הערות'}</Typography>
-                    </Box>
-                  </>
-                )}
-              </Paper>
-            </Grid>
-
-            {/* פרטי הזמנה */}
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" gutterBottom>פרטי שהייה</Typography>
-                
-                {isEditing ? (
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="md" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          maxHeight: '90vh'
+        }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center' }}>
+            פרטי הזמנה {booking.bookingNumber ? `${booking.bookingNumber}` : ''} - {booking.firstName} {booking.lastName}
+          </Typography>
+          <Chip 
+            label={bookingStatusText[booking.status]}
+            icon={statusColors.icon}
+            sx={{ 
+              ml: 2, 
+              bgcolor: statusColors.bgColor,
+              color: statusColors.textColor,
+              borderColor: statusColors.borderColor,
+              '& .MuiChip-icon': {
+                color: statusColors.textColor
+              }
+            }}
+            variant="outlined"
+            size="small"
+          />
+        </Box>
+        <Box>
+          <IconButton onClick={handleEditToggle} sx={{ mr: 1 }}>
+            {isEditing ? <CheckCircleIcon /> : <EditIcon />}
+          </IconButton>
+          <IconButton onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <Divider />
+      <DialogContent sx={{ py: 2 }}>
+        <Grid container spacing={3}>
+          {/* מידע אישי */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 2, borderRadius: 2, height: '100%' }}>
+              <Typography variant="h6" gutterBottom>פרטי אורח</Typography>
+              
+              {isEditing ? (
+                <>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid item xs={6}>
                       <TextField
-                        select
                         fullWidth
-                        label="סטטוס הזמנה"
-                        name="status"
-                        value={editedBooking.status || 'pending'}
+                        label="שם פרטי"
+                        name="firstName"
+                        value={editedBooking.firstName || ''}
                         onChange={handleChange}
                         variant="outlined"
                         size="small"
-                      >
-                        <MenuItem value="confirmed">מאושר</MenuItem>
-                        <MenuItem value="pending">בהמתנה</MenuItem>
-                        <MenuItem value="cancelled">בוטל</MenuItem>
-                        <MenuItem value="completed">הושלם</MenuItem>
-                      </TextField>
+                      />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={6}>
                       <TextField
-                        select
                         fullWidth
-                        label="סטטוס תשלום"
-                        name="paymentStatus"
-                        value={editedBooking.paymentStatus || 'unpaid'}
+                        label="שם משפחה"
+                        name="lastName"
+                        value={editedBooking.lastName || ''}
                         onChange={handleChange}
                         variant="outlined"
                         size="small"
-                      >
-                        <MenuItem value="unpaid">לא שולם</MenuItem>
-                        <MenuItem value="cash">מזומן</MenuItem>
-                        <MenuItem value="credit_or_yehuda">אשראי אור יהודה</MenuItem>
-                        <MenuItem value="credit_rothschild">אשראי רוטשילד</MenuItem>
-                        <MenuItem value="transfer_mizrahi">העברה מזרחי</MenuItem>
-                        <MenuItem value="bit_mizrahi">ביט מזרחי</MenuItem>
-                        <MenuItem value="transfer_poalim">העברה פועלים</MenuItem>
-                        <MenuItem value="bit_poalim">ביט פועלים</MenuItem>
-                        <MenuItem value="other">אחר</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        select
-                        fullWidth
-                        label="מיקום"
-                        name="location"
-                        value={editedBooking.location || 'airport'}
-                        onChange={handleChange}
-                        variant="outlined"
-                        size="small"
-                      >
-                        <MenuItem value="airport">אור יהודה</MenuItem>
-                        <MenuItem value="rothschild">רוטשילד</MenuItem>
-                      </TextField>
+                      />
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        type="number"
-                        label="מחיר"
-                        name="price"
-                        value={editedBooking.price || 0}
+                        label="טלפון"
+                        name="phone"
+                        value={editedBooking.phone || ''}
                         onChange={handleChange}
                         variant="outlined"
                         size="small"
-                        inputProps={{ min: 0 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="דוא״ל"
+                        name="email"
+                        value={editedBooking.email || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="הערות"
+                        name="notes"
+                        value={editedBooking.notes || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        multiline
+                        rows={3}
+                        size="small"
                       />
                     </Grid>
                   </Grid>
-                ) : (
-                  <>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">כניסה:</Typography>
-                      <Typography variant="body1">{formatDate(booking.checkIn)}</Typography>
-                    </Box>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">יציאה:</Typography>
-                      <Typography variant="body1">{formatDate(booking.checkOut)}</Typography>
-                    </Box>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">מספר לילות:</Typography>
-                      <Typography variant="body1">{booking.nights}</Typography>
-                    </Box>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">מיקום:</Typography>
-                      <Typography variant="body1">
-                        {booking.location === 'airport' ? 'אור יהודה' : 
-                         booking.location === 'rothschild' ? 'רוטשילד' : 
-                         booking.location}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">סטטוס תשלום:</Typography>
-                      <Typography variant="body1">{paymentStatusText[booking.paymentStatus] || 'לא שולם'}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">סה״כ לתשלום:</Typography>
-                      <Typography variant="body1">₪{booking.price}</Typography>
-                    </Box>
-                  </>
-                )}
-              </Paper>
-            </Grid>
+                </>
+              ) : (
+                <>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">שם:</Typography>
+                    <Typography variant="body1">{`${booking.firstName} ${booking.lastName}`}</Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">טלפון:</Typography>
+                    <Typography variant="body1">{booking.phone || 'לא צוין'}</Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">דוא״ל:</Typography>
+                    <Typography variant="body1">{booking.email || 'לא צוין'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">הערות:</Typography>
+                    <Typography variant="body1">{booking.notes || 'אין הערות'}</Typography>
+                  </Box>
+                </>
+              )}
+            </Paper>
           </Grid>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          {isEditing ? (
-            <>
-              <Button onClick={() => setIsEditing(false)} variant="outlined" color="inherit">
-                ביטול
-              </Button>
-              <Button onClick={handleEditToggle} variant="contained" color="primary">
-                שמירת שינויים
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button 
-                startIcon={<DeleteIcon />} 
-                onClick={() => handleDeleteBooking(booking._id)} 
-                variant="outlined" 
-                color="error"
-              >
-                מחיקת הזמנה
-              </Button>
-              <Button variant="contained" onClick={() => setEditDialogOpen(true)} color="primary">
-                עריכת הזמנה
-              </Button>
-            </>
-          )}
-        </DialogActions>
-      </Dialog>
-      
-      {/* דיאלוג עריכה */}
-      {editDialogOpen && (
-        <NewBookingForm
-          open={editDialogOpen}
-          onClose={() => setEditDialogOpen(false)}
-          onSave={handleUpdateBooking}
-          rooms={rooms}
-          editBooking={booking}
-          onDelete={handleDeleteBooking}
-          location={booking?.location}
-          navigate={navigate}
-        />
-      )}
-    </Box>
+
+          {/* פרטי הזמנה */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 2, borderRadius: 2, height: '100%' }}>
+              <Typography variant="h6" gutterBottom>פרטי שהייה</Typography>
+              
+              {isEditing ? (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="סטטוס הזמנה"
+                      name="status"
+                      value={editedBooking.status || 'pending'}
+                      onChange={handleChange}
+                      variant="outlined"
+                      size="small"
+                    >
+                      <MenuItem value="confirmed">מאושר</MenuItem>
+                      <MenuItem value="pending">בהמתנה</MenuItem>
+                      <MenuItem value="cancelled">בוטל</MenuItem>
+                      <MenuItem value="completed">הושלם</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="סטטוס תשלום"
+                      name="paymentStatus"
+                      value={editedBooking.paymentStatus || 'unpaid'}
+                      onChange={handleChange}
+                      variant="outlined"
+                      size="small"
+                    >
+                      <MenuItem value="unpaid">לא שולם</MenuItem>
+                      <MenuItem value="cash">מזומן</MenuItem>
+                      <MenuItem value="credit_or_yehuda">אשראי אור יהודה</MenuItem>
+                      <MenuItem value="credit_rothschild">אשראי רוטשילד</MenuItem>
+                      <MenuItem value="transfer_mizrahi">העברה מזרחי</MenuItem>
+                      <MenuItem value="bit_mizrahi">ביט מזרחי</MenuItem>
+                      <MenuItem value="transfer_poalim">העברה פועלים</MenuItem>
+                      <MenuItem value="bit_poalim">ביט פועלים</MenuItem>
+                      <MenuItem value="other">אחר</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="מיקום"
+                      name="location"
+                      value={editedBooking.location || 'airport'}
+                      onChange={handleChange}
+                      variant="outlined"
+                      size="small"
+                    >
+                      <MenuItem value="airport">אור יהודה</MenuItem>
+                      <MenuItem value="rothschild">רוטשילד</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="מחיר"
+                      name="price"
+                      value={editedBooking.price || 0}
+                      onChange={handleChange}
+                      variant="outlined"
+                      size="small"
+                      inputProps={{ min: 0 }}
+                    />
+                  </Grid>
+                </Grid>
+              ) : (
+                <>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">כניסה:</Typography>
+                    <Typography variant="body1">{formatDate(booking.checkIn)}</Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">יציאה:</Typography>
+                    <Typography variant="body1">{formatDate(booking.checkOut)}</Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">מספר לילות:</Typography>
+                    <Typography variant="body1">{booking.nights}</Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">מיקום:</Typography>
+                    <Typography variant="body1">
+                      {booking.location === 'airport' ? 'אור יהודה' : 
+                       booking.location === 'rothschild' ? 'רוטשילד' : 
+                       booking.location}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">סטטוס תשלום:</Typography>
+                    <Typography variant="body1">{paymentStatusText[booking.paymentStatus] || 'לא שולם'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">סה״כ לתשלום:</Typography>
+                    <Typography variant="body1">₪{booking.price}</Typography>
+                  </Box>
+                </>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        {isEditing ? (
+          <>
+            <Button onClick={() => setIsEditing(false)} variant="outlined" color="inherit">
+              ביטול
+            </Button>
+            <Button onClick={handleEditToggle} variant="contained" color="primary">
+              שמירת שינויים
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button 
+              startIcon={<DeleteIcon />} 
+              onClick={() => onDelete(booking._id)} 
+              variant="outlined" 
+              color="error"
+            >
+              מחיקת הזמנה
+            </Button>
+            <Button variant="contained" onClick={onClose} color="primary">
+              סגירה
+            </Button>
+          </>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 };
 

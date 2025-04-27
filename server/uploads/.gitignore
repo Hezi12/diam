@@ -4,12 +4,4 @@
 
 # אפשר לשמור תיקיות ריקות
 !*/
-!.gitkeep
-
-# התעלם מכל הקבצים בתיקיות הבאות, אך כלול את התיקיות עצמן
-/rooms/*
-!/rooms/.gitkeep
-/gallery/*
-!/gallery/.gitkeep
-/invoices/*
-!/invoices/.gitkeep 
+!.gitkeep 

@@ -8,12 +8,6 @@ const morgan = require('morgan');
 // טעינת הגדרות סביבה
 dotenv.config();
 
-// זיהוי סביבת render.com (לטיפול בנתיבי קבצים)
-if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL) {
-  console.log('סביבת Render.com זוהתה');
-  process.env.RENDER = 'true';
-}
-
 // יצירת אפליקציית Express
 const app = express();
 
@@ -97,13 +91,11 @@ mongoose.connect(process.env.MONGODB_URI)
 const authRoutes = require('./routes/auth');
 const roomsRoutes = require('./routes/rooms');
 const bookingsRoutes = require('./routes/bookings');
-const invoicesRoutes = require('./routes/invoice_routes');
 
 // הגדרת נתיבי API
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/bookings', bookingsRoutes);
-app.use('/api/invoices', invoicesRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {
