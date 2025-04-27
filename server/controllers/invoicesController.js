@@ -42,6 +42,14 @@ exports.createInvoice = async (req, res) => {
     }
 
     console.log(`נמצאה הזמנה: ${booking._id}, מיקום: ${booking.location}`);
+    
+    if (!booking.location) {
+      console.error('מיקום חסר בהזמנה!');
+      return res.status(400).json({
+        success: false,
+        message: 'מיקום חסר בהזמנה, לא ניתן ליצור חשבונית ללא מיקום'
+      });
+    }
 
     // חישוב ערכים לפי נתוני ההזמנה
     let subtotal, vatAmount;
@@ -88,6 +96,21 @@ exports.createInvoice = async (req, res) => {
     });
 
     console.log('חשבונית מוכנה לשמירה:', JSON.stringify(newInvoice));
+
+    try {
+      // ניסיון ליצור מספר חשבונית באופן ידני לפני השמירה 
+      // (למקרה שהמתודה pre-save לא פועלת כראוי)
+      if (!newInvoice.invoiceNumber) {
+        console.log('מנסה ליצור מספר חשבונית באופן ידני');
+        const { invoiceNumber, sequentialNumber } = await Invoice.generateInvoiceNumber(booking.location);
+        newInvoice.invoiceNumber = invoiceNumber;
+        newInvoice.sequentialNumber = sequentialNumber;
+        console.log(`נוצר מספר חשבונית ידני: ${invoiceNumber}, מספר עוקב: ${sequentialNumber}`);
+      }
+    } catch (numError) {
+      console.error('שגיאה ביצירת מספר חשבונית ידני:', numError);
+      // נמשיך ונסמוך על מתודת pre-save
+    }
 
     // שמירת החשבונית
     await newInvoice.save();
