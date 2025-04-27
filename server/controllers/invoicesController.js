@@ -589,13 +589,13 @@ exports.downloadPdf = async (req, res) => {
 
 // Export all controllers
 module.exports = {
-  createInvoice,
-  getInvoices,
-  getInvoice,
-  updateInvoice,
-  cancelInvoice,
-  createCreditInvoice,
-  getInvoicesByBooking,
-  generatePdf,
-  downloadPdf
+  createInvoice: exports.createInvoice,
+  getInvoices: exports.getInvoices,
+  getInvoice: exports.getInvoice,
+  updateInvoice: exports.updateInvoice,
+  cancelInvoice: exports.cancelInvoice,
+  createCreditInvoice: exports.createCreditInvoice,
+  getInvoicesByBooking: exports.getInvoicesByBooking,
+  generatePdf: exports.generatePdf,
+  downloadPdf: exports.downloadPdf
 }; 
