@@ -12,7 +12,15 @@ const moment = require('moment');
 const generateInvoicePdf = async (invoice, outputPath = null) => {
   return new Promise((resolve, reject) => {
     try {
+      // בדיקה שהחשבונית תקינה
+      if (!invoice) {
+        const error = new Error('אובייקט החשבונית הוא null או undefined');
+        console.error(error);
+        return reject(error);
+      }
+      
       console.log('מתחיל ליצור קובץ PDF עבור חשבונית', invoice.invoiceNumber || 'חדשה');
+      console.log('מידע מלא על החשבונית:', JSON.stringify(invoice, null, 2));
       
       // יצירת מסמך PDF חדש
       const doc = new PDFDocument({
@@ -26,7 +34,12 @@ const generateInvoicePdf = async (invoice, outputPath = null) => {
       });
 
       // הגדרת כיוון עברית מימין לשמאל
-      doc.font('Hebrew').text('', 0, 0, { align: 'right' });
+      try {
+        doc.font('Hebrew').text('', 0, 0, { align: 'right' });
+      } catch (fontError) {
+        console.warn('שגיאה בהגדרת פונט:', fontError);
+        // נמשיך בלי הגדרת הפונט
+      }
 
       // שמירת הקובץ - אם לא צוין נתיב, נשמור בתיקיית הפרויקט
       let fileName = 'invoice_draft.pdf';
@@ -42,39 +55,85 @@ const generateInvoicePdf = async (invoice, outputPath = null) => {
       if (!fs.existsSync(dir)) {
         console.log(`יוצר תיקייה: ${dir}`);
         fs.mkdirSync(dir, { recursive: true });
+      } else {
+        console.log(`התיקייה ${dir} כבר קיימת`);
+      }
+      
+      console.log('בדיקת הרשאות כתיבה לתיקייה:', dir);
+      try {
+        const testFile = path.join(dir, '.test_write_permissions');
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        console.log('הרשאות כתיבה תקינות');
+      } catch (permError) {
+        console.error('בעיית הרשאות כתיבה בתיקייה:', permError);
       }
       
       // יצירת stream כתיבה לקובץ
-      const stream = fs.createWriteStream(filePath);
-      stream.on('error', (err) => {
-        console.error('שגיאה בכתיבת קובץ PDF:', err);
-        reject(err);
-      });
-      
-      doc.pipe(stream);
-
-      // הוספת תוכן החשבונית
       try {
-        addHeader(doc, invoice);
-        addInvoiceInfo(doc, invoice);
-        addCustomerInfo(doc, invoice);
-        addServiceDetails(doc, invoice);
-        addPaymentDetails(doc, invoice);
-        addFooter(doc, invoice);
-      } catch (contentError) {
-        console.error('שגיאה בהוספת תוכן לPDF:', contentError);
+        const stream = fs.createWriteStream(filePath);
+        
+        stream.on('error', (err) => {
+          console.error('שגיאה בכתיבת קובץ PDF:', err);
+          reject(err);
+        });
+        
+        doc.pipe(stream);
+
+        // הוספת תוכן החשבונית
+        try {
+          console.log('מוסיף כותרת');
+          addHeader(doc, invoice);
+          console.log('מוסיף פרטי חשבונית');
+          addInvoiceInfo(doc, invoice);
+          console.log('מוסיף פרטי לקוח');
+          addCustomerInfo(doc, invoice);
+          console.log('מוסיף פרטי שירות');
+          addServiceDetails(doc, invoice);
+          console.log('מוסיף פרטי תשלום');
+          addPaymentDetails(doc, invoice);
+          console.log('מוסיף תחתית');
+          addFooter(doc, invoice);
+          console.log('סיום הוספת תוכן');
+        } catch (contentError) {
+          console.error('שגיאה בהוספת תוכן לPDF:', contentError);
+          console.error('פירוט השגיאה:', contentError.stack);
+        }
+
+        // סגירת המסמך - ישמור את הקובץ
+        console.log('סוגר את מסמך ה-PDF');
+        doc.end();
+
+        // כשהכתיבה תסתיים, נחזיר את נתיב הקובץ
+        stream.on('finish', () => {
+          console.log('הקובץ נוצר בהצלחה:', filePath);
+          
+          // בדיקה נוספת שהקובץ אכן נוצר
+          if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            console.log(`גודל הקובץ: ${stats.size} בתים`);
+            
+            if (stats.size > 0) {
+              console.log('הקובץ תקין ומוכן להורדה');
+              resolve(filePath);
+            } else {
+              const error = new Error('הקובץ נוצר אך הוא ריק');
+              console.error(error);
+              reject(error);
+            }
+          } else {
+            const error = new Error('הקובץ לא נמצא אחרי יצירה');
+            console.error(error);
+            reject(error);
+          }
+        });
+      } catch (streamError) {
+        console.error('שגיאה ביצירת stream הכתיבה:', streamError);
+        reject(streamError);
       }
-
-      // סגירת המסמך - ישמור את הקובץ
-      doc.end();
-
-      // כשהכתיבה תסתיים, נחזיר את נתיב הקובץ
-      stream.on('finish', () => {
-        console.log('הקובץ נוצר בהצלחה:', filePath);
-        resolve(filePath);
-      });
     } catch (error) {
-      console.error('שגיאה ביצירת PDF:', error);
+      console.error('שגיאה כללית ביצירת PDF:', error);
+      console.error('פירוט השגיאה:', error.stack);
       reject(error);
     }
   });

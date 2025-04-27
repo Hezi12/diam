@@ -493,10 +493,12 @@ function mapBookingPaymentToInvoicePayment(bookingPaymentStatus) {
  */
 exports.generatePdf = async (req, res) => {
   try {
+    console.log('מתחיל תהליך הפקת PDF, ID חשבונית:', req.params.id);
     const { id } = req.params;
 
     // וידוא מזהה תקף
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('מזהה חשבונית לא תקין:', id);
       return res.status(400).json({
         success: false,
         message: 'מזהה חשבונית לא תקין'
@@ -504,6 +506,7 @@ exports.generatePdf = async (req, res) => {
     }
 
     // שליפת החשבונית
+    console.log('מנסה למצוא חשבונית במסד הנתונים');
     const invoice = await Invoice.findById(id)
       .populate('booking', 'bookingNumber firstName lastName checkIn checkOut')
       .populate({
@@ -515,37 +518,90 @@ exports.generatePdf = async (req, res) => {
       });
 
     if (!invoice) {
+      console.error('החשבונית לא נמצאה:', id);
       return res.status(404).json({
         success: false,
         message: 'החשבונית לא נמצאה'
       });
     }
+    
+    console.log('חשבונית נמצאה:', invoice._id);
 
-    // הפקת ה-PDF
-    const outputPath = path.join(__dirname, '../uploads/invoices', `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`);
-    const pdfPath = await generateInvoicePdf(invoice, outputPath);
-
-    // שינוי סטטוס החשבונית ל-issued אם היא בסטטוס draft
-    if (invoice.status === 'draft') {
-      invoice.status = 'issued';
-      await invoice.save();
+    // בדיקה שכל השדות החובה קיימים
+    const requiredFields = ['customer', 'serviceDetails', 'paymentDetails'];
+    for (const field of requiredFields) {
+      if (!invoice[field]) {
+        console.error(`שדה חובה חסר בחשבונית: ${field}`);
+        return res.status(400).json({
+          success: false,
+          message: `שדה חובה חסר בחשבונית: ${field}`
+        });
+      }
     }
 
-    // החזרת נתיב הקובץ
-    res.status(200).json({
-      success: true,
-      data: {
-        pdfPath: pdfPath.replace(/^.*\/uploads/, '/uploads'), // המרה לנתיב יחסי לשרת
-        invoiceNumber: invoice.invoiceNumber
-      },
-      message: 'החשבונית הופקה בהצלחה'
-    });
+    // וידוא שתיקיית היעד קיימת
+    const invoicesDir = path.join(__dirname, '../uploads/invoices');
+    if (!fs.existsSync(invoicesDir)) {
+      console.log(`יוצר תיקיית uploads/invoices`);
+      fs.mkdirSync(invoicesDir, { recursive: true });
+    }
+
+    // הפקת ה-PDF
+    console.log('מתחיל להפיק PDF');
+    const fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
+    const outputPath = path.join(__dirname, '../uploads/invoices', fileName);
+    console.log('נתיב ליצירת קובץ PDF:', outputPath);
+    
+    try {
+      const pdfPath = await generateInvoicePdf(invoice, outputPath);
+      console.log('PDF נוצר בהצלחה:', pdfPath);
+
+      // שינוי סטטוס החשבונית ל-issued אם היא בסטטוס draft
+      if (invoice.status === 'draft') {
+        console.log('עדכון סטטוס החשבונית ל-issued');
+        invoice.status = 'issued';
+        await invoice.save();
+        console.log('סטטוס חשבונית עודכן בהצלחה');
+      }
+
+      // בדיקה שהקובץ אכן נוצר
+      if (!fs.existsSync(pdfPath)) {
+        throw new Error('הקובץ לא נוצר בנתיב שצוין');
+      }
+
+      // החזרת נתיב הקובץ
+      const relativePath = pdfPath.replace(/^.*\/uploads/, '/uploads');
+      console.log('מחזיר נתיב יחסי:', relativePath);
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          pdfPath: relativePath,
+          invoiceNumber: invoice.invoiceNumber,
+          absolutePath: pdfPath // רק לצורכי דיבוג
+        },
+        message: 'החשבונית הופקה בהצלחה'
+      });
+    } catch (pdfError) {
+      console.error('שגיאה בהפקת ה-PDF:', pdfError);
+      console.error('פירוט השגיאה:', pdfError.stack);
+      
+      return res.status(500).json({
+        success: false,
+        message: 'שגיאה בהפקת ה-PDF',
+        error: pdfError.message,
+        stack: process.env.NODE_ENV === 'production' ? null : pdfError.stack
+      });
+    }
   } catch (error) {
-    console.error('שגיאה בהפקת חשבונית PDF:', error);
+    console.error('שגיאה כללית בהפקת חשבונית PDF:', error);
+    console.error('פירוט השגיאה:', error.stack);
+    
     res.status(500).json({
       success: false,
       message: 'שגיאה בהפקת חשבונית PDF',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'production' ? null : error.stack
     });
   }
 };

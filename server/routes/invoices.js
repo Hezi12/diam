@@ -3,26 +3,29 @@ const router = express.Router();
 const invoicesController = require('../controllers/invoicesController');
 const auth = require('../middleware/auth');
 
-// כל הנתיבים דורשים אימות
-// נתיב להוספת חשבונית חדשה
+// הגדרת נתיבי חשבוניות
+// ------------------------------
+
+// הוספת חשבונית חדשה (POST)
 router.post('/', auth, invoicesController.createInvoice);
 
-// נתיב לקבלת כל החשבוניות
+// קבלת כל החשבוניות (GET)
 router.get('/', auth, invoicesController.getInvoices);
 
-// נתיב לקבלת חשבונית ספציפית לפי מזהה
+// קבלת חשבונית ספציפית (GET)
 router.get('/:id', auth, invoicesController.getInvoiceById);
 
-// נתיב לעדכון חשבונית קיימת
+// עדכון חשבונית קיימת (PUT)
 router.put('/:id', auth, invoicesController.updateInvoice);
 
-// נתיב לביטול חשבונית
+// ביטול חשבונית (PUT)
 router.put('/:id/cancel', auth, invoicesController.cancelInvoice);
 
-// נתיב ליצירת קובץ PDF של חשבונית
+// יצירת PDF מחשבונית (GET)
 router.get('/:id/pdf', auth, invoicesController.generatePdf);
 
-// נתיב להורדת קובץ PDF של חשבונית
+// הורדת PDF של חשבונית (GET)
 router.get('/:id/download', auth, invoicesController.downloadPdf);
 
+// ייצוא הנתיבים
 module.exports = router; 
