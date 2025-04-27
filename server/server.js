@@ -4,9 +4,29 @@ const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
+const fs = require('fs-extra');
 
 // טעינת הגדרות סביבה
 dotenv.config();
+
+// יצירת תיקיות uploads אם לא קיימות
+(async () => {
+  try {
+    // וידוא שכל תיקיות ההעלאות קיימות
+    await fs.ensureDir(path.join(__dirname, 'uploads'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/temp'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/invoices'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/rooms'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/rooms/airport'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/rooms/rothschild'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/gallery'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/gallery/airport'));
+    await fs.ensureDir(path.join(__dirname, 'uploads/gallery/rothschild'));
+    console.log('✓ תיקיות ההעלאות נוצרו בהצלחה');
+  } catch (err) {
+    console.error('שגיאה ביצירת תיקיות העלאה:', err);
+  }
+})();
 
 // יצירת אפליקציית Express
 const app = express();
