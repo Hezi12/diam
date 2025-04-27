@@ -11,6 +11,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Palette as PaletteIcon,
   CalendarMonth as CalendarIcon,
+  Receipt as ReceiptIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
@@ -158,6 +159,12 @@ const Sidebar = () => {
             to="/bookings"
             title="ניהול הזמנות"
             iconColor={STYLE_CONSTANTS.colors.airport.main}
+          />
+          <SidebarItem
+            icon={<ReceiptIcon />}
+            to="/invoices"
+            title="חשבוניות"
+            iconColor={STYLE_CONSTANTS.colors.accent.blue}
           />
           <SidebarItem
             icon={<RothschildIcon />}

@@ -22,6 +22,9 @@ import {
   CircularProgress,
   Alert,
   DialogContentText,
+  Tooltip,
+  alpha,
+  darken
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -39,7 +42,12 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   WhatsApp as WhatsAppIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Publish as PublishIcon,
+  ContentCopy as ContentCopyIcon,
+  Description as DescriptionIcon,
+  FontDownload as FontDownloadIcon,
+  Payment as PaymentIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -57,7 +65,8 @@ const NewBookingForm = ({
   location,
   editBooking = null, // אופציונלי - הזמנה לעריכה
   initialData = null, // אופציונלי - נתונים התחלתיים
-  onDelete = null // פונקציה למחיקת הזמנה
+  onDelete = null, // פונקציה למחיקת הזמנה
+  navigate = null // אופציונלי - פונקציית ניווט
 }) => {
   // הגדרת צבעים לפי מיקום
   const locationColors = {
@@ -75,7 +84,8 @@ const NewBookingForm = ({
   const accentColors = {
     green: '#06a271',
     red: '#e34a6f',
-    orange: '#f7971e'
+    orange: '#f7971e',
+    blue: '#3f51b5'
   };
 
   // הגדרת סגנון עיצוב
@@ -126,7 +136,6 @@ const NewBookingForm = ({
     discount: 0,
     creditCard: {
       cardNumber: '',
-      cardholderName: '',
       expiryDate: '',
       cvv: '',
     },
@@ -163,7 +172,6 @@ const NewBookingForm = ({
     discount: 0,
     creditCard: {
       cardNumber: '',
-      cardholderName: '',
       expiryDate: '',
       cvv: '',
     },
@@ -252,7 +260,6 @@ const NewBookingForm = ({
           discount: 0,
           creditCard: {
             cardNumber: '',
-            cardholderName: '',
             expiryDate: '',
             cvv: '',
           },
@@ -306,8 +313,7 @@ const NewBookingForm = ({
           paymentAmount: 0,
           discount: 0,
           creditCard: {
-          cardNumber: '',
-            cardholderName: '',
+            cardNumber: '',
             expiryDate: '',
             cvv: '',
           },
@@ -629,7 +635,6 @@ const NewBookingForm = ({
           paymentStatus: formData.paymentStatus || 'unpaid',
           creditCard: formData.creditCard || {
             cardNumber: '',
-            cardholderName: '',
             expiryDate: '',
             cvv: ''
           },
@@ -711,6 +716,38 @@ const NewBookingForm = ({
     }
   }, [editBooking]);
 
+  // ניווט לדף יצירת חשבונית עם מזהה ההזמנה
+  const handleCreateInvoice = () => {
+    if (!editBooking?._id) {
+      setError('לא ניתן ליצור חשבונית - יש לשמור את ההזמנה תחילה');
+      return;
+    }
+    
+    if (typeof navigate === 'function') {
+      // סגירת הדיאלוג הנוכחי
+      onClose();
+      // ניווט לדף יצירת חשבונית עם מזהה ההזמנה
+      navigate('/invoices/new', { state: { bookingId: editBooking._id } });
+    } else {
+      console.error('פונקציית ניווט לא זמינה');
+      try {
+        // במקום להציג רק הודעת שגיאה, נפתח חלון חדש עם הקישור הנכון
+        const bookingId = editBooking._id;
+        // הוספת לוג לדיבאג
+        console.log('ניסיון פתיחת חלון חדש עם מזהה הזמנה:', bookingId);
+        
+        // סגירת הדיאלוג הנוכחי לפני פתיחת חלון חדש
+        onClose();
+        
+        // פתיחת הדף בחלון חדש - שימוש בנתיב מלא
+        window.open(`/invoices?bookingId=${bookingId}`, '_blank');
+      } catch (err) {
+        console.error('שגיאה בפתיחת חלון חדש:', err);
+        setError('לא ניתן לפתוח את דף החשבוניות - אנא נסה לגשת לדף החשבוניות ידנית');
+      }
+    }
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -751,6 +788,7 @@ const NewBookingForm = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <ReceiptIcon sx={{ color: currentColors.main, marginRight: '15px' }} />
           <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
             <InputLabel>סטטוס תשלום</InputLabel>
             <Select
@@ -811,6 +849,26 @@ const NewBookingForm = ({
               <MenuItem value="other">אחר</MenuItem>
             </Select>
           </FormControl>
+
+          {/* כפתור יצירת חשבונית - מוצג רק במצב עריכה */}
+          {isEditMode && (
+            <Tooltip title="צור חשבונית מהזמנה זו">
+              <IconButton 
+                onClick={handleCreateInvoice}
+                size="small" 
+                sx={{ 
+                  mr: 1,
+                  color: accentColors.blue,
+                  '&:hover': { 
+                    color: darken(accentColors.blue, 0.2),
+                    backgroundColor: alpha(accentColors.blue, 0.1) 
+                  }
+                }}
+              >
+                <DescriptionIcon />
+              </IconButton>
+            </Tooltip>
+          )}
 
           <IconButton onClick={onClose} size="small" sx={{ marginRight: 0, color: accentColors.red }}>
             <CloseIcon />
@@ -1052,45 +1110,6 @@ const NewBookingForm = ({
                     />
                   </Grid>
                   
-                  <Grid item xs={12}>
-                    <TextField
-                      name="cardholderName"
-                      label="שם בעל הכרטיס"
-                      fullWidth
-                      value={formData.creditCard.cardholderName}
-                      onChange={(e) => setFormData({
-                        ...formData, 
-                        creditCard: {...formData.creditCard, cardholderName: e.target.value}
-                      })}
-                      size="small"
-                      inputProps={{
-                        style: { 
-                          textAlign: 'center',
-                          paddingRight: '24px',
-                          paddingLeft: '24px',
-                          direction: 'rtl',
-                        }
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: style.button.borderRadius,
-                        },
-                        '& .MuiInputLabel-root': {
-                          right: 18,
-                          left: 'auto',
-                          transformOrigin: 'top right'
-                        },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          textAlign: 'right',
-                        },
-                        '& .MuiInputLabel-shrink': {
-                          transform: 'translate(0, -9px) scale(0.75)',
-                          transformOrigin: 'top right'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  
                   <Grid item xs={6}>
                     <TextField
                       name="expiryDate"
@@ -1148,26 +1167,6 @@ const NewBookingForm = ({
                   <Typography variant="h6" sx={{ fontWeight: 500 }}>
                 פרטי הזמנה
               </Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch 
-                        checked={formData.isTourist} 
-                        onChange={handleTouristChange}
-                        color="primary"
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: accentColors.green,
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: accentColors.green,
-                          },
-                        }}
-                      />
-                    }
-                    label="תייר (ללא מע״מ)"
-                    labelPlacement="start"
-                    sx={{ mr: 3, justifyContent: 'flex-end', margin: 0 }}
-                  />
                 </Box>
               
               <Grid container spacing={2}>
@@ -1291,7 +1290,27 @@ const NewBookingForm = ({
                   <ReceiptIcon sx={{ color: accentColors.green, marginRight: '10px' }} />
                   <Typography variant="h6" sx={{ fontWeight: 500 }}>
                     פרטי מחיר
-              </Typography>
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={formData.isTourist} 
+                        onChange={handleTouristChange}
+                        color="primary"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: accentColors.green,
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: accentColors.green,
+                          },
+                        }}
+                      />
+                    }
+                    label="תייר (ללא מע״מ)"
+                    labelPlacement="start"
+                    sx={{ marginRight: 3, marginLeft: 'auto', justifyContent: 'flex-end' }}
+                  />
                 </Box>
               
               <Grid container spacing={2}>
@@ -1318,9 +1337,7 @@ const NewBookingForm = ({
                 borderTop: `3px solid ${accentColors.orange}`
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                  <Box sx={{ color: accentColors.orange, marginRight: '10px' }}>
-                    <CommentIcon />
-                  </Box>
+                  <CommentIcon sx={{ color: accentColors.orange, marginRight: '10px' }} />
                   <Typography variant="h6" sx={{ fontWeight: 500 }}>
                     הערות
                   </Typography>

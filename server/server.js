@@ -91,11 +91,13 @@ mongoose.connect(process.env.MONGODB_URI)
 const authRoutes = require('./routes/auth');
 const roomsRoutes = require('./routes/rooms');
 const bookingsRoutes = require('./routes/bookings');
+const invoicesRoutes = require('./routes/invoices');
 
 // הגדרת נתיבי API
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/bookings', bookingsRoutes);
+app.use('/api/invoices', invoicesRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {

@@ -128,10 +128,6 @@ const BookingSchema = new mongoose.Schema(
         type: String,
         trim: true
       },
-      cardholderName: {
-        type: String,
-        trim: true
-      },
       expiryDate: {
         type: String,
         trim: true

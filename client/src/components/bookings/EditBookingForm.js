@@ -29,12 +29,26 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { he } from 'date-fns/locale';
 import { addDays, differenceInDays } from 'date-fns';
-import CloseIcon from '@mui/icons-material/Close';
-import DeleteIcon from '@mui/icons-material/Delete';
+import {
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Person as PersonIcon,
+  CreditCard as CreditCardIcon,
+  Hotel as HotelIcon,
+  Receipt as ReceiptIcon,
+  Comment as CommentIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  WhatsApp as WhatsAppIcon,
+} from '@mui/icons-material';
 import axios from 'axios';
 
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
+
+// סגנונות אחידים
+import { formStyles, paymentStatusStyles } from '../../design-system/styles/ComponentStyles';
+import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
 
 /**
  * טופס לעריכה ומחיקה של הזמנה קיימת
@@ -49,23 +63,14 @@ const EditBookingForm = ({
   location
 }) => {
   // הגדרת צבעים לפי מיקום
-  const locationColors = {
-    airport: {
-      main: '#64d2ff',
-      bgLight: 'rgba(100, 210, 255, 0.1)'
-    },
-    rothschild: {
-      main: '#5e5ce6',
-      bgLight: 'rgba(94, 92, 230, 0.1)'
-    }
-  };
-
-  const currentColors = locationColors[location] || locationColors.airport;
+  const currentColors = STYLE_CONSTANTS.colors[location] || STYLE_CONSTANTS.colors.airport;
+  const accentColors = STYLE_CONSTANTS.colors.accent;
 
   // מצב טופס
   const [formData, setFormData] = useState({
     // פרטי אורח
-    guestName: '',
+    firstName: '',
+    lastName: '',
     phone: '',
     email: '',
     
@@ -77,7 +82,7 @@ const EditBookingForm = ({
     isTourist: false,
     
     // פרטי מחירים
-    totalPrice: 0,
+    price: 0,
     pricePerNight: 0,
     pricePerNightNoVat: 0,
     
@@ -109,7 +114,8 @@ const EditBookingForm = ({
       const checkOut = new Date(booking.checkOut);
       
       setFormData({
-        guestName: booking.guestName || '',
+        firstName: booking.firstName || '',
+        lastName: booking.lastName || '',
         phone: booking.phone || '',
         email: booking.email || '',
         
@@ -119,7 +125,7 @@ const EditBookingForm = ({
         nights: booking.nights || differenceInDays(checkOut, checkIn),
         isTourist: booking.isTourist || false,
         
-        totalPrice: booking.totalPrice || 0,
+        price: booking.price || 0,
         pricePerNight: booking.pricePerNight || 0,
         pricePerNightNoVat: booking.pricePerNightNoVat || 0,
         
@@ -147,12 +153,12 @@ const EditBookingForm = ({
             ...prev,
             pricePerNight: price,
             pricePerNightNoVat: priceNoVat,
-            totalPrice: price * prev.nights
+            price: price * prev.nights
           }));
         }
       }
     }
-  }, [formData.room, formData.isTourist, rooms]);
+  }, [formData.room, formData.isTourist, rooms, booking]);
 
   // עדכון הלילות בעת שינוי תאריכים
   useEffect(() => {
@@ -163,7 +169,7 @@ const EditBookingForm = ({
         setFormData(prev => ({
           ...prev,
           nights,
-          totalPrice: prev.pricePerNight * nights
+          price: prev.pricePerNight * nights
         }));
       }
     }
@@ -200,72 +206,43 @@ const EditBookingForm = ({
         ...prev,
         nights,
         checkOut: newCheckOut,
-        totalPrice: prev.pricePerNight * nights
+        price: prev.pricePerNight * nights
       };
     });
-    
-    // ניקוי שגיאות
-    if (errors.nights) {
-      setErrors(prev => ({ ...prev, nights: undefined }));
-    }
   };
 
   // טיפול בשינוי תאריך צ'ק-אין
   const handleCheckInChange = (date) => {
-    const newCheckIn = date;
-    let newCheckOut = formData.checkOut;
-    
-    // אם תאריך צ'ק-אאוט הוא לפני צ'ק-אין, נעדכן אוטומטית
-    if (newCheckIn >= newCheckOut) {
-      newCheckOut = addDays(newCheckIn, 1);
-    }
-    
-    // חישוב מספר לילות
-    const nights = differenceInDays(newCheckOut, newCheckIn);
-    
-    setFormData(prev => ({
-      ...prev,
-      checkIn: newCheckIn,
-      checkOut: newCheckOut,
-      nights,
-      totalPrice: prev.pricePerNight * nights
-    }));
-    
-    // ניקוי שגיאות
-    if (errors.checkIn) {
-      setErrors(prev => ({ ...prev, checkIn: undefined }));
-    }
+    setFormData(prev => {
+      // חישוב תאריך צ'ק-אאוט חדש לפי מספר הלילות
+      const newCheckOut = addDays(date, prev.nights);
+      
+      return {
+        ...prev,
+        checkIn: date,
+        checkOut: newCheckOut
+      };
+    });
   };
 
   // טיפול בשינוי תאריך צ'ק-אאוט
   const handleCheckOutChange = (date) => {
-    const newCheckOut = date;
-    
-    // אם תאריך צ'ק-אאוט הוא לפני צ'ק-אין, לא נאפשר
-    if (newCheckOut <= formData.checkIn) {
-      return;
-    }
-    
-    // חישוב מספר לילות
-    const nights = differenceInDays(newCheckOut, formData.checkIn);
-    
-    setFormData(prev => ({
-      ...prev,
-      checkOut: newCheckOut,
-      nights,
-      totalPrice: prev.pricePerNight * nights
-    }));
-    
-    // ניקוי שגיאות
-    if (errors.checkOut) {
-      setErrors(prev => ({ ...prev, checkOut: undefined }));
-    }
+    setFormData(prev => {
+      // חישוב מספר לילות חדש
+      const newNights = differenceInDays(date, prev.checkIn);
+      
+      return {
+        ...prev,
+        checkOut: date,
+        nights: newNights > 0 ? newNights : 1,
+        price: prev.pricePerNight * (newNights > 0 ? newNights : 1)
+      };
+    });
   };
 
-  // טיפול בשינוי סכום תשלום
+  // טיפול בשינוי סכום ששולם
   const handlePaymentAmountChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
-    
     setFormData(prev => ({
       ...prev,
       paymentAmount: value
@@ -275,26 +252,47 @@ const EditBookingForm = ({
   // טיפול בשינוי הנחה
   const handleDiscountChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
-    
     setFormData(prev => ({
       ...prev,
       discount: value
     }));
   };
 
-  // בדיקת תקינות טופס
+  // פתיחת WhatsApp עם המספר שהוזן
+  const openWhatsApp = () => {
+    if (formData.phone) {
+      // מספר טלפון - להסיר מקפים, רווחים וכו'
+      const phoneNumber = formData.phone.replace(/[\s-]/g, '');
+      // אם המספר לא מתחיל ב-+972 או 05, נוסיף 972
+      const formattedNumber = phoneNumber.startsWith('+972') ? 
+        phoneNumber : 
+        phoneNumber.startsWith('05') ? 
+          `+972${phoneNumber.substring(1)}` : 
+          `+972${phoneNumber}`;
+      
+      window.open(`https://wa.me/${formattedNumber}`, '_blank');
+    }
+  };
+
+  // תיקוף הטופס
   const validateForm = () => {
     const newErrors = {};
     
-    // בדיקת שדות חובה
-    if (!formData.guestName.trim()) {
-      newErrors.guestName = 'יש להזין שם אורח';
-    }
-    
+    // בדיקה שחדר נבחר
     if (!formData.room) {
       newErrors.room = 'יש לבחור חדר';
     }
     
+    // בדיקה ששם מלא הוכנס
+    if (!formData.firstName) {
+      newErrors.firstName = 'יש להזין שם פרטי';
+    }
+    
+    if (!formData.lastName) {
+      newErrors.lastName = 'יש להזין שם משפחה';
+    }
+    
+    // בדיקת תאריכים
     if (!formData.checkIn) {
       newErrors.checkIn = 'יש לבחור תאריך צ׳ק-אין';
     }
@@ -373,6 +371,13 @@ const EditBookingForm = ({
     }
   };
 
+  // הגדרה האם תשלום
+  const isPaidStatus = [
+    'cash', 'credit_or_yehuda', 'credit_rothschild', 'transfer_mizrahi', 
+    'bit_mizrahi', 'paybox_mizrahi', 'transfer_poalim', 'bit_poalim', 
+    'paybox_poalim', 'other'
+  ].includes(formData.paymentStatus);
+
   return (
     <Dialog
       open={open}
@@ -381,381 +386,431 @@ const EditBookingForm = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: '14px',
+          ...formStyles.dialog,
           maxHeight: 'calc(100vh - 40px)',
         }
       }}
     >
       <DialogTitle 
         sx={{ 
-          bgcolor: currentColors.bgLight, 
-          color: currentColors.main,
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: `1px solid ${currentColors.main}`
+          ...formStyles.formHeader(location)
         }}
       >
-        <Typography variant="h6">
-          עריכת הזמנה
-        </Typography>
-        <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
+            עריכת הזמנה {booking?.bookingNumber ? `${booking.bookingNumber}` : ''} - {location === 'airport' ? 'אור יהודה' : 'רוטשילד'}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
+            <InputLabel>סטטוס תשלום</InputLabel>
+            <Select
+              name="paymentStatus"
+              value={formData.paymentStatus}
+              onChange={handleChange}
+              label="סטטוס תשלום"
+              size="small"
+              sx={{
+                '& .MuiSelect-select': {
+                  paddingRight: '20px'
+                },
+                bgcolor: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  boxShadow: '0 3px 6px rgba(0,0,0,0.1)'
+                },
+                ...(formData.paymentStatus === 'unpaid' ? paymentStatusStyles.unpaid : {}),
+                ...(isPaidStatus ? paymentStatusStyles.paid : {})
+              }}
+            >
+              <MenuItem value="unpaid">לא שולם</MenuItem>
+              <MenuItem value="cash">מזומן</MenuItem>
+              <MenuItem value="credit_or_yehuda">אשראי אור יהודה</MenuItem>
+              <MenuItem value="credit_rothschild">אשראי רוטשילד</MenuItem>
+              <MenuItem value="transfer_mizrahi">העברה מזרחי</MenuItem>
+              <MenuItem value="bit_mizrahi">ביט מזרחי</MenuItem>
+              <MenuItem value="paybox_mizrahi">פייבוקס מזרחי</MenuItem>
+              <MenuItem value="transfer_poalim">העברה פועלים</MenuItem>
+              <MenuItem value="bit_poalim">ביט פועלים</MenuItem>
+              <MenuItem value="paybox_poalim">פייבוקס פועלים</MenuItem>
+              <MenuItem value="other">אחר</MenuItem>
+            </Select>
+          </FormControl>
+
           <IconButton 
             onClick={handleDeleteClick}
-            sx={{ color: '#d32f2f', mr: 1 }}
+            sx={{ color: accentColors.red, mr: 1 }}
           >
             <DeleteIcon />
           </IconButton>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} size="small" sx={{ marginRight: 0, color: accentColors.red }}>
             <CloseIcon />
           </IconButton>
         </Box>
       </DialogTitle>
       
-      <DialogContent sx={{ p: 3 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Grid container spacing={3}>
-          {/* כרטיסיית פרטי אורח */}
-          <Grid item xs={12}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
+      <DialogContent sx={{ p: 3, mt: 2 }}>
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={he}>
+          {error && (
+            <Box sx={{ mb: 2 }}>
+              <Paper sx={{ 
                 p: 2, 
-                border: '1px solid #e0e0e0', 
-                borderRadius: '10px',
-                mb: 2 
-              }}
-            >
-              <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 2 }}>
-                פרטי אורח
-              </Typography>
+                bgcolor: '#ffebee', 
+                borderRadius: STYLE_CONSTANTS.card.borderRadius,
+                color: accentColors.red
+              }}>
+                <Typography>{error}</Typography>
+              </Paper>
+            </Box>
+          )}
+          <Grid container spacing={3}>
+            {/* חלק 1: פרטי אורח */}
+            <Grid item xs={12} md={7}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: STYLE_CONSTANTS.card.borderRadius,
+                boxShadow: STYLE_CONSTANTS.card.boxShadow,
+                borderTop: `3px solid ${currentColors.main}`
+              }}>
+                <Box sx={formStyles.sectionTitle}>
+                  <PersonIcon sx={{ color: currentColors.main, ...formStyles.formIcon }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    פרטי אורח
+                  </Typography>
+                </Box>
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="guestName"
-                    label="שם אורח"
-                    fullWidth
-                    value={formData.guestName}
-                    onChange={handleChange}
-                    error={!!errors.guestName}
-                    helperText={errors.guestName}
-                    required
-                  />
-                </Grid>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="שם פרטי"
+                      fullWidth
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                      required
+                      size="small"
+                      name="firstName"
+                      error={!!errors.firstName}
+                      helperText={errors.firstName}
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
                 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="phone"
-                    label="טלפון"
-                    fullWidth
-                    value={formData.phone}
-                    onChange={handleChange}
-                    error={!!errors.phone}
-                    helperText={errors.phone}
-                    required
-                    inputProps={{ dir: "ltr" }}
-                  />
-                </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="שם משפחה"
+                      fullWidth
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                      required
+                      size="small"
+                      name="lastName"
+                      error={!!errors.lastName}
+                      helperText={errors.lastName}
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="טלפון"
+                      fullWidth
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      size="small"
+                      name="phone"
+                      error={!!errors.phone}
+                      helperText={errors.phone}
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIcon fontSize="small" sx={{ marginLeft: '8px' }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton 
+                              onClick={openWhatsApp}
+                              disabled={!formData.phone} 
+                              size="small"
+                              sx={{ color: '#25D366' }}
+                            >
+                              <WhatsAppIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
                 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="email"
-                    label="אימייל"
-                    fullWidth
-                    value={formData.email}
-                    onChange={handleChange}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    inputProps={{ dir: "ltr" }}
-                  />
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="אימייל"
+                      fullWidth
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      size="small"
+                      name="email"
+                      error={!!errors.email}
+                      helperText={errors.email}
+                      inputProps={{
+                        style: { 
+                          textAlign: 'center',
+                          paddingRight: '24px',
+                          paddingLeft: '24px',
+                          direction: 'rtl',
+                        }
+                      }}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" sx={{ marginLeft: '8px' }} /></InputAdornment>,
+                      }}
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
                 </Grid>
-                
-                <Grid item xs={12} md={6}>
+              </Paper>
+            </Grid>
+            
+            {/* חלק 2: מחיר ותשלום */}
+            <Grid item xs={12} md={5}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: STYLE_CONSTANTS.card.borderRadius,
+                boxShadow: STYLE_CONSTANTS.card.boxShadow,
+                borderTop: `3px solid ${accentColors.red}`
+              }}>
+                <Box sx={formStyles.sectionTitle}>
+                  <ReceiptIcon sx={{ color: accentColors.red, ...formStyles.formIcon }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    מחיר ותשלום
+                  </Typography>
                   <FormControlLabel
                     control={
-                      <Switch
-                        name="isTourist"
+                      <Switch 
                         checked={formData.isTourist}
-                        onChange={handleChange}
+                        onChange={(e) => setFormData({...formData, isTourist: e.target.checked})}
+                        name="isTourist"
                         color="primary"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: accentColors.red,
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: accentColors.red,
+                          },
+                        }}
                       />
                     }
                     label="תייר (ללא מע״מ)"
+                    labelPlacement="start"
+                    sx={{ marginRight: 3, marginLeft: 'auto', justifyContent: 'flex-end' }}
                   />
+                </Box>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <PriceCalculator
+                      pricePerNight={formData.pricePerNight}
+                      pricePerNightNoVat={formData.pricePerNightNoVat}
+                      nights={formData.nights}
+                      totalPrice={formData.price}
+                      isTourist={formData.isTourist}
+                      setFormData={setFormData}
+                      lockedField={lockedField}
+                      setLockedField={setLockedField}
+                    />
+                  </Grid>
                 </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-          
-          {/* כרטיסיית פרטי הזמנה */}
-          <Grid item xs={12}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                border: '1px solid #e0e0e0', 
-                borderRadius: '10px',
-                mb: 2 
-              }}
-            >
-              <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 2 }}>
-                פרטי הזמנה
-              </Typography>
+              </Paper>
+            </Grid>
+            
+            {/* חלק 3: פרטי הזמנה */}
+            <Grid item xs={12}>
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: STYLE_CONSTANTS.card.borderRadius,
+                boxShadow: STYLE_CONSTANTS.card.boxShadow,
+                borderTop: `3px solid ${accentColors.green}`
+              }}>
+                <Box sx={formStyles.sectionTitle}>
+                  <HotelIcon sx={{ color: accentColors.green, ...formStyles.formIcon }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    פרטי הזמנה
+                  </Typography>
+                </Box>
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.room} required>
-                    <InputLabel id="room-label">חדר</InputLabel>
-                    <Select
-                      labelId="room-label"
-                      name="room"
-                      value={formData.room}
-                      onChange={handleChange}
-                      label="חדר"
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <FormControl 
+                      fullWidth 
+                      error={!!errors.room} 
+                      required 
+                      size="small"
+                      sx={formStyles.select}
                     >
-                      {rooms.map(room => (
-                        <MenuItem key={room._id} value={room._id}>
-                          חדר {room.roomNumber} - {room.category}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.room && <FormHelperText>{errors.room}</FormHelperText>}
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.status}>
-                    <InputLabel id="status-label">סטטוס הזמנה</InputLabel>
-                    <Select
-                      labelId="status-label"
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      label="סטטוס הזמנה"
-                    >
-                      <MenuItem value="pending">ממתינה</MenuItem>
-                      <MenuItem value="confirmed">מאושרת</MenuItem>
-                      <MenuItem value="checkedIn">צ׳ק-אין</MenuItem>
-                      <MenuItem value="checkedOut">צ׳ק-אאוט</MenuItem>
-                      <MenuItem value="cancelled">מבוטלת</MenuItem>
-                    </Select>
-                    {errors.status && <FormHelperText>{errors.status}</FormHelperText>}
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={he}>
+                      <InputLabel>חדר</InputLabel>
+                      <Select
+                        name="room"
+                        value={formData.room}
+                        onChange={handleChange}
+                        label="חדר"
+                      >
+                        {rooms.map(room => (
+                          <MenuItem key={room._id} value={room._id}>
+                            {room.roomNumber} - {room.category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.room && <FormHelperText>{errors.room}</FormHelperText>}
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
                     <DatePicker
                       label="צ׳ק-אין"
                       value={formData.checkIn}
                       onChange={handleCheckInChange}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          fullWidth 
-                          required
-                          error={!!errors.checkIn}
-                          helperText={errors.checkIn}
-                        />
-                      )}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          required: true,
+                          size: "small",
+                          error: !!errors.checkIn,
+                          helperText: errors.checkIn,
+                          sx: formStyles.textField
+                        }
+                      }}
                     />
-                  </LocalizationProvider>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={he}>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
                     <DatePicker
                       label="צ׳ק-אאוט"
                       value={formData.checkOut}
                       onChange={handleCheckOutChange}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          fullWidth 
-                          required
-                          error={!!errors.checkOut}
-                          helperText={errors.checkOut}
-                        />
-                      )}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          required: true,
+                          size: "small",
+                          error: !!errors.checkOut,
+                          helperText: errors.checkOut,
+                          sx: formStyles.textField
+                        }
+                      }}
                     />
-                  </LocalizationProvider>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      label="מספר לילות"
+                      type="number"
+                      fullWidth
+                      value={formData.nights}
+                      onChange={handleNightsChange}
+                      InputProps={{
+                        inputProps: { min: 1 }
+                      }}
+                      size="small"
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      label="הערות"
+                      fullWidth
+                      multiline
+                      rows={4}
+                      value={formData.notes}
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      name="notes"
+                      size="small"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start" sx={{ alignSelf: 'flex-start', marginTop: '16px' }}>
+                            <CommentIcon fontSize="small" sx={{ marginLeft: '8px' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        ...formStyles.textField,
+                        '& .MuiInputBase-multiline': {
+                          paddingRight: '14px',
+                        },
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    name="nights"
-                    label="מספר לילות"
-                    fullWidth
-                    type="number"
-                    InputProps={{ inputProps: { min: 1 } }}
-                    value={formData.nights}
-                    onChange={handleNightsChange}
-                    error={!!errors.nights}
-                    helperText={errors.nights}
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
+              </Paper>
+            </Grid>
           </Grid>
-          
-          {/* כרטיסיית פרטי מחירים */}
-          <Grid item xs={12}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                border: '1px solid #e0e0e0', 
-                borderRadius: '10px',
-                mb: 2 
-              }}
-            >
-              <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 2 }}>
-                פרטי מחירים
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <PriceCalculator
-                  formData={formData}
-                  setFormData={setFormData}
-                  lockedField={lockedField}
-                  setLockedField={setLockedField}
-                  errors={errors}
-                  setErrors={setErrors}
-                />
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="discount"
-                    label="הנחה (₪)"
-                    fullWidth
-                    type="number"
-                    value={formData.discount}
-                    onChange={handleDiscountChange}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₪</InputAdornment>,
-                      inputProps: { min: 0, step: "10" }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="payment-status-label">סטטוס תשלום</InputLabel>
-                    <Select
-                      labelId="payment-status-label"
-                      name="paymentStatus"
-                      value={formData.paymentStatus}
-                      onChange={handleChange}
-                      label="סטטוס תשלום"
-                    >
-                      <MenuItem value="unpaid">לא שולם</MenuItem>
-                      <MenuItem value="deposit">מקדמה</MenuItem>
-                      <MenuItem value="partial">תשלום חלקי</MenuItem>
-                      <MenuItem value="paid">שולם</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="paymentAmount"
-                    label="סכום ששולם (₪)"
-                    fullWidth
-                    type="number"
-                    value={formData.paymentAmount}
-                    onChange={handlePaymentAmountChange}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₪</InputAdornment>,
-                      inputProps: { min: 0, step: "10" }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-          
-          {/* כרטיסיית הערות */}
-          <Grid item xs={12}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                border: '1px solid #e0e0e0', 
-                borderRadius: '10px' 
-              }}
-            >
-              <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 2 }}>
-                הערות
-              </Typography>
-              
-              <TextField
-                name="notes"
-                label="הערות"
-                fullWidth
-                multiline
-                rows={3}
-                value={formData.notes}
-                onChange={handleChange}
-              />
-            </Paper>
-          </Grid>
-        </Grid>
+        </LocalizationProvider>
       </DialogContent>
       
-      <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
-        <Button onClick={onClose} color="inherit">
+      <DialogActions sx={formStyles.dialogActions}>
+        <Button 
+          onClick={onClose}
+          color="inherit"
+          sx={{ ...formStyles.button, color: '#666' }}
+        >
           ביטול
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          color="primary"
-          disabled={loading}
-          startIcon={loading && <CircularProgress size={20} color="inherit" />}
-        >
-          שמור שינויים
-        </Button>
+        <Box>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
+            disabled={loading}
+            sx={{ ...formStyles.button, bgcolor: currentColors.main }}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+          >
+            {loading ? 'שומר...' : 'שמירת הזמנה'}
+          </Button>
+        </Box>
       </DialogActions>
       
       {/* דיאלוג אישור מחיקה */}
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          מחיקת הזמנה
-        </DialogTitle>
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>אישור מחיקת הזמנה</DialogTitle>
         <DialogContent>
           <Typography>
-            האם אתה בטוח שברצונך למחוק את ההזמנה?
-            <br />
-            פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק את ההזמנה? פעולה זו לא ניתנת לביטול.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setDeleteConfirmOpen(false)}
-            color="inherit"
-          >
+          <Button onClick={() => setDeleteConfirmOpen(false)} color="primary">
             ביטול
           </Button>
-          <Button
-            onClick={handleDeleteBooking}
-            color="error"
-            variant="contained"
-            disabled={loading}
-            startIcon={loading && <CircularProgress size={20} color="inherit" />}
-          >
-            מחק
+          <Button onClick={handleDeleteBooking} color="error" variant="contained">
+            {loading ? <CircularProgress size={20} color="inherit" /> : 'מחיקה'}
           </Button>
         </DialogActions>
       </Dialog>
