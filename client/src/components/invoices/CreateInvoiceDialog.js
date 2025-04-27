@@ -274,64 +274,27 @@ const CreateInvoiceDialog = ({
       
       const { pdf, fileName } = pdfResult;
       
-      // יצירת אובייקט FormData לשליחת הקובץ
-      const pdfBlob = pdf.output('blob');
-      
-      // שליחת הנתונים לשרת
-      const invoiceDataToSend = {
-        documentType: invoiceData.documentType,
-        customer: invoiceData.customer,
-        items: invoiceData.items,
-        subtotal: invoiceData.subtotal,
-        taxRate: invoiceData.taxRate,
-        taxAmount: invoiceData.taxAmount,
-        discount: invoiceData.discount,
-        total: invoiceData.total,
-        issueDate: invoiceData.issueDate,
-        dueDate: invoiceData.dueDate,
-        notes: invoiceData.notes,
-        paymentMethod: invoiceData.paymentMethod,
-        paymentDetails: invoiceData.paymentDetails,
-        business: businessInfo
-      };
-      
-      // אם יש הזמנה קשורה, מוסיף את המזהה שלה
-      if (bookingData && bookingData._id) {
-        invoiceDataToSend.booking = bookingData._id;
-      }
-      
-      // שליחת נתוני החשבונית לשרת
-      const response = await axios.post('/api/invoices', {
-        invoiceData: invoiceDataToSend,
-        bookingId: bookingData?._id
-      });
-      
-      // קבלת מזהה החשבונית שנוצרה
-      const { invoice } = response.data;
-      
-      // העלאת קובץ ה-PDF לשרת
-      const formData = new FormData();
-      formData.append('pdf', pdfBlob, fileName);
-      
-      await axios.post(`/api/invoices/${invoice._id}/pdf`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      // שמירת הקובץ לוקאלית
+      // במקום לשלוח לשרת, פשוט להוריד את הקובץ המקומי
       pdf.save(fileName);
-      
-      // קריאה לפונקציית השמירה החיצונית אם קיימת
-      if (onSave && typeof onSave === 'function') {
-        onSave(invoice);
-      }
       
       // הצגת הודעת הצלחה
       enqueueSnackbar(
-        isEnglish ? 'Invoice saved successfully' : 'החשבונית נשמרה בהצלחה',
+        isEnglish 
+          ? 'Invoice downloaded successfully. Server storage will be available soon.' 
+          : 'החשבונית הורדה בהצלחה. שמירה בשרת תהיה זמינה בהמשך.',
         { variant: 'success' }
       );
+      
+      // קריאה לפונקציית השמירה החיצונית אם קיימת
+      if (onSave && typeof onSave === 'function') {
+        // יצירת אובייקט חשבונית "מדומה" כדי שהאפליקציה תמשיך לעבוד
+        const mockInvoice = {
+          _id: 'local-' + new Date().getTime(),
+          invoiceNumber: 'LOCAL-' + new Date().getTime(),
+          ...invoiceData
+        };
+        onSave(mockInvoice);
+      }
       
       // סגירת הדיאלוג
       onClose();
@@ -340,8 +303,8 @@ const CreateInvoiceDialog = ({
       
       enqueueSnackbar(
         isEnglish 
-          ? 'An error occurred while saving the invoice' 
-          : 'אירעה שגיאה בשמירת החשבונית: ' + (error.response?.data?.message || error.message),
+          ? 'An error occurred while generating the invoice' 
+          : 'אירעה שגיאה ביצירת החשבונית: ' + (error.response?.data?.message || error.message),
         { variant: 'error' }
       );
     } finally {
