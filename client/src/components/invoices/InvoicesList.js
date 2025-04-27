@@ -193,8 +193,16 @@ const InvoicesList = ({
   
   // פעולת הורדת חשבונית
   const handleDownload = (invoiceId) => {
-    // פתיחת הקישור להורדה ישירה ב-API
-    window.open(`/api/invoices/${invoiceId}/download`, '_blank');
+    try {
+      // שימוש בכתובת מלאה של השרת
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://diam-loy6.onrender.com';
+      const downloadUrl = `${apiUrl}/api/invoices/${invoiceId}/download`;
+      console.log('פותח קישור להורדה:', downloadUrl);
+      window.open(downloadUrl, '_blank');
+    } catch (error) {
+      console.error('שגיאה בפתיחת חלון הורדה:', error);
+      alert('אירעה שגיאה בניסיון להוריד את החשבונית');
+    }
   };
   
   return (
