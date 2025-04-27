@@ -8,6 +8,12 @@ const morgan = require('morgan');
 // טעינת הגדרות סביבה
 dotenv.config();
 
+// זיהוי סביבת render.com (לטיפול בנתיבי קבצים)
+if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL) {
+  console.log('סביבת Render.com זוהתה');
+  process.env.RENDER = 'true';
+}
+
 // יצירת אפליקציית Express
 const app = express();
 

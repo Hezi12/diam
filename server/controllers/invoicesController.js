@@ -539,17 +539,29 @@ exports.generatePdf = async (req, res) => {
       }
     }
 
+    // בדיקה אם אנחנו בסביבת render.com
+    const isRenderEnvironment = process.env.RENDER === 'true';
+    let invoicesDir;
+    
+    if (isRenderEnvironment) {
+      // בסביבת render משתמשים בתיקייה זמנית
+      invoicesDir = '/tmp';
+      console.log('סביבת render זוהתה, שימוש בתיקייה זמנית:', invoicesDir);
+    } else {
+      // בסביבה מקומית
+      invoicesDir = path.join(__dirname, '../uploads/invoices');
+    }
+
     // וידוא שתיקיית היעד קיימת
-    const invoicesDir = path.join(__dirname, '../uploads/invoices');
     if (!fs.existsSync(invoicesDir)) {
-      console.log(`יוצר תיקיית uploads/invoices`);
+      console.log(`יוצר תיקיית ${invoicesDir}`);
       fs.mkdirSync(invoicesDir, { recursive: true });
     }
 
     // הפקת ה-PDF
     console.log('מתחיל להפיק PDF');
     const fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
-    const outputPath = path.join(__dirname, '../uploads/invoices', fileName);
+    const outputPath = path.join(invoicesDir, fileName);
     console.log('נתיב ליצירת קובץ PDF:', outputPath);
     
     try {
@@ -569,9 +581,17 @@ exports.generatePdf = async (req, res) => {
         throw new Error('הקובץ לא נוצר בנתיב שצוין');
       }
 
-      // החזרת נתיב הקובץ
-      const relativePath = pdfPath.replace(/^.*\/uploads/, '/uploads');
-      console.log('מחזיר נתיב יחסי:', relativePath);
+      // החזרת נתיב יחסי
+      let relativePath;
+      if (isRenderEnvironment) {
+        // בסביבת render נשתמש בנתיב מלא (זמני)
+        relativePath = pdfPath;
+      } else {
+        // בסביבה מקומית נחזיר נתיב יחסי
+        relativePath = pdfPath.replace(/^.*\/uploads/, '/uploads');
+      }
+      
+      console.log('מחזיר נתיב:', relativePath);
       
       res.status(200).json({
         success: true,
@@ -632,9 +652,21 @@ exports.downloadPdf = async (req, res) => {
       });
     }
 
+    // בדיקה אם אנחנו בסביבת render.com
+    const isRenderEnvironment = process.env.RENDER === 'true';
+    let invoicesDir;
+    
+    if (isRenderEnvironment) {
+      // בסביבת render משתמשים בתיקייה זמנית
+      invoicesDir = '/tmp';
+    } else {
+      // בסביבה מקומית
+      invoicesDir = path.join(__dirname, '../uploads/invoices');
+    }
+
     // הפקת ה-PDF אם עוד לא קיים
     const fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
-    const filePath = path.join(__dirname, '../uploads/invoices', fileName);
+    const filePath = path.join(invoicesDir, fileName);
     
     // בדיקה אם הקובץ כבר קיים
     let pdfPath;

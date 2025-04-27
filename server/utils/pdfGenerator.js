@@ -47,7 +47,21 @@ const generateInvoicePdf = async (invoice, outputPath = null) => {
         fileName = `invoice_${invoice.invoiceNumber.replace(/[\/\\?%*:|"<>]/g, '_')}.pdf`;
       }
       
-      const filePath = outputPath || path.join(__dirname, '../', 'uploads', 'invoices', fileName);
+      // בדיקה אם אנחנו בסביבת render.com ואם כן, שימוש בתיקייה זמנית
+      const isRenderEnvironment = process.env.RENDER === 'true';
+      let filePath;
+      
+      if (outputPath) {
+        filePath = outputPath;
+      } else if (isRenderEnvironment) {
+        // בסביבת render משתמשים בתיקייה זמנית
+        filePath = path.join('/tmp', fileName);
+        console.log('סביבת render זוהתה, שימוש בתיקייה זמנית:', filePath);
+      } else {
+        // בסביבה מקומית
+        filePath = path.join(__dirname, '../', 'uploads', 'invoices', fileName);
+      }
+      
       console.log('נתיב קובץ PDF:', filePath);
       
       // וידוא שתיקיית היעד קיימת
