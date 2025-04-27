@@ -4,6 +4,7 @@ const invoicesController = require('../controllers/invoicesController');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
+const cors = require('cors');
 
 // הגדרת מיקום שמירת קבצים זמניים
 const storage = multer.diskStorage({
@@ -34,6 +35,14 @@ const upload = multer({
   }
 });
 
+// הגדרת CORS לחשבוניות
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+};
+
 // טעינת מידדלוור אימות משתמש
 router.use(auth);
 
@@ -44,7 +53,7 @@ router.get('/:id', invoicesController.getInvoiceById);
 router.patch('/:id/cancel', invoicesController.cancelInvoice);
 router.post('/:id/credit', invoicesController.createCreditInvoice);
 
-// נתיב לשמירת קובץ PDF
-router.post('/:id/pdf', upload.single('pdf'), invoicesController.saveInvoicePdf);
+// נתיב לשמירת קובץ PDF עם CORS מותאם
+router.post('/:id/pdf', cors(corsOptions), upload.single('pdf'), invoicesController.saveInvoicePdf);
 
 module.exports = router; 

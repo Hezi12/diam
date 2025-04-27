@@ -61,7 +61,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-// הגדרת headers לפתרון בעיות CORS
+// הגדרת headers לפתרון בעיות CORS - מוודא שכל הנתיבים מקבלים את ה-headers הנכונים
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
@@ -97,7 +97,9 @@ const invoicesRoutes = require('./routes/invoices');
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/invoices', invoicesRoutes);
+
+// הגדרת CORS מיוחדת לנתיב החשבוניות
+app.use('/api/invoices', cors(corsOptions), invoicesRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {
