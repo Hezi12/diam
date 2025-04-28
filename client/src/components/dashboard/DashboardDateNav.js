@@ -7,7 +7,7 @@ import {
 } from '@mui/icons-material';
 import { format, addDays, subDays, isToday, isValid } from 'date-fns';
 import { he } from 'date-fns/locale';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 /**
  * קומפוננטת ניווט בין תאריכים בדאשבורד עם עיצוב מינימליסטי
@@ -43,11 +43,10 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
     <Box sx={{ 
       display: 'flex', 
       alignItems: 'center',
-      justifyContent: 'flex-start', // יישור לשמאל
-      py: 1,
-      mt: 1,
-      mb: 1.5,
-      pl: 2, // מרווח מצד שמאל
+      justifyContent: 'flex-start',
+      py: 1.5,
+      borderBottom: '1px solid #f0f0f0',
+      mb: 1.5
     }}>
       {/* כפתור לחזרה לתאריך קודם */}
       <IconButton 
@@ -55,14 +54,15 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
         size="small" 
         sx={{ 
           p: 0.5,
-          color: 'text.secondary' 
+          color: 'text.secondary',
+          borderRadius: 1
         }}
       >
-        <ArrowForward fontSize="small" sx={{ fontSize: '0.95rem' }} />
+        <ArrowForward fontSize="small" sx={{ fontSize: '0.9rem' }} />
       </IconButton>
       
       <Box sx={{ 
-        mx: 0.5, 
+        mx: 1, 
         display: 'flex',
         alignItems: 'center',
       }}>
@@ -70,7 +70,7 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
           variant="body2" 
           sx={{ 
             fontWeight: 500,
-            color: isCurrentDateToday ? STYLE_CONSTANTS.colors.accent.blue : 'text.primary',
+            color: isCurrentDateToday ? STYLE_CONSTANTS.colors.airport.main : 'text.primary',
             fontSize: '0.85rem',
           }}
         >
@@ -79,17 +79,24 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
         
         {/* כפתור לחזרה ליום הנוכחי */}
         {!isCurrentDateToday && (
-          <IconButton 
-            onClick={handleToday} 
-            size="small"
-            sx={{ 
-              ml: 0.5,
-              p: 0.3,
-              color: STYLE_CONSTANTS.colors.accent.blue,
-            }}
-          >
-            <TodayIcon sx={{ fontSize: '0.85rem' }} />
-          </IconButton>
+          <Tooltip title="היום" placement="top" arrow>
+            <IconButton 
+              onClick={handleToday} 
+              size="small"
+              sx={{ 
+                ml: 0.5,
+                p: 0.3,
+                color: STYLE_CONSTANTS.colors.airport.main,
+                opacity: 0.8,
+                '&:hover': {
+                  opacity: 1,
+                  bgcolor: 'transparent'
+                }
+              }}
+            >
+              <TodayIcon sx={{ fontSize: '0.8rem' }} />
+            </IconButton>
+          </Tooltip>
         )}
       </Box>
       
@@ -99,10 +106,11 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
         size="small" 
         sx={{ 
           p: 0.5, 
-          color: 'text.secondary' 
+          color: 'text.secondary',
+          borderRadius: 1
         }}
       >
-        <ArrowBack fontSize="small" sx={{ fontSize: '0.95rem' }} />
+        <ArrowBack fontSize="small" sx={{ fontSize: '0.9rem' }} />
       </IconButton>
     </Box>
   );

@@ -9,13 +9,11 @@ import {
   House as RothschildIcon,
   Flight as AirportIcon,
   ArrowBack as ArrowBackIcon,
-  Palette as PaletteIcon,
-  CalendarMonth as CalendarIcon,
   Receipt as ReceiptIcon,
   CleaningServices as CleaningIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 const drawerWidth = 70;
 
@@ -190,18 +188,6 @@ const Sidebar = () => {
             to="/cleaning"
             title="דף ניקיון"
             iconColor={STYLE_CONSTANTS.colors.accent.mint}
-          />
-          <SidebarItem
-            icon={<PaletteIcon />}
-            to="/design-examples"
-            title="דוגמאות עיצוב"
-            iconColor={STYLE_CONSTANTS.colors.accent.orange}
-          />
-          <SidebarItem
-            icon={<CalendarIcon />}
-            to="/booking-calendar-examples"
-            title="דוגמאות יומן הזמנות"
-            iconColor={STYLE_CONSTANTS.colors.airport.main}
           />
         </List>
         

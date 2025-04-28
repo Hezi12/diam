@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography, Divider } from '@mui/material';
 import axios from 'axios';
 import { format, addDays, subDays, differenceInDays } from 'date-fns';
-import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
 
 // רכיבים מקומיים

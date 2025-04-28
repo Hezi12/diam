@@ -47,8 +47,8 @@ import axios from 'axios';
 import PriceCalculator from './PriceCalculator';
 
 // סגנונות אחידים
-import { formStyles, paymentStatusStyles } from '../../design-system/styles/ComponentStyles';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { formStyles, paymentStatusStyles } from '../../styles/ComponentStyles';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 /**
  * טופס לעריכה ומחיקה של הזמנה קיימת

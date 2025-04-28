@@ -10,7 +10,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { format } from 'date-fns';
-import { STYLE_CONSTANTS, getBookingStatusColors } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS, getBookingStatusColors } from '../../styles/StyleConstants';
 
 /**
  * רכיב לייצוג הזמנה בודדת בטבלת ההזמנות

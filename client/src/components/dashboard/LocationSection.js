@@ -1,11 +1,11 @@
 import React from 'react';
-import { Paper, Box, Typography, CircularProgress, Badge, Divider } from '@mui/material';
+import { Paper, Box, Typography, CircularProgress } from '@mui/material';
 import { House as RothschildIcon, Flight as AirportIcon } from '@mui/icons-material';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import RoomCard from './RoomCard';
 
 /**
- * קומפוננטת אזור מיקום בדאשבורד
+ * קומפוננטת אזור מיקום בדאשבורד - עם עיצוב מינימליסטי משופר
  */
 const LocationSection = ({ 
   location, 
@@ -48,10 +48,10 @@ const LocationSection = ({
         display: 'flex',
         justifyContent: 'center',
         p: 3,
-        height: 120, 
+        height: 100, 
         alignItems: 'center'
       }}>
-        <CircularProgress size={32} thickness={4} sx={{ color: locationColors.main }} />
+        <CircularProgress size={24} thickness={4} sx={{ color: locationColors.main }} />
       </Box>
     );
   }
@@ -68,49 +68,35 @@ const LocationSection = ({
   const availableRooms = statusCounts.empty;
 
   return (
-    <Paper 
-      elevation={0} 
+    <Box 
       sx={{ 
-        ...STYLE_CONSTANTS.card,
-        p: 0,
-        overflow: 'hidden',
         position: 'relative',
-        maxWidth: '95%',
+        maxWidth: '98%',
         mx: 'auto',
         mb: 3,
-        border: `1px solid ${locationColors.bgLight}`,
-        borderRadius: 2,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '4px',
-          background: `linear-gradient(to right, ${locationColors.main}, ${locationColors.main}CC)`
-        }
       }}
     >
+      {/* כותרת אזור */}
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center', 
-        p: 2,
-        background: `linear-gradient(135deg, ${locationColors.bgLight}70, white)`,
-        borderBottom: '1px solid rgba(0,0,0,0.05)'
+        p: 1,
+        pb: 1.5,
+        borderBottom: `1px solid ${locationColors.bgLight}`,
+        mb: 1
       }}>
         {/* כותרת ממוקמת בצד שמאל עם אייקון */}
         <Box sx={{ 
           ml: 'auto', 
           display: 'flex',
           alignItems: 'center',
-          gap: '12px' // מרווח נאה בין האייקון לטקסט
+          gap: '8px'
         }}>
           {/* האייקון */}
           <LocationIcon 
             sx={{ 
               color: locationColors.main,
-              fontSize: '1.2rem'
+              fontSize: '1.1rem'
             }} 
           />
           
@@ -118,30 +104,33 @@ const LocationSection = ({
           <Box>
             <Typography 
               variant="h6" 
-              fontWeight={600} 
+              fontWeight={500} 
               sx={{ 
                 color: locationColors.main,
-                fontSize: '1.05rem',
-                letterSpacing: '0.2px'
+                fontSize: '1rem',
+                letterSpacing: '0.1px'
               }}
             >
               {locationTitle}
             </Typography>
-            <Typography 
-              variant="caption" 
-              color="text.secondary"
-              sx={{
-                fontSize: '0.75rem',
-                opacity: 0.9
-              }}
-            >
-              {availableRooms} חדרים נותרים
-            </Typography>
           </Box>
         </Box>
+        
+        {/* מידע על חדרים זמינים */}
+        <Typography 
+          variant="caption" 
+          color="text.secondary"
+          sx={{
+            fontSize: '0.75rem',
+            mr: 1
+          }}
+        >
+          {availableRooms} חדרים זמינים
+        </Typography>
       </Box>
 
-      <Box sx={{ p: 1.5 }}>
+      {/* רשימת החדרים */}
+      <Box sx={{ p: 0.5 }}>
         {rooms.map(room => {
           // קבלת סטטוס החדר והזמנה אם יש
           const { status, booking } = getRoomStatus(room._id, bookings);
@@ -157,7 +146,7 @@ const LocationSection = ({
           );
         })}
       </Box>
-    </Paper>
+    </Box>
   );
 };
 

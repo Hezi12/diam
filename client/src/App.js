@@ -19,11 +19,6 @@ import AirportSite from './pages/sites/AirportSite';
 import RothschildSite from './pages/sites/RothschildSite';
 import Cleaning from './pages/Cleaning';
 
-// קומפוננטים של מערכת העיצוב החדשה
-import DesignSystem from './design-system/DesignSystem';
-import DesignExamples from './design-system/examples/DesignExamples';
-import BookingCalendarExamples from './design-system/examples/BookingCalendarExamples';
-
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/common/Layout';
@@ -142,32 +137,6 @@ function App() {
                   <Layout>
                     <AirportSite />
                   </Layout>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* ניתובים למערכת העיצוב החדשה */}
-            <Route
-              path="/design-system"
-              element={
-                <ProtectedRoute>
-                  <DesignSystem />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/design-examples"
-              element={
-                <ProtectedRoute>
-                  <DesignExamples />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/booking-calendar-examples"
-              element={
-                <ProtectedRoute>
-                  <BookingCalendarExamples />
                 </ProtectedRoute>
               }
             />

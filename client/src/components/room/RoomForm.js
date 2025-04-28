@@ -5,7 +5,7 @@ import {
   useMediaQuery, useTheme, styled
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { getHebrewInputStyle } from '../../design-system/styles/StyleConstants';
+import { getHebrewInputStyle } from '../../styles/StyleConstants';
 
 import RoomBasicInfoSection from './RoomBasicInfoSection';
 import RoomPricesSection from './RoomPricesSection';

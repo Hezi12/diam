@@ -1,6 +1,6 @@
 import React from 'react';
 import { Grid, Typography, TextField, MenuItem } from '@mui/material';
-import { getHebrewInputStyle } from '../../design-system/styles/StyleConstants';
+import { getHebrewInputStyle } from '../../styles/StyleConstants';
 
 // אפשרויות לקטגוריות חדרים
 const roomCategories = [

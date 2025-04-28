@@ -13,7 +13,7 @@ import { he } from 'date-fns/locale';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import InfoIcon from '@mui/icons-material/Info';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // רכיב מותאם לתא הזמנה בסגנון גאנט
 const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant }) => ({

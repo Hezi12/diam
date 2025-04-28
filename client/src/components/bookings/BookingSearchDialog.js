@@ -29,7 +29,7 @@ import {
   Info as InfoIcon,
   ErrorOutline as ErrorOutlineIcon
 } from '@mui/icons-material';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { format } from 'date-fns';
 import axios from 'axios';
 

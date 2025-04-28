@@ -3,7 +3,7 @@ import { Box, Typography, Button, IconButton, Tooltip, Paper } from '@mui/materi
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import BookingSearchDialog from './BookingSearchDialog';
 
 /**

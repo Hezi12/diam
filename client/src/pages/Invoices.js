@@ -37,7 +37,7 @@ import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import CreateInvoiceDialog from '../components/invoices/CreateInvoiceDialog';
-import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../styles/StyleConstants';
 import { useNavigate } from 'react-router-dom';
 import invoiceService from '../services/invoiceService';
 

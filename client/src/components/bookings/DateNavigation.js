@@ -11,7 +11,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { he } from 'date-fns/locale';
 import { format, addDays, subDays, differenceInDays } from 'date-fns';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // תוספת CSS לתיקון כיוון החיצים וסגנון הרקע בלוח השנה
 const calendarCustomStyles = `

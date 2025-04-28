@@ -19,6 +19,8 @@ export const STYLE_CONSTANTS = {
       green: '#06a271',
       red: '#e34a6f',
       orange: '#f7971e',
+      blue: '#4285F4',
+      mint: '#73C5A0'
     },
     text: {
       primary: '#1d1d1f',

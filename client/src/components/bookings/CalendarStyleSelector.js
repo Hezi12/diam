@@ -1,6 +1,6 @@
 import React from 'react';
 import { Paper, Tabs, Tab, Grid } from '@mui/material';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 /**
  * רכיב לבחירת סגנון לוח הזמנים

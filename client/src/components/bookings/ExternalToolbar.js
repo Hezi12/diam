@@ -3,7 +3,7 @@ import { Box, IconButton, Tooltip, Divider } from '@mui/material';
 import PaymentIcon from '@mui/icons-material/Payment';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 /**
  * רכיב סרגל כלים עם קישורים לאתרים חיצוניים

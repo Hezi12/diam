@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Alert, Snackbar } from '@mui/material';
 import { isValid } from 'date-fns';
-import { STYLE_CONSTANTS } from '../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../styles/StyleConstants';
 import NewBookingForm from '../components/bookings/NewBookingForm';
 
 // קומפוננטות של הדאשבורד
@@ -243,15 +243,17 @@ const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ px: 1, pb: 4, maxWidth: '1200px', mx: 'auto' }}>
+    <Box sx={{ px: 0, pb: 4, maxWidth: '1300px', mx: 'auto' }}>
       {/* אזור ניווט בין תאריכים */}
-      <DashboardDateNav 
-        currentDate={currentDate}
-        onDateChange={handleDateChange}
-      />
+      <Box sx={{ px: 2 }}>
+        <DashboardDateNav 
+          currentDate={currentDate}
+          onDateChange={handleDateChange}
+        />
+      </Box>
       
       {/* תצוגת חדרים */}
-      <Grid container spacing={2}>
+      <Grid container spacing={1}>
         <Grid item xs={12} md={6}>
           <LocationSection 
             location="airport" 

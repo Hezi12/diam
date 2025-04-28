@@ -17,7 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import RoomForm from './RoomForm';
 import GalleryManager from '../gallery/GalleryManager';
-import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 const RoomManagement = ({ location }) => {
   const theme = useTheme();
