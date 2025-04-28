@@ -208,6 +208,9 @@ const BookingsCalendar = ({
       console.log(`תאריך צ'ק-אאוט:`, checkOutDate, 'תאריך מקורי:', booking.checkOut);
       console.log(`מספר לילות:`, actualNights);
       
+      // הוספת לוג לגבי טווח התצוגה הנוכחי
+      console.log(`טווח תצוגה נוכחי: ${format(daysInRange[0], 'yyyy-MM-dd')} עד ${format(daysInRange[daysInRange.length - 1], 'yyyy-MM-dd')}`);
+      
       // בדיקת תקינות תאריכים
       if (isNaN(checkInDateObj.getTime()) || isNaN(checkOutDateObj.getTime())) {
         console.error('תאריכי הזמנה לא תקינים:', booking._id);
@@ -241,14 +244,19 @@ const BookingsCalendar = ({
       // בדיקה אם מדובר בהזמנה ביום האחרון של הטווח - מקרה מיוחד
       const isLastDay = checkInDate === lastDayInRange;
       
-      // תנאי מורחב - הזמנה מוצגת אם: (1) הצ'ק-אין בטווח (2) ההזמנה מקיפה את הטווח (3) זו הזמנה ליום האחרון
-      if (!isCheckInInRange && !isBookingCoveringRange && !isLastDay) {
+      // בדיקה אם הצ'ק-אאוט בטווח התצוגה - מקרה חדש
+      const isCheckOutInRange = endIndex !== undefined;
+      
+      // תנאי מורחב - הזמנה מוצגת אם: (1) הצ'ק-אין בטווח (2) ההזמנה מקיפה את הטווח (3) זו הזמנה ליום האחרון (4) הצ'ק-אאוט בטווח
+      if (!isCheckInInRange && !isBookingCoveringRange && !isLastDay && !isCheckOutInRange) {
         console.log('הזמנה מחוץ לטווח תצוגה:', booking._id, {
           checkInDate,
+          checkOutDate,
           lastDayInRange,
           isCheckInInRange,
           isBookingCoveringRange,
-          isLastDay
+          isLastDay,
+          isCheckOutInRange
         });
         return null;
       }
