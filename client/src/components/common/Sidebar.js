@@ -12,6 +12,7 @@ import {
   Palette as PaletteIcon,
   CalendarMonth as CalendarIcon,
   Receipt as ReceiptIcon,
+  CleaningServices as CleaningIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { STYLE_CONSTANTS } from '../../design-system/styles/StyleConstants';
@@ -183,6 +184,12 @@ const Sidebar = () => {
             to="/settings"
             title="הגדרות"
             iconColor={STYLE_CONSTANTS.colors.accent.orange}
+          />
+          <SidebarItem
+            icon={<CleaningIcon />}
+            to="/cleaning"
+            title="דף ניקיון"
+            iconColor={STYLE_CONSTANTS.colors.accent.mint}
           />
           <SidebarItem
             icon={<PaletteIcon />}

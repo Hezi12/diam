@@ -133,6 +133,11 @@ const BookingSchema = new mongoose.Schema(
       enum: ['pending', 'confirmed', 'cancelled', 'completed'],
       default: 'pending'
     },
+    cleaningStatus: {
+      type: String,
+      enum: ['dirty', 'clean'],
+      default: 'dirty'
+    },
     paymentStatus: {
       type: String,
       enum: [

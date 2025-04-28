@@ -17,6 +17,7 @@ import AirportRooms from './pages/settings/rooms/AirportRooms';
 import RothschildRooms from './pages/settings/rooms/RothschildRooms';
 import AirportSite from './pages/sites/AirportSite';
 import RothschildSite from './pages/sites/RothschildSite';
+import Cleaning from './pages/Cleaning';
 
 // קומפוננטים של מערכת העיצוב החדשה
 import DesignSystem from './design-system/DesignSystem';
@@ -49,6 +50,9 @@ function App() {
           <Routes>
             {/* ניתוב לדף התחברות */}
             <Route path="/login" element={<Login />} />
+            
+            {/* דף ניקיון - ללא אבטחה */}
+            <Route path="/cleaning" element={<Cleaning />} />
             
             {/* ניתובים לעמודים מוגנים */}
             <Route

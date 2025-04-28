@@ -7,6 +7,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { API_URL } from './config/apiConfig';
 import logService from './services/logService';
+import { SnackbarProvider } from 'notistack';
 
 // הגדרת ברירת מחדל של axios לשרת
 axios.defaults.baseURL = API_URL;
@@ -48,7 +49,13 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <SnackbarProvider 
+          maxSnack={3} 
+          autoHideDuration={3000}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <App />
+        </SnackbarProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

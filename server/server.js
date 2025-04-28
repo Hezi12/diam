@@ -112,14 +112,14 @@ const bookingsRoutes = require('./routes/bookings');
 const roomsRoutes = require('./routes/rooms');
 const authRoutes = require('./routes/auth');
 const invoicesRoutes = require('./routes/invoices');
+const cleaningRoutes = require('./routes/cleaning');
 
 // הגדרת נתיבים
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/auth', authRoutes);
-
-// הגדרת CORS מיוחדת לנתיב החשבוניות
 app.use('/api/invoices', cors(corsOptions), invoicesRoutes);
+app.use('/api/cleaning', cleaningRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {
