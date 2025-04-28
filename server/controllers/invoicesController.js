@@ -22,7 +22,7 @@ exports.createInvoice = async (req, res) => {
       });
     }
 
-    // בדיקה שפרטי הלקוח קיימים
+    // בדיקה שפרטי הלקוח מלאים
     if (!invoiceData.customer || !invoiceData.customer.name) {
       return res.status(400).json({
         success: false,
@@ -30,8 +30,8 @@ exports.createInvoice = async (req, res) => {
       });
     }
 
-    // קבלת מספר חשבונית חדש ממסד הנתונים
-    const invoiceNumber = await getNextInvoiceNumber();
+    // קבלת מספר חשבונית - אם נשלח מהלקוח נשתמש בו, אחרת ניצור חדש
+    const invoiceNumber = invoiceData.invoiceNumber || await getNextInvoiceNumber();
     
     // יצירת אובייקט חשבונית עם מספר חשבונית ייחודי
     const invoice = new Invoice({
@@ -475,6 +475,28 @@ exports.saveInvoicePdf = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'אירעה שגיאה בשמירת קובץ PDF',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * קבלת מספר חשבונית הבא בסדרה ללא יצירת חשבונית בפועל
+ * משמש לתצוגה מקדימה
+ */
+exports.getNextInvoiceNumber = async (req, res) => {
+  try {
+    const nextNumber = await getNextInvoiceNumber();
+    
+    res.status(200).json({
+      success: true,
+      nextInvoiceNumber: nextNumber
+    });
+  } catch (error) {
+    console.error('שגיאה בקבלת מספר חשבונית הבא:', error);
+    res.status(500).json({
+      success: false,
+      message: 'אירעה שגיאה בקבלת מספר חשבונית הבא',
       error: error.message
     });
   }

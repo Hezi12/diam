@@ -45,6 +45,7 @@ const API_ENDPOINTS = {
     base: '/api/invoices',
     list: '/api/invoices',
     byId: (id) => `/api/invoices/${id}`,
+    nextNumber: '/api/invoices/next-number',
     pdf: (id) => `/api/invoices/${id}/pdf`,
     cancel: (id) => `/api/invoices/${id}/cancel`,
     credit: (id) => `/api/invoices/${id}/credit`,

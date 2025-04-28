@@ -198,9 +198,44 @@ const CreateInvoiceDialog = ({
     }
   }, [bookingData]);
 
+  // קבלת מספר חשבונית הבא כאשר הדיאלוג נפתח
+  useEffect(() => {
+    const fetchNextInvoiceNumber = async () => {
+      if (open) {
+        try {
+          setIsLoading(true);
+          const nextNumber = await invoiceService.getNextInvoiceNumber();
+          setInvoiceData(prev => ({
+            ...prev,
+            invoiceNumber: nextNumber
+          }));
+        } catch (error) {
+          console.error('שגיאה בקבלת מספר חשבונית הבא:', error);
+          enqueueSnackbar(
+            isEnglish 
+              ? 'Error fetching invoice number' 
+              : 'שגיאה בקבלת מספר חשבונית',
+            { variant: 'error' }
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchNextInvoiceNumber();
+  }, [open, isEnglish, enqueueSnackbar]);
+
   // יצירת קובץ PDF מהחשבונית
   const generatePDF = async () => {
-    if (!invoiceContentRef.current) return null;
+    if (!invoiceContentRef.current) {
+      console.error('בעיה: invoiceContentRef.current הוא null');
+      return null;
+    }
+    
+    console.log('מתחיל תהליך יצירת PDF');
+    console.log('תוכן ה-ref:', invoiceContentRef.current);
+    console.log('מידות התוכן:', invoiceContentRef.current.getBoundingClientRect());
 
     setIsLoading(true);
     try {
@@ -222,23 +257,78 @@ const CreateInvoiceDialog = ({
             width: 100%;
           }
         }
+        
+        #invoice-content * {
+          visibility: visible !important;
+          opacity: 1 !important;
+          color: #000 !important;
+          background-color: #fff;
+          font-family: Arial, sans-serif !important;
+        }
+        
+        #invoice-content {
+          width: 100% !important;
+          height: auto !important;
+          min-height: 500px !important;
+          overflow: visible !important;
+          display: block !important;
+          background-color: #fff !important;
+          border: 1px solid #ccc !important;
+          padding: 20px !important;
+          direction: rtl !important;
+        }
       `;
       document.head.appendChild(printStyles);
 
       const content = invoiceContentRef.current;
+      console.log('לפני קריאה ל-html2canvas');
+      
+      // הבאת הרכיב לחזית ומחיקת מחבוא
+      content.style.position = "relative";
+      content.style.zIndex = "9999";
+      content.style.display = "block";
+      content.style.backgroundColor = "#ffffff";
+      content.style.opacity = "1";
+      content.style.visibility = "visible";
+      content.style.border = "1px solid #ccc";
       
       // שיפור איכות התמונה על ידי הגדלת הסקייל והוספת פרמטרים לשיפור רנדור טקסט
       const canvas = await html2canvas(content, {
-        scale: 3.0, // הגדלת רזולוציה ל-3.0 (מ-2.5) לחדות גבוהה יותר
+        scale: 2.0, // הורדת רזולוציה לניסיון פתרון בעיות תאימות
         useCORS: true,
-        logging: false,
-        imageTimeout: 0,
-        backgroundColor: 'white',
-        allowTaint: false,
+        logging: true, // מפעיל לוגים של html2canvas
+        imageTimeout: 15000,
+        backgroundColor: '#ffffff',
+        allowTaint: true,
         letterRendering: true,
-        removeContainer: true,
-        foreignObjectRendering: true, // ניסיון להשתמש ב-foreignObject לרנדור טוב יותר
+        removeContainer: false,
+        foreignObjectRendering: false, // ביטול foreignObject שעלול לגרום לבעיות
         onclone: (clonedDoc) => {
+          console.log('בתוך onclone, המסמך המשוכפל:', clonedDoc);
+          const clonedContent = clonedDoc.getElementById('invoice-content');
+          
+          // וידוא שהתוכן המשוכפל נראה
+          if (clonedContent) {
+            clonedContent.style.visibility = "visible";
+            clonedContent.style.display = "block";
+            clonedContent.style.width = "800px";
+            clonedContent.style.margin = "0 auto";
+            clonedContent.style.backgroundColor = "#ffffff";
+            clonedContent.style.border = "1px solid #000";
+            clonedContent.style.padding = "20px";
+            
+            // וידוא שכל הטקסט יהיה שחור
+            const allElements = clonedContent.querySelectorAll('*');
+            allElements.forEach(el => {
+              if (el.style) {
+                el.style.color = "#000000";
+                el.style.visibility = "visible";
+                el.style.backgroundColor = "transparent";
+                el.style.fontFamily = "Arial, sans-serif";
+              }
+            });
+          }
+          
           // שינוי גופנים בעותק המסמך כדי להבטיח רנדור חד יותר
           const style = clonedDoc.createElement('style');
           style.innerHTML = `
@@ -246,16 +336,46 @@ const CreateInvoiceDialog = ({
               -webkit-font-smoothing: antialiased;
               -moz-osx-font-smoothing: grayscale;
               text-rendering: optimizeLegibility;
+              color: #000000 !important;
+              font-family: Arial, sans-serif !important;
+              visibility: visible !important;
             }
           `;
           clonedDoc.head.appendChild(style);
+          return clonedDoc;
         }
       });
 
       document.head.removeChild(printStyles);
+      
+      // שחזור הסגנון המקורי
+      content.style.position = "";
+      content.style.zIndex = "";
+      content.style.display = "";
+      content.style.backgroundColor = "";
+      content.style.visibility = "";
+      content.style.opacity = "";
+      content.style.border = "";
+      
+      console.log('הקנבס נוצר:', canvas);
+      console.log('גודל הקנבס:', canvas.width, 'x', canvas.height);
+      
+      if (canvas.width === 0 || canvas.height === 0) {
+        console.error('שגיאה: הקנבס בגודל 0, אין תוכן להמרה ל-PDF');
+        throw new Error('הקנבס ריק - אין תוכן להמרה ל-PDF');
+      }
 
+      // בדיקה אם יש תוכן בקנבס - שמירת הקנבס כתמונה זמנית לבדיקה
+      const debugImg = document.createElement('img');
+      debugImg.src = canvas.toDataURL();
+      debugImg.style.width = '300px';
+      debugImg.style.border = '2px solid red';
+      document.body.appendChild(debugImg);
+      setTimeout(() => document.body.removeChild(debugImg), 5000);
+      
       // שימוש באיכות מקסימלית ללא דחיסה עבור PNG
       const imgData = canvas.toDataURL('image/png', 1.0);
+      console.log('ה-imgData נוצר, גודל:', imgData.length);
       
       // הגדרות PDF משופרות
       const pdf = new jsPDF({
@@ -263,12 +383,12 @@ const CreateInvoiceDialog = ({
         unit: 'mm',
         format: 'a4',
         compress: false, // ביטול דחיסה כדי לשמור על איכות
-        precision: 16, // דיוק גבוה יותר לפיקסלים
-        hotfixes: ['px_scaling', 'px_scaling']
+        precision: 16 // דיוק גבוה יותר לפיקסלים
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      console.log('מידות ה-PDF:', pdfWidth, 'x', pdfHeight);
       
       // חישוב יחס גודל אופטימלי
       const contentRatio = canvas.width / canvas.height;
@@ -286,15 +406,20 @@ const CreateInvoiceDialog = ({
         imgWidth = pdfHeight * contentRatio;
       }
       
+      console.log('מידות התמונה ב-PDF:', imgWidth, 'x', imgHeight);
+      
       // הוספת התמונה לדף ה-PDF עם איכות גבוהה וללא דחיסה
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+      console.log('מוסיף תמונה ל-PDF');
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'NORMAL');
+      console.log('התמונה נוספה ל-PDF');
 
       // שם קובץ שמשלב את מספר החשבונית והתאריך
       const fileName = `חשבונית-${invoiceData.invoiceNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+      console.log('הקובץ ייווצר בשם:', fileName);
 
       return { pdf, fileName, imgData };
     } catch (error) {
-      console.error('שגיאה ביצירת PDF:', error);
+      console.error('שגיאה מפורטת ביצירת PDF:', error);
       setSnackbar({
         open: true,
         message: isEnglish ? 'Error generating PDF' : 'שגיאה ביצירת קובץ PDF',
@@ -323,6 +448,7 @@ const CreateInvoiceDialog = ({
       
       // בניית אובייקט החשבונית במבנה הנדרש עבור השרת
       const invoiceDataToSend = {
+        invoiceNumber: invoiceData.invoiceNumber,
         issueDate: new Date().toISOString(),
         dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
         status: 'active',
@@ -531,17 +657,6 @@ const CreateInvoiceDialog = ({
     }));
   };
   
-  // עדכון פרטי לקוח
-  const handleCustomerChange = (field) => (event) => {
-    setInvoiceData(prev => ({
-      ...prev,
-      customer: {
-        ...prev.customer,
-        [field]: event.target.value
-      }
-    }));
-  };
-  
   // עדכון אמצעי תשלום
   const handlePaymentMethodChange = (event) => {
     setInvoiceData(prev => ({
@@ -640,38 +755,22 @@ const CreateInvoiceDialog = ({
               </Select>
             </FormControl>
             
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>{isEnglish ? 'Payment Method' : 'אמצעי תשלום'}</InputLabel>
-              <Select
-                value={invoiceData.paymentMethod}
-                onChange={handlePaymentMethodChange}
-                label={isEnglish ? 'Payment Method' : 'אמצעי תשלום'}
-              >
-                <MenuItem value="cash">{isEnglish ? 'Cash' : 'מזומן'}</MenuItem>
-                <MenuItem value="credit_card">{isEnglish ? 'Credit Card' : 'כרטיס אשראי'}</MenuItem>
-                <MenuItem value="bank_transfer">{isEnglish ? 'Bank Transfer' : 'העברה בנקאית'}</MenuItem>
-                <MenuItem value="check">{isEnglish ? 'Check' : 'צ\'ק'}</MenuItem>
-                <MenuItem value="other">{isEnglish ? 'Other' : 'אחר'}</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <TextField
-              label={isEnglish ? 'Customer ID/Business ID' : 'ת.ז/ח.פ'}
-              variant="outlined"
-              size="small"
-              value={invoiceData.customer.identifier}
-              onChange={handleCustomerChange('identifier')}
-              sx={{ minWidth: 200 }}
-            />
-            
-            <TextField
-              label={isEnglish ? 'Customer Address' : 'כתובת'}
-              variant="outlined"
-              size="small"
-              value={invoiceData.customer.address}
-              onChange={handleCustomerChange('address')}
-              sx={{ minWidth: 200, flexGrow: 1 }}
-            />
+            {invoiceData.documentType === 'invoice_receipt' && (
+              <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>{isEnglish ? 'Payment Method' : 'אמצעי תשלום'}</InputLabel>
+                <Select
+                  value={invoiceData.paymentMethod}
+                  onChange={handlePaymentMethodChange}
+                  label={isEnglish ? 'Payment Method' : 'אמצעי תשלום'}
+                >
+                  <MenuItem value="cash">{isEnglish ? 'Cash' : 'מזומן'}</MenuItem>
+                  <MenuItem value="credit_card">{isEnglish ? 'Credit Card' : 'כרטיס אשראי'}</MenuItem>
+                  <MenuItem value="bank_transfer">{isEnglish ? 'Bank Transfer' : 'העברה בנקאית'}</MenuItem>
+                  <MenuItem value="check">{isEnglish ? 'Check' : 'צ\'ק'}</MenuItem>
+                  <MenuItem value="other">{isEnglish ? 'Other' : 'אחר'}</MenuItem>
+                </Select>
+              </FormControl>
+            )}
           </Box>
         </Paper>
       
@@ -704,11 +803,7 @@ const CreateInvoiceDialog = ({
                 {isEnglish ? businessInfo.address_en : businessInfo.address}
               </Typography>
               <Typography variant="body2">
-                {isEnglish ? 'Phone: ' : 'טלפון: '}{businessInfo.phone} | 
-                {isEnglish ? ' Email: ' : ' דוא"ל: '}{businessInfo.email}
-              </Typography>
-              <Typography variant="body2">
-                {isEnglish ? 'Tax ID: ' : 'ח.פ/ע.מ: '}{businessInfo.taxId}
+                {isEnglish ? 'Tax ID: ' : 'ח.פ: '}{businessInfo.taxId}
               </Typography>
             </Box>
             
@@ -762,7 +857,8 @@ const CreateInvoiceDialog = ({
               mb: 3, 
               borderRadius: style.borderRadius, 
               boxShadow: 'none',
-              border: `1px solid ${accentColors.border}`
+              border: `1px solid ${accentColors.border}`,
+              position: 'relative'
             }}
           >            
             <Typography 
@@ -810,11 +906,6 @@ const CreateInvoiceDialog = ({
               {invoiceData.customer.address && (
                 <Typography variant="body2">
                   {isEnglish ? 'Address: ' : 'כתובת: '}{invoiceData.customer.address}
-                </Typography>
-              )}
-              {invoiceData.customer.phone && (
-                <Typography variant="body2">
-                  {isEnglish ? 'Phone: ' : 'טלפון: '}{invoiceData.customer.phone}
                 </Typography>
               )}
               {invoiceData.customer.email && (
@@ -955,28 +1046,6 @@ const CreateInvoiceDialog = ({
               </Box>
             </Box>
             
-            {/* פרטי תשלום */}
-            <Box 
-              sx={{ 
-                mt: 4, 
-                textAlign: 'center',
-                p: 2,
-                bgcolor: accentColors.light,
-                borderRadius: '4px',
-                border: `1px solid ${accentColors.border}`
-              }}
-            >
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {isEnglish ? 'Payment Method: ' : 'אמצעי תשלום: '}
-                <Box component="span" sx={{ fontWeight: 'normal' }}>
-                {isEnglish 
-                  ? {'cash': 'Cash', 'credit_card': 'Credit Card', 'bank_transfer': 'Bank Transfer', 'check': 'Check', 'other': 'Other'}[invoiceData.paymentMethod] 
-                  : {'cash': 'מזומן', 'credit_card': 'כרטיס אשראי', 'bank_transfer': 'העברה בנקאית', 'check': 'צ\'ק', 'other': 'אחר'}[invoiceData.paymentMethod]
-                }
-                </Box>
-              </Typography>
-            </Box>
-            
             {/* הערות */}
             {invoiceData.notes && (
               <Box sx={{ mt: 2, p: 2, borderTop: '1px dashed #ddd' }}>
@@ -987,28 +1056,34 @@ const CreateInvoiceDialog = ({
               </Box>
             )}
             
-            {/* חותמת */}
-            <Box 
-              sx={{ 
-                mt: 4, 
-                display: 'flex', 
-                justifyContent: 'center'
-              }}
-            >
-              <Typography 
-                variant="caption" 
+            {/* פרטי תשלום - ממוקם בפינה התחתונה - מוצג רק אם זו חשבונית מס/קבלה */}
+            {invoiceData.documentType === 'invoice_receipt' && (
+              <Box 
                 sx={{ 
-                  textAlign: 'center', 
-                  fontStyle: 'italic',
-                  color: accentColors.secondary
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: isEnglish ? '20px' : 'auto',
+                  right: isEnglish ? 'auto' : '20px',
+                  borderRadius: '4px',
+                  padding: '5px 10px',
+                  backgroundColor: 'white',
+                  border: `1px solid ${accentColors.border}`,
+                  textAlign: isEnglish ? 'left' : 'right',
+                  minWidth: '150px',
+                  zIndex: 2
                 }}
               >
-                {isEnglish 
-                  ? 'This document was created digitally and is valid without signature according to tax authority regulations'
-                  : 'מסמך זה הופק באופן ממוחשב והינו תקף ללא חתימה בהתאם לתקנות'
-                }
-              </Typography>
-            </Box>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                  {isEnglish ? 'Payment Method: ' : 'אמצעי תשלום: '}
+                  <Box component="span" sx={{ fontWeight: 'normal' }}>
+                  {isEnglish 
+                    ? {'cash': 'Cash', 'credit_card': 'Credit Card', 'bank_transfer': 'Bank Transfer', 'check': 'Check', 'other': 'Other'}[invoiceData.paymentMethod] 
+                    : {'cash': 'מזומן', 'credit_card': 'כרטיס אשראי', 'bank_transfer': 'העברה בנקאית', 'check': 'צ\'ק', 'other': 'אחר'}[invoiceData.paymentMethod]
+                  }
+                  </Box>
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </div>
       </DialogContent>

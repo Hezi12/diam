@@ -242,6 +242,28 @@ const invoiceService = {
       const errorInfo = errorService.handleApiError(error, 'create credit invoice');
       throw errorInfo;
     }
+  },
+
+  /**
+   * קבלת מספר חשבונית הבא בסדרה
+   * @returns {Promise<string>} מספר החשבונית הבא
+   */
+  getNextInvoiceNumber: async () => {
+    try {
+      logService.info('מבקש מספר חשבונית הבא');
+      const response = await axios.get(API_ENDPOINTS.invoices.nextNumber);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error('שגיאה בקבלת מספר חשבונית');
+      }
+      
+      logService.info('התקבל מספר חשבונית הבא:', response.data.nextInvoiceNumber);
+      return response.data.nextInvoiceNumber;
+    } catch (error) {
+      logService.error('שגיאה בקבלת מספר חשבונית הבא:', error);
+      const errorInfo = errorService.handleApiError(error, 'fetch next invoice number');
+      throw errorInfo;
+    }
   }
 };
 

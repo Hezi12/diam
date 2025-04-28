@@ -49,6 +49,7 @@ router.use(auth);
 // נתיבים בסיסיים
 router.post('/', invoicesController.createInvoice);
 router.get('/', invoicesController.getInvoices);
+router.get('/next-number', invoicesController.getNextInvoiceNumber);
 router.get('/:id', invoicesController.getInvoiceById);
 router.patch('/:id/cancel', invoicesController.cancelInvoice);
 router.post('/:id/credit', invoicesController.createCreditInvoice);
