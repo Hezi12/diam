@@ -26,7 +26,8 @@ const RoomsList = ({ rooms, loading, selectedRoomId, onRoomSelect, location }) =
     'Simple with Balcony': '#87ceeb', // תכלת
     'Standard': '#b0c4de',         // כחול בהיר
     'Standard with Balcony': '#6495ed', // כחול בינוני
-    'Family room': '#4169e1'       // כחול כהה
+    'Family room': '#4169e1',       // כחול כהה
+    'Not for Sale': '#808080'      // אפור
   };
   
   // פונקציה לקבלת הצבע של קטגוריית החדר

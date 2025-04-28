@@ -8,7 +8,8 @@ const roomCategories = [
   'Simple with Balcony',
   'Standard',
   'Standard with Balcony',
-  'Family room'
+  'Family room',
+  'Not for Sale'
 ];
 
 const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {

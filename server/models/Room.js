@@ -15,7 +15,7 @@ const RoomSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['Simple', 'Simple with Balcony', 'Standard', 'Standard with Balcony', 'Family room'],
+      enum: ['Simple', 'Simple with Balcony', 'Standard', 'Standard with Balcony', 'Family room', 'Not for Sale'],
       required: true
     },
     
