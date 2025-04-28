@@ -125,10 +125,10 @@ exports.createBooking = async (req, res) => {
     
     // טיפול בשעות התאריכים - צ'ק-אין בשעה 14:00 וצ'ק-אאוט בשעה 12:00
     const checkInDate = new Date(checkIn);
-    checkInDate.setHours(14, 0, 0, 0);
+    checkInDate.setHours(0, 0, 0, 0);
     
     const checkOutDate = new Date(checkOut);
-    checkOutDate.setHours(12, 0, 0, 0);
+    checkOutDate.setHours(0, 0, 0, 0);
     
     // בדיקת זמינות החדר בתאריכים המבוקשים
     const existingBooking = await Booking.findOne({
@@ -137,8 +137,9 @@ exports.createBooking = async (req, res) => {
       $or: [
         // הזמנה קיימת שמתחילה בטווח התאריכים המבוקש
         { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
-        // הזמנה קיימת שמסתיימת בטווח התאריכים המבוקש
-        { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
+        // הזמנה קיימת שמסתיימת בטווח התאריכים המבוקש 
+        // אבל מאפשרים צ'ק-אין בתאריך צ'ק-אאוט של הזמנה קיימת
+        { checkOut: { $gt: checkInDate, $lt: checkOutDate } },
         // הזמנה קיימת שמכילה את כל טווח התאריכים המבוקש
         { 
           checkIn: { $lte: checkInDate },
@@ -223,13 +224,13 @@ exports.updateBooking = async (req, res) => {
     // טיפול בשעות התאריכים אם הם עודכנו
     if (updateData.checkIn) {
       const checkInDate = new Date(updateData.checkIn);
-      checkInDate.setHours(14, 0, 0, 0);
+      checkInDate.setHours(0, 0, 0, 0);
       updateData.checkIn = checkInDate;
     }
     
     if (updateData.checkOut) {
       const checkOutDate = new Date(updateData.checkOut);
-      checkOutDate.setHours(12, 0, 0, 0);
+      checkOutDate.setHours(0, 0, 0, 0);
       updateData.checkOut = checkOutDate;
     }
     
@@ -326,10 +327,10 @@ exports.checkRoomAvailability = async (req, res) => {
     
     // טיפול בשעות התאריכים
     const checkInDate = new Date(checkIn);
-    checkInDate.setHours(14, 0, 0, 0);
+    checkInDate.setHours(0, 0, 0, 0);
     
     const checkOutDate = new Date(checkOut);
-    checkOutDate.setHours(12, 0, 0, 0);
+    checkOutDate.setHours(0, 0, 0, 0);
     
     // בניית שאילתת חיפוש
     const query = {
@@ -337,7 +338,7 @@ exports.checkRoomAvailability = async (req, res) => {
       status: { $nin: ['cancelled'] },
       $or: [
         { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
-        { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
+        { checkOut: { $gt: checkInDate, $lt: checkOutDate } },
         { 
           checkIn: { $lte: checkInDate },
           checkOut: { $gte: checkOutDate }

@@ -8,7 +8,7 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval } from 'date-fns';
+import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import InfoIcon from '@mui/icons-material/Info';
@@ -198,10 +198,15 @@ const BookingsCalendar = ({
       const checkInDate = format(checkInDateObj, 'yyyy-MM-dd');
       const checkOutDate = format(checkOutDateObj, 'yyyy-MM-dd');
       
+      // חישוב מספר הלילות האמיתי של ההזמנה
+      // מחושב כהפרש הימים בין צ'ק-אין לצ'ק-אאוט
+      const actualNights = Math.max(1, differenceInDays(checkOutDateObj, checkInDateObj));
+      
       // הדפסת לוג מפורטת לדיבוג
       console.log(`הזמנה: ${booking._id} - ${booking.firstName} ${booking.lastName || ''}`);
       console.log(`תאריך צ'ק-אין:`, checkInDate, 'תאריך מקורי:', booking.checkIn);
       console.log(`תאריך צ'ק-אאוט:`, checkOutDate, 'תאריך מקורי:', booking.checkOut);
+      console.log(`מספר לילות:`, actualNights);
       
       // בדיקת תקינות תאריכים
       if (isNaN(checkInDateObj.getTime()) || isNaN(checkOutDateObj.getTime())) {
@@ -223,29 +228,68 @@ const BookingsCalendar = ({
         daysInRangeLength: daysInRange.length
       });
       
-      // אם תאריך הצ'ק-אין לא נמצא בטווח התצוגה, לא נציג את ההזמנה
-      if (startIndex === undefined) {
-        console.log('הזמנה מחוץ לטווח תצוגה - תאריך כניסה לא נמצא');
+      // בדיקה אם ההזמנה חופפת עם טווח הימים המוצג
+      // הכרחי שתאריך הצ'ק-אין יהיה בטווח התצוגה
+      const firstDayInRange = format(daysInRange[0], 'yyyy-MM-dd');
+      const lastDayInRange = format(daysInRange[daysInRange.length - 1], 'yyyy-MM-dd');
+      
+      const isCheckInInRange = startIndex !== undefined;
+      
+      // בדיקה אם ההזמנה מקיפה את הטווח (מתחילה לפני ומסתיימת אחרי)
+      const isBookingCoveringRange = checkInDate <= firstDayInRange && checkOutDate > lastDayInRange;
+
+      // בדיקה אם מדובר בהזמנה ביום האחרון של הטווח - מקרה מיוחד
+      const isLastDay = checkInDate === lastDayInRange;
+      
+      // תנאי מורחב - הזמנה מוצגת אם: (1) הצ'ק-אין בטווח (2) ההזמנה מקיפה את הטווח (3) זו הזמנה ליום האחרון
+      if (!isCheckInInRange && !isBookingCoveringRange && !isLastDay) {
+        console.log('הזמנה מחוץ לטווח תצוגה:', booking._id, {
+          checkInDate,
+          lastDayInRange,
+          isCheckInInRange,
+          isBookingCoveringRange,
+          isLastDay
+        });
         return null;
       }
       
-      // חישוב המיקום והאורך של ההזמנה בתצוגת RTL
-      // 1. חישוב האינדקס האפקטיבי של הסיום (אם הוא מחוץ לטווח)
-      const effectiveEndIndex = endIndex !== undefined ? endIndex : daysInRange.length - 1;
+      // חישוב המיקום והרוחב של ההזמנה בתצוגת RTL
       
-      // 2. חישוב מספר הימים בהזמנה (לא כולל תאריך הצ'ק-אאוט)
-      // צריך להחסיר 1 מהמשך כי תאריך הצ'ק-אאוט אינו נחשב ללינה
-      const bookingDurationDays = Math.max(1, effectiveEndIndex - startIndex);
+      // 1. חישוב נקודת ההתחלה - אם הצ'ק-אין לפני טווח התצוגה, מתחילים מהיום הראשון
+      const effectiveStartIndex = startIndex !== undefined ? startIndex : 0;
       
-      // 3. חישוב הרוחב באחוזים - כמה אחוזים מהרוחב הכולל ההזמנה תתפוס
-      const bookingWidth = (bookingDurationDays / daysInRange.length) * 100;
+      // 2. חישוב נקודת הסיום - תלוי במספר הלילות ובטווח התצוגה
+      let effectiveEndIndex;
       
-      // 4. חישוב המיקום בתצוגה RTL - בתצוגה RTL האינדקס 0 הוא הקצה הימני
-      // תיקון החישוב כך שיום הצ'ק-אאוט לא ייכלל
-      const rtlStartPosition = (daysInRange.length - startIndex - bookingDurationDays) / daysInRange.length * 100;
+      if (actualNights === 1) {
+        // אם מדובר בלילה אחד, ההזמנה תופיע רק על היום של הצ'ק-אין
+        effectiveEndIndex = effectiveStartIndex;
+      } else {
+        // אם מדובר בהזמנה של יותר מלילה אחד
+        // חשוב לא לכלול את יום הצ'ק-אאוט עצמו (כי הוא לא כולל לינה)
+        const calculatedEndIndex = endIndex !== undefined && endIndex > 0 
+          ? endIndex - 1  // הצ'ק-אאוט בטווח - מסתיימים יום לפניו
+          : daysInRange.length - 1; // הצ'ק-אאוט אחרי הטווח - מסתיימים ביום האחרון בטווח
+        
+        // לא להציג מעבר לגבולות הטווח
+        effectiveEndIndex = Math.min(calculatedEndIndex, daysInRange.length - 1);
+        // אבל גם לא לפני נקודת ההתחלה
+        effectiveEndIndex = Math.max(effectiveEndIndex, effectiveStartIndex);
+      }
       
-      console.log('נתוני הצגת ההזמנה:', {
-        bookingDurationDays,
+      // 3. חישוב כמה ימים ההזמנה תתפוס בתצוגה 
+      const displayDays = effectiveEndIndex - effectiveStartIndex + 1;
+      
+      // 4. חישוב הרוחב באחוזים מתוך הרוחב הכולל של התצוגה
+      const bookingWidth = (displayDays / daysInRange.length) * 100;
+      
+      // 5. חישוב המיקום בתצוגה RTL (כאשר 0 הוא הקצה הימני)
+      const rtlStartPosition = (daysInRange.length - effectiveStartIndex - displayDays) / daysInRange.length * 100;
+      
+      console.log('נתוני הצגת ההזמנה (מתוקנים):', {
+        actualNights,
+        displayDays,
+        effectiveStartIndex,
         effectiveEndIndex,
         rtlStartPosition: `${rtlStartPosition}%`,
         bookingWidth: `${bookingWidth}%`

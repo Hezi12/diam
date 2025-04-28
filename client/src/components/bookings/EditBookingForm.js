@@ -163,7 +163,7 @@ const EditBookingForm = ({
   // עדכון הלילות בעת שינוי תאריכים
   useEffect(() => {
     if (formData.checkIn && formData.checkOut) {
-      const nights = differenceInDays(formData.checkOut, formData.checkIn);
+      const nights = Math.max(1, differenceInDays(formData.checkOut, formData.checkIn));
       
       if (nights !== formData.nights) {
         setFormData(prev => ({
@@ -229,13 +229,13 @@ const EditBookingForm = ({
   const handleCheckOutChange = (date) => {
     setFormData(prev => {
       // חישוב מספר לילות חדש
-      const newNights = differenceInDays(date, prev.checkIn);
+      const newNights = Math.max(1, differenceInDays(date, prev.checkIn));
       
       return {
         ...prev,
         checkOut: date,
-        nights: newNights > 0 ? newNights : 1,
-        price: prev.pricePerNight * (newNights > 0 ? newNights : 1)
+        nights: newNights,
+        price: prev.pricePerNight * newNights
       };
     });
   };

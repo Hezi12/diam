@@ -241,7 +241,7 @@ const NewBookingForm = ({
           room: initialData.room || '',
           checkIn: initialData.checkIn || new Date(),
           checkOut: initialData.checkOut || addDays(new Date(), 1),
-          nights: initialData.nights || differenceInDays(initialData.checkOut || addDays(new Date(), 1), initialData.checkIn || new Date()) || 1,
+          nights: initialData.nights || Math.max(1, differenceInDays(initialData.checkOut || addDays(new Date(), 1), initialData.checkIn || new Date())),
           isTourist: false,
           guests: 2,
           
@@ -426,19 +426,30 @@ const NewBookingForm = ({
 
   // חישוב מחיר והתאמות לפי תאריכים וחדר נבחר
   useEffect(() => {
-    // חישוב מספר לילות
+    // חישוב מספר לילות רק אם יש תאריכים תקינים
     if (formData.checkIn && formData.checkOut) {
-      const nights = differenceInDays(formData.checkOut, formData.checkIn);
+      const checkInDate = new Date(formData.checkIn);
+      const checkOutDate = new Date(formData.checkOut);
       
-      // עדכון ערך הלילות בטופס
-      setFormData(prev => ({ 
-        ...prev, 
-        nights: nights 
-      }));
+      // איפוס השעות בשני התאריכים
+      checkInDate.setHours(0, 0, 0, 0);
+      checkOutDate.setHours(0, 0, 0, 0);
       
-      // אם יש חדר נבחר, עדכן את המחירים בהתאם להגדרות החדר
-      if (formData.room) {
-        fetchRoomData(formData.room);
+      // שימוש בפונקציה המובנית differenceInDays שמחשבת את מספר הלילות
+      const daysDiff = differenceInDays(checkOutDate, checkInDate);
+      const nights = Math.max(1, daysDiff);
+      
+      // עדכון ערך הלילות בטופס רק אם מספר הלילות שונה
+      if (nights !== formData.nights) {
+        setFormData(prev => ({ 
+          ...prev, 
+          nights: nights 
+        }));
+        
+        // אם יש חדר נבחר, עדכן את המחירים בהתאם להגדרות החדר
+        if (formData.room) {
+          fetchRoomData(formData.room);
+        }
       }
     }
   }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist]);
@@ -503,52 +514,76 @@ const NewBookingForm = ({
 
   // טיפול בשינוי תאריך צ'ק-אין
   const handleCheckInChange = (date) => {
-    const newCheckIn = date;
+    const newCheckIn = new Date(date);
+    // איפוס השעה בתאריך
+    newCheckIn.setHours(0, 0, 0, 0);
+    
+    // נבדוק אם יש צורך לעדכן גם את צ'ק-אאוט
+    let newNights = formData.nights;
     let newCheckOut = formData.checkOut;
     
-    // אם תאריך צ'ק-אאוט הוא לפני צ'ק-אין, נעדכן אוטומטית
-    if (newCheckIn >= newCheckOut) {
+    if (newCheckIn >= formData.checkOut) {
+      // אם תאריך הכניסה החדש אחרי או שווה לתאריך היציאה הקיים,
+      // נגדיר תאריך יציאה חדש יום אחד אחרי הכניסה
       newCheckOut = addDays(newCheckIn, 1);
+      newNights = 1;
+    } else {
+      // אחרת, נחשב מחדש את מספר הלילות
+      const checkOutDate = new Date(formData.checkOut);
+      checkOutDate.setHours(0, 0, 0, 0);
+      
+      // חישוב הפרש בימים
+      const daysDiff = differenceInDays(checkOutDate, newCheckIn);
+      
+      // תמיד להחזיר לפחות 1 לילה
+      newNights = Math.max(1, daysDiff);
     }
     
-    // חישוב מספר לילות
-    const nights = differenceInDays(newCheckOut, newCheckIn);
-    
+    // עדכון הטופס עם הערכים החדשים
     setFormData(prev => ({
       ...prev,
       checkIn: newCheckIn,
       checkOut: newCheckOut,
-      nights: nights,
-      price: parseFloat((prev.pricePerNight * nights).toFixed(2))
+      nights: newNights,
+      price: parseFloat((prev.pricePerNight * newNights).toFixed(2))
     }));
   };
 
   // טיפול בשינוי תאריך צ'ק-אאוט
   const handleCheckOutChange = (date) => {
-    const newCheckOut = date;
+    const newCheckOut = new Date(date);
+    // איפוס השעה בתאריך
+    newCheckOut.setHours(0, 0, 0, 0);
     
-    // חישוב מספר לילות
-    const nights = differenceInDays(newCheckOut, formData.checkIn);
+    const checkInDate = new Date(formData.checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
     
-    if (nights <= 0) {
-      // אם מספר הלילות הוא 0 או שלילי, הגדר את צ'ק-אאוט ליום אחד אחרי צ'ק-אין
+    // חישוב הפרש הימים
+    const daysDiff = differenceInDays(newCheckOut, checkInDate);
+    
+    // חייב להיות לפחות לילה אחד
+    const newNights = Math.max(1, daysDiff);
+    
+    // אם הצ'ק-אאוט מוקדם או שווה לצ'ק-אין, נקבע צ'ק-אאוט יום אחד אחרי
+    if (daysDiff <= 0) {
       const newDate = addDays(formData.checkIn, 1);
       
       setFormData(prev => ({
         ...prev,
         checkOut: newDate,
         nights: 1,
-        price: parseFloat(prev.pricePerNight.toFixed(2))
+        price: parseFloat((prev.pricePerNight).toFixed(2))
       }));
       
       return;
     }
     
+    // עדכון הטופס עם הערכים החדשים
     setFormData(prev => ({
       ...prev,
       checkOut: newCheckOut,
-      nights: nights,
-      price: parseFloat((prev.pricePerNight * nights).toFixed(2))
+      nights: newNights,
+      price: parseFloat((prev.pricePerNight * newNights).toFixed(2))
     }));
   };
 
@@ -561,8 +596,10 @@ const NewBookingForm = ({
       return;
     }
     
-    // חישוב תאריך צ'ק-אאוט חדש
-    const newCheckOut = addDays(formData.checkIn, nights);
+    // חישוב תאריך צ'ק-אאוט חדש לפי מספר הלילות
+    const checkInDate = new Date(formData.checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
+    const newCheckOut = addDays(checkInDate, nights);
     
     setFormData(prev => ({
       ...prev,
@@ -610,7 +647,10 @@ const NewBookingForm = ({
         // בדיקה אם room הוא אובייקט והמרה למזהה אם צריך
         const room = typeof formData.room === 'object' && formData.room._id ? formData.room._id : formData.room;
         
-        // מילוי שדות ברירת מחדל אם חסרים
+        // איפוס השעות בתאריכים לפני שליחה לשרת
+        const checkInDate = new Date(formData.checkIn);
+        checkInDate.setHours(0, 0, 0, 0);
+        
         // מבנה JSON להזמנה חדשה/עדכון
         const bookingData = {
           firstName: formData.firstName,
@@ -619,8 +659,7 @@ const NewBookingForm = ({
           email: formData.email || '',
           
           room: room,
-          checkIn: formData.checkIn,
-          checkOut: formData.checkOut,
+          checkIn: checkInDate,
           nights: formData.nights || 1,
           isTourist: formData.isTourist || false,
           
@@ -639,6 +678,12 @@ const NewBookingForm = ({
           
           location: location
         };
+        
+        // אם צריך לשמור את תאריך צ'ק-אאוט לצורך תאימות עם המערכת הקיימת
+        if (formData.checkOut) {
+          // חישוב תאריך צ'ק-אאוט על פי תאריך צ'ק-אין + מספר לילות
+          bookingData.checkOut = addDays(checkInDate, formData.nights);
+        }
         
         // אם מדובר בעריכה, שמור את האיידי והשדות הנוספים
         if (isEditMode && editBooking?._id) {
