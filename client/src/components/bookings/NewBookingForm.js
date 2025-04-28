@@ -1234,7 +1234,7 @@ const NewBookingForm = ({
                       label="תאריך כניסה"
                     value={formData.checkIn}
                     onChange={handleCheckInChange}
-                      disablePast={!isEditMode}
+                      disablePast={false}
                     slotProps={{
                       textField: {
                         fullWidth: true,
