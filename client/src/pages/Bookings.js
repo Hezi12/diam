@@ -204,25 +204,32 @@ const Bookings = () => {
   const handleCreateBookingFromCell = useCallback((date, roomId, locationName) => {
     console.log('יצירת הזמנה חדשה מלוח:', date, roomId, locationName);
     
-    // יצירת תאריכי צ'ק-אין וצ'ק-אאוט ללא שעות
-    // ההזמנה תהיה מהתאריך הנבחר לתאריך הבא
-    const checkInDateObj = new Date(date);
-    // שימוש רק בתאריך: yyyy-MM-dd (ללא חלק השעה)
-    const checkInDateStr = checkInDateObj.toISOString().split('T')[0];
-    const checkInDate = new Date(checkInDateStr);
+    // נשתמש בפונקציה format כדי להמיר את התאריך למחרוזת נקייה בפורמט yyyy-MM-dd
+    const checkInDateString = format(date, 'yyyy-MM-dd');
     
-    // יצירת תאריך צ'ק-אאוט (יום אחד אחרי הצ'ק-אין)
-    const checkOutDateObj = new Date(checkInDateObj);
-    checkOutDateObj.setDate(checkOutDateObj.getDate() + 1);
-    const checkOutDateStr = checkOutDateObj.toISOString().split('T')[0];
-    const checkOutDate = new Date(checkOutDateStr);
+    // יצירה מחדש של תאריך הצ'ק-אין מהמחרוזת הנקייה
+    // כאשר אנחנו מגדירים את התאריך בצורה זו, הוא ישמור על החלק היומי בלבד
+    const checkInDate = new Date(checkInDateString);
+    
+    console.log('תאריך שנלחץ (מקורי):', date);
+    console.log('מחרוזת תאריך מנוקה:', checkInDateString);
+    console.log('תאריך צ׳ק-אין אחרי המרה:', checkInDate);
+    
+    // יצירת תאריך צ'ק-אאוט - יום אחד אחרי הצ'ק-אין
+    // יש לוודא שאנחנו משתמשים בתבנית זהה כדי למנוע בעיות עם UTC
+    const tomorrow = new Date(checkInDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const checkOutDateString = format(tomorrow, 'yyyy-MM-dd');
+    const checkOutDate = new Date(checkOutDateString);
     
     // חישוב מספר לילות - צריך להיות 1 כשהתאריכים הם ימים עוקבים
     const nights = 1;
 
-    console.log('תאריכי הזמנה:', {
+    console.log('תאריכי הזמנה סופיים:', {
       checkIn: checkInDate,
+      checkInStr: checkInDateString,
       checkOut: checkOutDate,
+      checkOutStr: checkOutDateString,
       nights
     });
 

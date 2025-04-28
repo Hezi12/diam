@@ -460,7 +460,6 @@ const NewBookingForm = ({
     
     // בדיקת שדות חובה לפי המודל בשרת
     if (!formData.firstName) newErrors.firstName = 'יש למלא שם פרטי';
-    if (!formData.lastName) newErrors.lastName = 'יש למלא שם משפחה';
     if (!formData.room) newErrors.room = 'יש לבחור חדר';
     if (!formData.checkIn) newErrors.checkIn = 'יש לבחור תאריך צ\'ק-אין';
     if (!formData.checkOut) newErrors.checkOut = 'יש לבחור תאריך צ\'ק-אאוט';
@@ -641,15 +640,33 @@ const NewBookingForm = ({
     if (validateForm()) {
       setIsSubmitting(true);
       try {
-        // וידוא שיש שם משפחה אם לא הוזן
-        const lastName = formData.lastName || formData.firstName;
+        // שימוש במקף כשם משפחה אם לא הוזן
+        const lastName = formData.lastName || "-";
         
         // בדיקה אם room הוא אובייקט והמרה למזהה אם צריך
         const room = typeof formData.room === 'object' && formData.room._id ? formData.room._id : formData.room;
         
-        // איפוס השעות בתאריכים לפני שליחה לשרת
-        const checkInDate = new Date(formData.checkIn);
-        checkInDate.setHours(0, 0, 0, 0);
+        // פירוק תאריכי צ'ק-אין וצ'ק-אאוט ויצירת תאריכים ב-UTC ללא רכיב שעות
+        const checkInOriginal = new Date(formData.checkIn);
+        const checkOutOriginal = new Date(formData.checkOut);
+        
+        // יצירת תאריכים בפורמט UTC ללא שעות
+        const checkInDate = new Date(Date.UTC(
+          checkInOriginal.getFullYear(),
+          checkInOriginal.getMonth(),
+          checkInOriginal.getDate()
+        ));
+        
+        const checkOutDate = new Date(Date.UTC(
+          checkOutOriginal.getFullYear(),
+          checkOutOriginal.getMonth(),
+          checkOutOriginal.getDate()
+        ));
+        
+        console.log('תאריכי הזמנה לשליחה לשרת:', {
+          checkIn: checkInDate.toISOString(),
+          checkOut: checkOutDate.toISOString()
+        });
         
         // מבנה JSON להזמנה חדשה/עדכון
         const bookingData = {
@@ -660,6 +677,7 @@ const NewBookingForm = ({
           
           room: room,
           checkIn: checkInDate,
+          checkOut: checkOutDate, // שימוש בתאריך הצ'ק-אאוט שנבחר
           nights: formData.nights || 1,
           isTourist: formData.isTourist || false,
           
@@ -950,7 +968,6 @@ const NewBookingForm = ({
                       fullWidth
                       value={formData.lastName}
                       onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                      required
                       size="small"
                       inputProps={{
                         style: { 

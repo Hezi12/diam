@@ -29,7 +29,7 @@ const BookingSchema = new mongoose.Schema(
     },
     lastName: {
       type: String,
-      required: true,
+      required: false,
       trim: true
     },
     email: {
@@ -45,11 +45,27 @@ const BookingSchema = new mongoose.Schema(
     // פרטי ההזמנה
     checkIn: {
       type: Date,
-      required: true
+      required: true,
+      set: function(date) {
+        // מוודא שאין מרכיב שעות - מאפס את השעה ל-00:00:00 UTC
+        if (date) {
+          const d = new Date(date);
+          return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        }
+        return date;
+      }
     },
     checkOut: {
       type: Date,
-      required: true
+      required: true,
+      set: function(date) {
+        // מוודא שאין מרכיב שעות - מאפס את השעה ל-00:00:00 UTC
+        if (date) {
+          const d = new Date(date);
+          return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        }
+        return date;
+      }
     },
     room: {
       type: mongoose.Schema.Types.ObjectId,
@@ -68,7 +84,20 @@ const BookingSchema = new mongoose.Schema(
       type: Number,
       default: function() {
         if (this.checkIn && this.checkOut) {
-          return Math.ceil((this.checkOut - this.checkIn) / (1000 * 60 * 60 * 24));
+          // חישוב נכון של מספר לילות ללא התחשבות בשעות
+          const checkInTime = new Date(Date.UTC(
+            this.checkIn.getUTCFullYear(),
+            this.checkIn.getUTCMonth(),
+            this.checkIn.getUTCDate()
+          )).getTime();
+          
+          const checkOutTime = new Date(Date.UTC(
+            this.checkOut.getUTCFullYear(),
+            this.checkOut.getUTCMonth(),
+            this.checkOut.getUTCDate()
+          )).getTime();
+          
+          return Math.ceil((checkOutTime - checkInTime) / (1000 * 60 * 60 * 24));
         }
         return 1;
       }
@@ -217,8 +246,21 @@ BookingSchema.pre('save', async function(next) {
 
   // חישוב מספר לילות אם לא הוגדר
   if (!this.nights && this.checkIn && this.checkOut) {
+    // השתמש בפונקציה שמתעלמת משעות ומחשבת ימים מלאים בלבד
+    const checkInTime = new Date(Date.UTC(
+      this.checkIn.getUTCFullYear(),
+      this.checkIn.getUTCMonth(),
+      this.checkIn.getUTCDate()
+    )).getTime();
+    
+    const checkOutTime = new Date(Date.UTC(
+      this.checkOut.getUTCFullYear(),
+      this.checkOut.getUTCMonth(),
+      this.checkOut.getUTCDate()
+    )).getTime();
+    
     this.nights = Math.ceil(
-      (this.checkOut.getTime() - this.checkIn.getTime()) / (1000 * 60 * 60 * 24)
+      (checkOutTime - checkInTime) / (1000 * 60 * 60 * 24)
     );
   }
   
@@ -259,5 +301,15 @@ BookingSchema.pre('save', async function(next) {
 BookingSchema.virtual('guestName').get(function() {
   return this.firstName && this.lastName ? `${this.firstName} ${this.lastName}` : '';
 });
+
+// פונקציה למחיקת כל ההזמנות
+BookingSchema.statics.deleteAllBookings = async function() {
+  try {
+    const result = await this.deleteMany({});
+    return result;
+  } catch (error) {
+    throw new Error(`שגיאה במחיקת ההזמנות: ${error.message}`);
+  }
+};
 
 module.exports = mongoose.model('Booking', BookingSchema); 

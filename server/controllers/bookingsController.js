@@ -46,25 +46,51 @@ exports.getBookingsByDateRange = async (req, res) => {
     }
     
     // המרת תאריכים לפורמט אחיד ללא שעות
-    const startDateObj = new Date(startDate);
-    const startDateString = startDateObj.toISOString().split('T')[0];
-    const formattedStartDate = new Date(startDateString);
+    const startDateParts = new Date(startDate).toISOString().split('T')[0].split('-');
+    const endDateParts = new Date(endDate).toISOString().split('T')[0].split('-');
     
-    const endDateObj = new Date(endDate);
-    const endDateString = endDateObj.toISOString().split('T')[0];
-    const formattedEndDate = new Date(endDateString);
+    // יצירת תאריכים חדשים עם הגדרת השעה ל-00:00:00 UTC
+    const formattedStartDate = new Date(Date.UTC(
+      parseInt(startDateParts[0]),
+      parseInt(startDateParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+      parseInt(startDateParts[2])
+    ));
     
-    // בניית פילטר חיפוש
+    const formattedEndDate = new Date(Date.UTC(
+      parseInt(endDateParts[0]),
+      parseInt(endDateParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+      parseInt(endDateParts[2])
+    ));
+    
+    console.log('חיפוש הזמנות בטווח תאריכים:', {
+      startDate: formattedStartDate.toISOString(),
+      endDate: formattedEndDate.toISOString(),
+      location
+    });
+    
+    // בניית פילטר חיפוש משופר לכיסוי כל המקרים האפשריים:
     const dateFilter = {
       $or: [
-        // הזמנות שמתחילות בטווח המבוקש
-        { checkIn: { $gte: formattedStartDate, $lte: formattedEndDate } },
-        // הזמנות שמסתיימות בטווח המבוקש
-        { checkOut: { $gte: formattedStartDate, $lte: formattedEndDate } },
-        // הזמנות שמתחילות לפני הטווח ומסתיימות אחריו (כלומר, הטווח המבוקש נמצא בתוך תקופת ההזמנה)
+        // מקרה 1: הזמנות שמתחילות בטווח המבוקש (צ'ק-אין בתוך הטווח)
+        { 
+          checkIn: { $gte: formattedStartDate, $lte: formattedEndDate } 
+        },
+        
+        // מקרה 2: הזמנות שמסתיימות בטווח המבוקש (צ'ק-אאוט בתוך הטווח)
+        { 
+          checkOut: { $gt: formattedStartDate, $lte: formattedEndDate } 
+        },
+        
+        // מקרה 3: הזמנות שמקיפות את הטווח כולו (צ'ק-אין לפני, צ'ק-אאוט אחרי)
         { 
           checkIn: { $lt: formattedStartDate },
           checkOut: { $gt: formattedEndDate }
+        },
+        
+        // מקרה 4: הזמנות שחלק מהן בתוך הטווח (צ'ק-אין לפני הטווח, צ'ק-אאוט אחרי תחילת הטווח)
+        {
+          checkIn: { $lt: formattedStartDate },
+          checkOut: { $gt: formattedStartDate, $lte: formattedEndDate }
         }
       ]
     };
@@ -77,6 +103,8 @@ exports.getBookingsByDateRange = async (req, res) => {
     const bookings = await Booking.find(filter)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
+    
+    console.log(`נמצאו ${bookings.length} הזמנות בטווח התאריכים`);
     
     res.json(bookings);
   } catch (error) {
@@ -132,21 +160,51 @@ exports.createBooking = async (req, res) => {
       return res.status(404).json({ message: 'החדר המבוקש לא נמצא' });
     }
     
-    // עבודה עם תאריכים בלבד, ללא שעות
-    // יצירת תאריכים חדשים בפורמט יום-חודש-שנה בלבד
-    const checkInDate = new Date(checkIn);
-    const checkInDateString = checkInDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
-    const formattedCheckIn = new Date(checkInDateString);
+    // רישום מידע התחלתי
+    console.log('נתוני הזמנה שהתקבלו:', {
+      room: roomId,
+      roomNumber: room.roomNumber,
+      checkIn: checkIn ? new Date(checkIn).toISOString() : null,
+      checkOut: checkOut ? new Date(checkOut).toISOString() : null,
+      nights,
+      firstName,
+      lastName
+    });
     
-    const checkOutDate = new Date(checkOut);
-    const checkOutDateString = checkOutDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
-    const formattedCheckOut = new Date(checkOutDateString);
+    // עבודה עם תאריכים בלבד, ללא שעות
+    const formattedCheckIn = new Date(checkIn);
+    const formattedCheckOut = new Date(checkOut);
+    
+    // המרה ל-UTC לצורך אחידות בשמירה
+    // פירוק התאריך לרכיבים (שנה, חודש, יום) והרכבה מחדש ב-UTC
+    const checkInUTC = new Date(Date.UTC(
+      formattedCheckIn.getFullYear(),
+      formattedCheckIn.getMonth(),
+      formattedCheckIn.getDate()
+    ));
+    
+    const checkOutUTC = new Date(Date.UTC(
+      formattedCheckOut.getFullYear(),
+      formattedCheckOut.getMonth(),
+      formattedCheckOut.getDate()
+    ));
+    
+    console.log('תאריכי הזמנה לאחר המרה ל-UTC:', {
+      original: {
+        checkIn: formattedCheckIn.toISOString(),
+        checkOut: formattedCheckOut.toISOString()
+      },
+      formatted: {
+        checkIn: checkInUTC.toISOString(),
+        checkOut: checkOutUTC.toISOString()
+      }
+    });
     
     // בדיקת זמינות חדר
     const conflictingBooking = await Booking.checkRoomAvailability(
       roomId,
-      formattedCheckIn,
-      formattedCheckOut
+      checkInUTC,
+      checkOutUTC
     );
     
     if (conflictingBooking) {
@@ -161,6 +219,9 @@ exports.createBooking = async (req, res) => {
       });
     }
     
+    // חישוב מספר לילות במידה ולא סופק
+    const calculatedNights = nights || Math.ceil((checkOutUTC - checkInUTC) / (1000 * 60 * 60 * 24));
+    
     // יצירת אובייקט ההזמנה
     const newBooking = new Booking({
       room: roomId,
@@ -169,9 +230,9 @@ exports.createBooking = async (req, res) => {
       lastName,
       phone,
       email,
-      checkIn: formattedCheckIn,
-      checkOut: formattedCheckOut,
-      nights: nights || Math.ceil((formattedCheckOut - formattedCheckIn) / (1000 * 60 * 60 * 24)),
+      checkIn: checkInUTC,
+      checkOut: checkOutUTC,
+      nights: calculatedNights,
       isTourist: isTourist || false,
       price,
       pricePerNight,
@@ -189,6 +250,14 @@ exports.createBooking = async (req, res) => {
       .populate('room', 'roomNumber category basePrice vatPrice');
     
     await savedBooking.populate('room');
+    
+    console.log('הזמנה נשמרה בהצלחה:', {
+      bookingNumber: savedBooking.bookingNumber,
+      checkIn: savedBooking.checkIn.toISOString(),
+      checkOut: savedBooking.checkOut.toISOString(),
+      room: savedBooking.room.roomNumber,
+      nights: savedBooking.nights
+    });
     
     res.status(201).json({
       success: true,
@@ -216,40 +285,68 @@ exports.updateBooking = async (req, res) => {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
     
+    // רישום מידע התחלתי
+    console.log(`עדכון הזמנה ${id}:`, {
+      checkIn: updateData.checkIn ? new Date(updateData.checkIn).toISOString() : undefined,
+      checkOut: updateData.checkOut ? new Date(updateData.checkOut).toISOString() : undefined,
+      room: updateData.room,
+      nights: updateData.nights
+    });
+    
     // טיפול בתאריכים במידה והם מעודכנים
     if (updateData.checkIn && updateData.checkOut) {
-      // עבודה עם תאריכים בלבד, ללא שעות
-      const checkInDate = new Date(updateData.checkIn);
-      const checkInDateString = checkInDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
-      updateData.checkIn = new Date(checkInDateString);
+      const formattedCheckIn = new Date(updateData.checkIn);
+      const formattedCheckOut = new Date(updateData.checkOut);
       
-      const checkOutDate = new Date(updateData.checkOut);
-      const checkOutDateString = checkOutDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
-      updateData.checkOut = new Date(checkOutDateString);
+      // המרה ל-UTC לצורך אחידות בשמירה
+      updateData.checkIn = new Date(Date.UTC(
+        formattedCheckIn.getFullYear(),
+        formattedCheckIn.getMonth(),
+        formattedCheckIn.getDate()
+      ));
+      
+      updateData.checkOut = new Date(Date.UTC(
+        formattedCheckOut.getFullYear(),
+        formattedCheckOut.getMonth(),
+        formattedCheckOut.getDate()
+      ));
+      
+      console.log('תאריכי הזמנה מעודכנים לאחר המרה ל-UTC:', {
+        original: {
+          checkIn: formattedCheckIn.toISOString(),
+          checkOut: formattedCheckOut.toISOString()
+        },
+        formatted: {
+          checkIn: updateData.checkIn.toISOString(),
+          checkOut: updateData.checkOut.toISOString()
+        }
+      });
       
       // עדכון מספר לילות
       if (!updateData.nights) {
-        updateData.nights = Math.ceil((updateData.checkOut - updateData.checkIn) / (1000 * 60 * 60 * 24));
+        updateData.nights = Math.ceil(
+          (updateData.checkOut - updateData.checkIn) / (1000 * 60 * 60 * 24)
+        );
       }
       
-      // בדיקת זמינות חדר אם יש שינוי בתאריכים או בחדר
+      // בדיקת התנגשות עם הזמנות קיימות אם החדר עודכן או התאריכים השתנו
       if (
-        updateData.checkIn.getTime() !== booking.checkIn.getTime() ||
-        updateData.checkOut.getTime() !== booking.checkOut.getTime() ||
-        (updateData.room && updateData.room !== booking.room.toString())
+        (updateData.room && updateData.room !== booking.room.toString()) ||
+        (updateData.checkIn && updateData.checkOut && 
+         (updateData.checkIn.toISOString() !== booking.checkIn.toISOString() || 
+          updateData.checkOut.toISOString() !== booking.checkOut.toISOString()))
       ) {
-        const roomId = updateData.room || booking.room;
+        const roomToCheck = updateData.room || booking.room;
         
-        // בדיקת זמינות חדר
         const conflictingBooking = await Booking.checkRoomAvailability(
-          roomId,
+          roomToCheck,
           updateData.checkIn,
           updateData.checkOut,
-          id // מזהה ההזמנה הנוכחית להתעלם ממנה בבדיקה
+          id // להוציא את ההזמנה הנוכחית מהבדיקה
         );
         
         if (conflictingBooking) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: 'החדר כבר מוזמן בתאריכים אלו',
             conflict: {
               guestName: `${conflictingBooking.firstName} ${conflictingBooking.lastName}`,
@@ -262,23 +359,26 @@ exports.updateBooking = async (req, res) => {
       }
     }
     
-    // עדכון מספר החדר אם החדר שונה
-    if (updateData.room && updateData.room !== booking.room.toString()) {
-      const room = await Room.findById(updateData.room);
-      if (!room) {
-        return res.status(404).json({ message: 'החדר המבוקש לא נמצא' });
-      }
-      updateData.roomNumber = room.roomNumber;
-    }
-    
     // עדכון ההזמנה
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
-      { $set: updateData },
+      updateData,
       { new: true, runValidators: true }
     ).populate('room', 'roomNumber category basePrice vatPrice');
     
-    res.json(updatedBooking);
+    console.log('הזמנה עודכנה בהצלחה:', {
+      bookingNumber: updatedBooking.bookingNumber,
+      checkIn: updatedBooking.checkIn.toISOString(),
+      checkOut: updatedBooking.checkOut.toISOString(),
+      room: updatedBooking.room.roomNumber,
+      nights: updatedBooking.nights
+    });
+    
+    res.json({
+      success: true,
+      data: updatedBooking,
+      message: 'ההזמנה עודכנה בהצלחה'
+    });
   } catch (error) {
     console.error('Error updating booking:', error);
     res.status(500).json({ 
@@ -315,23 +415,38 @@ exports.checkRoomAvailability = async (req, res) => {
       return res.status(400).json({ message: 'חסרים פרמטרים: roomId, checkIn, checkOut' });
     }
     
-    // טיפול בשעות התאריכים
-    const checkInDate = new Date(checkIn);
-    checkInDate.setHours(0, 0, 0, 0);
+    // המרת תאריכים לפורמט אחיד ללא שעות
+    const checkInParts = new Date(checkIn).toISOString().split('T')[0].split('-');
+    const checkOutParts = new Date(checkOut).toISOString().split('T')[0].split('-');
     
-    const checkOutDate = new Date(checkOut);
-    checkOutDate.setHours(0, 0, 0, 0);
+    // יצירת תאריכים חדשים עם הגדרת השעה ל-00:00:00 UTC
+    const formattedCheckIn = new Date(Date.UTC(
+      parseInt(checkInParts[0]),
+      parseInt(checkInParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+      parseInt(checkInParts[2])
+    ));
+    
+    const formattedCheckOut = new Date(Date.UTC(
+      parseInt(checkOutParts[0]),
+      parseInt(checkOutParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+      parseInt(checkOutParts[2])
+    ));
+    
+    console.log('בדיקת זמינות חדר:', {
+      checkIn: formattedCheckIn.toISOString(),
+      checkOut: formattedCheckOut.toISOString()
+    });
     
     // בניית שאילתת חיפוש
     const query = {
       room: roomId,
       status: { $nin: ['cancelled'] },
       $or: [
-        { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
-        { checkOut: { $gt: checkInDate, $lt: checkOutDate } },
+        { checkIn: { $lt: formattedCheckOut, $gte: formattedCheckIn } },
+        { checkOut: { $gt: formattedCheckIn, $lt: formattedCheckOut } },
         { 
-          checkIn: { $lte: checkInDate },
-          checkOut: { $gte: checkOutDate }
+          checkIn: { $lte: formattedCheckIn },
+          checkOut: { $gte: formattedCheckOut }
         }
       ]
     };

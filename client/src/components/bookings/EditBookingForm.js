@@ -288,10 +288,6 @@ const EditBookingForm = ({
       newErrors.firstName = 'יש להזין שם פרטי';
     }
     
-    if (!formData.lastName) {
-      newErrors.lastName = 'יש להזין שם משפחה';
-    }
-    
     // בדיקת תאריכים
     if (!formData.checkIn) {
       newErrors.checkIn = 'יש לבחור תאריך צ׳ק-אין';
@@ -330,11 +326,41 @@ const EditBookingForm = ({
     setError('');
     
     try {
+      // טיפול בשם משפחה ריק
+      const updatedFormData = {
+        ...formData,
+        lastName: formData.lastName || "-"
+      };
+      
+      // פירוק תאריכי צ'ק-אין וצ'ק-אאוט ויצירת תאריכים ב-UTC ללא רכיב שעות
+      const checkInOriginal = new Date(formData.checkIn);
+      const checkOutOriginal = new Date(formData.checkOut);
+      
+      // יצירת תאריכים בפורמט UTC ללא שעות
+      const checkInDate = new Date(Date.UTC(
+        checkInOriginal.getFullYear(),
+        checkInOriginal.getMonth(),
+        checkInOriginal.getDate()
+      ));
+      
+      const checkOutDate = new Date(Date.UTC(
+        checkOutOriginal.getFullYear(),
+        checkOutOriginal.getMonth(),
+        checkOutOriginal.getDate()
+      ));
+      
+      console.log('תאריכי הזמנה לעדכון:', {
+        checkIn: checkInDate.toISOString(),
+        checkOut: checkOutDate.toISOString()
+      });
+      
       // קריאה לשרת לעדכון ההזמנה
       const response = await axios.put(`/api/bookings/${booking._id}`, {
-        ...formData,
+        ...updatedFormData,
         location,
-        room: formData.room
+        room: formData.room,
+        checkIn: checkInDate,
+        checkOut: checkOutDate
       });
       
       // סגירת הטופס
@@ -512,7 +538,6 @@ const EditBookingForm = ({
                       fullWidth
                       value={formData.lastName}
                       onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                      required
                       size="small"
                       name="lastName"
                       error={!!errors.lastName}

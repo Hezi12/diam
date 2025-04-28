@@ -175,6 +175,17 @@ const BookingsCalendar = ({
   const renderBooking = (booking, room) => {
     // המרת תאריכים למבנה אחיד ובדיקת תקינות
     try {
+      // תיעוד התאריכים המקוריים
+      console.log(`עיבוד הזמנה מספר ${booking.bookingNumber || booking._id} - ${booking.firstName} ${booking.lastName || ''}:`);
+      console.log('תאריכי הזמנה מקוריים:', {
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        type: {
+          checkIn: typeof booking.checkIn,
+          checkOut: typeof booking.checkOut
+        }
+      });
+      
       // יצירת אובייקטי תאריך בפורמט אחיד ללא התייחסות לשעות
       const checkInDate = new Date(booking.checkIn.split('T')[0]);
       const checkOutDate = new Date(booking.checkOut.split('T')[0]);
@@ -188,10 +199,21 @@ const BookingsCalendar = ({
       const actualNights = Math.max(1, differenceInDays(checkOutDate, checkInDate));
       
       // הדפסת לוג מפורטת לדיבוג
-      console.log(`הזמנה: ${booking._id} - ${booking.firstName} ${booking.lastName || ''}`);
-      console.log(`תאריך צ'ק-אין:`, checkInDateStr, 'תאריך מקורי:', booking.checkIn);
-      console.log(`תאריך צ'ק-אאוט:`, checkOutDateStr, 'תאריך מקורי:', booking.checkOut);
-      console.log(`מספר לילות:`, actualNights);
+      console.log(`עיבוד הזמנה: ${booking._id} - ${booking.firstName} ${booking.lastName || ''}`);
+      console.log('תאריכים לאחר עיבוד:', {
+        checkIn: {
+          date: checkInDate,
+          iso: checkInDate.toISOString(),
+          formatted: checkInDateStr,
+        },
+        checkOut: {
+          date: checkOutDate,
+          iso: checkOutDate.toISOString(),
+          formatted: checkOutDateStr,
+        },
+        nights: actualNights,
+        originalNights: booking.nights
+      });
       
       // הוספת לוג לגבי טווח התצוגה הנוכחי
       console.log(`טווח תצוגה נוכחי: ${format(daysInRange[0], 'yyyy-MM-dd')} עד ${format(daysInRange[daysInRange.length - 1], 'yyyy-MM-dd')}`);
@@ -217,31 +239,62 @@ const BookingsCalendar = ({
       });
       
       // בדיקה אם ההזמנה חופפת עם טווח הימים המוצג
-      // הכרחי שתאריך הצ'ק-אין יהיה בטווח התצוגה
       const firstDayInRange = format(daysInRange[0], 'yyyy-MM-dd');
       const lastDayInRange = format(daysInRange[daysInRange.length - 1], 'yyyy-MM-dd');
       
+      // הבדיקות השונות אם ההזמנה רלוונטית לתצוגה הנוכחית
       const isCheckInInRange = startIndex !== undefined;
-      
-      // בדיקה אם ההזמנה מקיפה את הטווח (מתחילה לפני ומסתיימת אחרי)
-      const isBookingCoveringRange = checkInDate <= firstDayInRange && checkOutDate > lastDayInRange;
-
-      // בדיקה אם מדובר בהזמנה ביום האחרון של הטווח - מקרה מיוחד
-      const isLastDay = checkInDate === lastDayInRange;
-      
-      // בדיקה אם הצ'ק-אאוט בטווח התצוגה - מקרה חדש
       const isCheckOutInRange = endIndex !== undefined;
       
-      // תנאי מורחב - הזמנה מוצגת אם: (1) הצ'ק-אין בטווח (2) ההזמנה מקיפה את הטווח (3) זו הזמנה ליום האחרון (4) הצ'ק-אאוט בטווח
-      if (!isCheckInInRange && !isBookingCoveringRange && !isLastDay && !isCheckOutInRange) {
+      // המרת התאריכים למחרוזות לצורך השוואה
+      const checkInDateStr_obj = new Date(checkInDateStr); 
+      const checkOutDateStr_obj = new Date(checkOutDateStr);
+      const firstDayInRange_obj = new Date(firstDayInRange);
+      const lastDayInRange_obj = new Date(lastDayInRange);
+      
+      // בדיקה מתוקנת אם ההזמנה מקיפה את הטווח (מתחילה לפני ומסתיימת אחרי)
+      const isBookingCoveringRange = 
+        checkInDateStr_obj <= firstDayInRange_obj && 
+        checkOutDateStr_obj > lastDayInRange_obj;
+      
+      // בדיקה אם הצ'ק-אין ביום האחרון של הטווח
+      const isCheckInOnLastDay = checkInDateStr === lastDayInRange;
+      
+      // בדיקה אם חלק מההזמנה בתוך הטווח (הצ'ק-אין לפני הטווח והצ'ק-אאוט בתוך הטווח)
+      const isPartiallyInRange = 
+        checkInDateStr_obj < firstDayInRange_obj && 
+        checkOutDateStr_obj > firstDayInRange_obj && 
+        checkOutDateStr_obj <= lastDayInRange_obj;
+      
+      console.log('בדיקת חפיפה עם טווח התצוגה:', {
+        checkIn: checkInDateStr,
+        checkOut: checkOutDateStr,
+        firstDayInRange,
+        lastDayInRange,
+        isCheckInInRange,
+        isCheckOutInRange,
+        isBookingCoveringRange,
+        isCheckInOnLastDay,
+        isPartiallyInRange
+      });
+      
+      // תנאי מורחב ומשופר - הזמנה מוצגת אם היא עומדת באחד התנאים:
+      // 1. תאריך הצ'ק-אין בטווח התצוגה
+      // 2. תאריך הצ'ק-אאוט בטווח התצוגה
+      // 3. ההזמנה מקיפה את כל הטווח (מתחילה לפני ומסתיימת אחרי)
+      // 4. צ'ק-אין הוא ביום האחרון של הטווח
+      // 5. חלק מההזמנה נמצא בטווח
+      if (!isCheckInInRange && !isCheckOutInRange && !isBookingCoveringRange && !isCheckInOnLastDay && !isPartiallyInRange) {
         console.log('הזמנה מחוץ לטווח תצוגה:', booking._id, {
           checkInDate: checkInDateStr,
           checkOutDate: checkOutDateStr,
+          firstDayInRange,
           lastDayInRange,
           isCheckInInRange,
+          isCheckOutInRange,
           isBookingCoveringRange,
-          isLastDay,
-          isCheckOutInRange
+          isCheckInOnLastDay,
+          isPartiallyInRange
         });
         return null;
       }
@@ -259,14 +312,19 @@ const BookingsCalendar = ({
         effectiveEndIndex = effectiveStartIndex;
       } else {
         // אם מדובר בהזמנה של יותר מלילה אחד
-        // חשוב לא לכלול את יום הצ'ק-אאוט עצמו (כי הוא לא כולל לינה)
-        const calculatedEndIndex = endIndex !== undefined && endIndex > 0 
-          ? endIndex - 1  // הצ'ק-אאוט בטווח - מסתיימים יום לפניו
-          : daysInRange.length - 1; // הצ'ק-אאוט אחרי הטווח - מסתיימים ביום האחרון בטווח
         
-        // לא להציג מעבר לגבולות הטווח
-        effectiveEndIndex = Math.min(calculatedEndIndex, daysInRange.length - 1);
-        // אבל גם לא לפני נקודת ההתחלה
+        // בדיקה האם תאריך הצ'ק-אאוט בטווח התצוגה
+        if (endIndex !== undefined) {
+          // אם הצ'ק-אאוט בטווח - ההזמנה מסתיימת יום לפני הצ'ק-אאוט
+          // (כי ביום הצ'ק-אאוט כבר אין לינה)
+          effectiveEndIndex = endIndex > 0 ? endIndex - 1 : 0;
+        } else {
+          // אם הצ'ק-אאוט אחרי הטווח - ההזמנה ממשיכה עד סוף הטווח
+          effectiveEndIndex = daysInRange.length - 1;
+        }
+        
+        // וידוא שלא חורגים מגבולות התצוגה
+        effectiveEndIndex = Math.min(effectiveEndIndex, daysInRange.length - 1);
         effectiveEndIndex = Math.max(effectiveEndIndex, effectiveStartIndex);
       }
       
