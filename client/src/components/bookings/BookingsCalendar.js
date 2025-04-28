@@ -175,25 +175,33 @@ const BookingsCalendar = ({
   const renderBooking = (booking, room) => {
     // המרת תאריכים למבנה אחיד ובדיקת תקינות
     try {
-      // יצירת אובייקטי תאריך תקינים עם שמירה על אזור זמן נכון
+      // בדיקה האם התאריך מכיל אזור זמן T21:00:00 שמצביע על היסט שעה
+      const is21Timezone = booking.checkIn?.includes('T21:00:00');
+      
+      // יצירת אובייקטי תאריך עם התחשבות בהיסט השעות
       const checkInRaw = new Date(booking.checkIn);
       const checkOutRaw = new Date(booking.checkOut);
       
-      // טיפול באזורי זמן - המרה תקינה שלוקחת בחשבון את אזור הזמן
-      // שימוש ב-UTC כדי למנוע הפרשי שעות בין השרתים השונים
-      const checkInDateObj = new Date(Date.UTC(
-        checkInRaw.getUTCFullYear(),
-        checkInRaw.getUTCMonth(),
-        checkInRaw.getUTCDate(),
-        0, 0, 0
-      ));
+      // תיקון היסט השעות - אם התאריך מסתיים ב-21:00 UTC, זה בעצם היום הבא בזמן מקומי
+      // הזזת התאריך ביום אחד קדימה אם זה 21:00 כדי לפצות על הפרש השעות
+      let checkInDateObj, checkOutDateObj;
       
-      const checkOutDateObj = new Date(Date.UTC(
-        checkOutRaw.getUTCFullYear(),
-        checkOutRaw.getUTCMonth(),
-        checkOutRaw.getUTCDate(),
-        0, 0, 0
-      ));
+      if (is21Timezone) {
+        // אם השעה היא 21:00, מדובר בתאריך של היום הבא בישראל
+        checkInDateObj = new Date(checkInRaw);
+        checkInDateObj.setDate(checkInDateObj.getDate() + 1);
+        
+        checkOutDateObj = new Date(checkOutRaw);
+        checkOutDateObj.setDate(checkOutDateObj.getDate() + 1);
+      } else {
+        // אחרת השתמש בתאריך כמו שהוא
+        checkInDateObj = new Date(checkInRaw);
+        checkOutDateObj = new Date(checkOutRaw);
+      }
+      
+      // איפוס השעות, דקות ושניות
+      checkInDateObj.setHours(0, 0, 0, 0);
+      checkOutDateObj.setHours(0, 0, 0, 0);
       
       // המרה לפורמט yyyy-MM-dd ללא שעות
       const checkInDate = format(checkInDateObj, 'yyyy-MM-dd');
