@@ -206,28 +206,38 @@ const Bookings = () => {
     
     // וידוא שהתאריך הוא אובייקט תאריך
     const checkInDate = new Date(date);
-    // איפוס השעות כדי למנוע בעיות עם אזורי זמן
-    checkInDate.setHours(0, 0, 0, 0);
+    
+    // יצירת תאריך צ'ק-אין בתאריך הנבחר, בחצות
+    // שימוש בשיטה שונה כדי להבטיח זמן מקומי נכון
+    const checkInLocalDate = new Date(
+      checkInDate.getFullYear(),
+      checkInDate.getMonth(),
+      checkInDate.getDate(),
+      12, 0, 0 // שימוש בשעה 12 בצהריים כדי למנוע בעיות הזזת תאריך בגלל אזורי זמן
+    );
     
     // יצירת תאריך יציאה יום אחד אחרי
-    const checkOutDate = new Date(checkInDate);
-    checkOutDate.setDate(checkOutDate.getDate() + 1);
-    checkOutDate.setHours(0, 0, 0, 0);
+    const checkOutLocalDate = new Date(
+      checkInDate.getFullYear(),
+      checkInDate.getMonth(),
+      checkInDate.getDate() + 1,
+      12, 0, 0
+    );
     
     // חישוב מספר לילות - צריך להיות 1 כשהתאריכים הם ימים עוקבים
     const nights = 1;
 
     console.log('תאריכי הזמנה:', {
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
+      checkIn: checkInLocalDate,
+      checkOut: checkOutLocalDate,
       nights
     });
 
     // יצירת אובייקט מידע מקדים להזמנה
     setPrefilledBookingData({
       room: roomId,
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
+      checkIn: checkInLocalDate,
+      checkOut: checkOutLocalDate,
       nights: nights,
       location: locationName
     });
