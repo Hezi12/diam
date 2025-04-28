@@ -13,7 +13,7 @@ const roomCategories = [
 ];
 
 const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
-  const inputStyle = getHebrewInputStyle('8px');
+  const inputStyle = getHebrewInputStyle('10px');
   
   return (
     <>
@@ -27,17 +27,13 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
           fullWidth
           required
           variant="outlined"
-          margin="normal"
+          margin="dense"
           size="small"
           type="text"
           InputLabelProps={{ 
             shrink: true,
             style: { 
-              right: 15, 
-              left: 'auto', 
-              transformOrigin: 'right top', 
-              textAlign: 'right',
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 500,
               color: '#555'
             }
@@ -45,21 +41,18 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
           inputProps={{ 
             style: { 
               textAlign: 'right',
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               color: '#333',
-              padding: '12px 14px',
+              padding: '10px 14px',
               direction: 'rtl'
             } 
           }}
           sx={{
             ...inputStyle,
-            my: 0.5,
             "& .MuiInputLabel-root": {
               right: 15,
-              left: "auto"
-            },
-            "& .MuiOutlinedInput-root": {
-              height: '40px'
+              left: "auto",
+              transformOrigin: 'right top'
             }
           }}
           disabled={viewOnly}
@@ -76,31 +69,24 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
           onChange={onChange}
           fullWidth
           required
-          margin="normal"
+          margin="dense"
           variant="outlined"
           size="small"
           InputLabelProps={{ 
             shrink: true,
             style: { 
-              right: 15, 
-              left: 'auto', 
-              transformOrigin: 'right top', 
-              textAlign: 'right',
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 500,
               color: '#555'
             }
           }}
-          sx={{
-            ...inputStyle,
-            my: 0.5,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto"
-            },
-            "& .MuiOutlinedInput-root": {
-              height: '40px'
-            }
+          inputProps={{ 
+            style: { 
+              textAlign: 'right',
+              fontSize: '0.85rem',
+              color: '#333',
+              direction: 'rtl'
+            } 
           }}
           SelectProps={{
             MenuProps: {
@@ -120,10 +106,18 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
               }
             }
           }}
+          sx={{
+            ...inputStyle,
+            "& .MuiInputLabel-root": {
+              right: 15,
+              left: "auto",
+              transformOrigin: 'right top'
+            }
+          }}
           disabled={viewOnly}
         >
           {roomCategories.map((option) => (
-            <MenuItem key={option} value={option} style={{textAlign: 'right', direction: 'rtl', fontSize: '0.9rem'}}>
+            <MenuItem key={option} value={option} style={{textAlign: 'right', direction: 'rtl', fontSize: '0.85rem'}}>
               {option}
             </MenuItem>
           ))}

@@ -3,7 +3,7 @@ import { Grid, Typography, TextField } from '@mui/material';
 import { getHebrewInputStyle } from '../../design-system/styles/StyleConstants';
 
 const RoomDetailsSection = ({ formData, onChange, viewOnly }) => {
-  const inputStyle = getHebrewInputStyle('8px');
+  const inputStyle = getHebrewInputStyle('10px');
   
   return (
     <>
@@ -11,39 +11,39 @@ const RoomDetailsSection = ({ formData, onChange, viewOnly }) => {
         <TextField
           label="תיאור החדר"
           name="description"
-          multiline
-          rows={4}
-          value={formData.description || ''}
+          value={formData.description}
           onChange={onChange}
           fullWidth
-          margin="normal"
+          multiline
+          rows={2}
           size="small"
+          margin="dense"
           inputProps={{ 
             style: { 
-              textAlign: 'right',
-              fontSize: '0.9rem',
-              color: '#333',
-              padding: '12px 14px',
-              direction: 'rtl'
-            }
+              fontSize: '0.85rem', 
+              direction: 'rtl', 
+              textAlign: 'right', 
+              color: '#333'
+            } 
           }}
           InputLabelProps={{ 
             shrink: true,
             style: { 
-              right: 15, 
-              left: 'auto', 
-              transformOrigin: 'right top', 
+              fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555',
-              fontSize: '0.85rem'
+              color: '#555'
             }
+          }}
+          InputProps={{
+            readOnly: viewOnly,
+            style: { fontSize: '0.85rem' }
           }}
           sx={{
             ...inputStyle,
-            my: 0.5,
             "& .MuiInputLabel-root": {
               right: 15,
-              left: "auto"
+              left: "auto",
+              transformOrigin: 'right top'
             }
           }}
           disabled={viewOnly}
@@ -71,15 +71,12 @@ const RoomDetailsSection = ({ formData, onChange, viewOnly }) => {
             } 
           }}
           InputLabelProps={{ 
+            shrink: true,
             style: { 
               fontSize: '0.8rem',
-              right: 15,
-              left: 'auto',
-              transformOrigin: 'right top',
               fontWeight: 500,
               color: '#555'
-            },
-            shrink: true
+            }
           }}
           InputProps={{
             readOnly: viewOnly,
@@ -89,7 +86,8 @@ const RoomDetailsSection = ({ formData, onChange, viewOnly }) => {
             ...inputStyle,
             "& .MuiInputLabel-root": {
               right: 15,
-              left: "auto"
+              left: "auto",
+              transformOrigin: 'right top'
             }
           }}
           disabled={viewOnly}
