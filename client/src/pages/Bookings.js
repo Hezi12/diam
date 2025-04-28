@@ -204,40 +204,33 @@ const Bookings = () => {
   const handleCreateBookingFromCell = useCallback((date, roomId, locationName) => {
     console.log('יצירת הזמנה חדשה מלוח:', date, roomId, locationName);
     
-    // וידוא שהתאריך הוא אובייקט תאריך
-    const checkInDate = new Date(date);
+    // יצירת תאריכי צ'ק-אין וצ'ק-אאוט ללא שעות
+    // ההזמנה תהיה מהתאריך הנבחר לתאריך הבא
+    const checkInDateObj = new Date(date);
+    // שימוש רק בתאריך: yyyy-MM-dd (ללא חלק השעה)
+    const checkInDateStr = checkInDateObj.toISOString().split('T')[0];
+    const checkInDate = new Date(checkInDateStr);
     
-    // יצירת תאריך צ'ק-אין בתאריך הנבחר, בחצות
-    // שימוש בשיטה שונה כדי להבטיח זמן מקומי נכון
-    const checkInLocalDate = new Date(
-      checkInDate.getFullYear(),
-      checkInDate.getMonth(),
-      checkInDate.getDate(),
-      12, 0, 0 // שימוש בשעה 12 בצהריים כדי למנוע בעיות הזזת תאריך בגלל אזורי זמן
-    );
-    
-    // יצירת תאריך יציאה יום אחד אחרי
-    const checkOutLocalDate = new Date(
-      checkInDate.getFullYear(),
-      checkInDate.getMonth(),
-      checkInDate.getDate() + 1,
-      12, 0, 0
-    );
+    // יצירת תאריך צ'ק-אאוט (יום אחד אחרי הצ'ק-אין)
+    const checkOutDateObj = new Date(checkInDateObj);
+    checkOutDateObj.setDate(checkOutDateObj.getDate() + 1);
+    const checkOutDateStr = checkOutDateObj.toISOString().split('T')[0];
+    const checkOutDate = new Date(checkOutDateStr);
     
     // חישוב מספר לילות - צריך להיות 1 כשהתאריכים הם ימים עוקבים
     const nights = 1;
 
     console.log('תאריכי הזמנה:', {
-      checkIn: checkInLocalDate,
-      checkOut: checkOutLocalDate,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
       nights
     });
 
     // יצירת אובייקט מידע מקדים להזמנה
     setPrefilledBookingData({
       room: roomId,
-      checkIn: checkInLocalDate,
-      checkOut: checkOutLocalDate,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
       nights: nights,
       location: locationName
     });

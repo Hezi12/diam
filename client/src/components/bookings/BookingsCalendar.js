@@ -175,66 +175,42 @@ const BookingsCalendar = ({
   const renderBooking = (booking, room) => {
     // המרת תאריכים למבנה אחיד ובדיקת תקינות
     try {
-      // בדיקה האם התאריך מכיל אזור זמן T21:00:00 שמצביע על היסט שעה
-      const is21Timezone = booking.checkIn?.includes('T21:00:00');
-      
-      // יצירת אובייקטי תאריך עם התחשבות בהיסט השעות
-      const checkInRaw = new Date(booking.checkIn);
-      const checkOutRaw = new Date(booking.checkOut);
-      
-      // תיקון היסט השעות - אם התאריך מסתיים ב-21:00 UTC, זה בעצם היום הבא בזמן מקומי
-      // הזזת התאריך ביום אחד קדימה אם זה 21:00 כדי לפצות על הפרש השעות
-      let checkInDateObj, checkOutDateObj;
-      
-      if (is21Timezone) {
-        // אם השעה היא 21:00, מדובר בתאריך של היום הבא בישראל
-        checkInDateObj = new Date(checkInRaw);
-        checkInDateObj.setDate(checkInDateObj.getDate() + 1);
-        
-        checkOutDateObj = new Date(checkOutRaw);
-        checkOutDateObj.setDate(checkOutDateObj.getDate() + 1);
-      } else {
-        // אחרת השתמש בתאריך כמו שהוא
-        checkInDateObj = new Date(checkInRaw);
-        checkOutDateObj = new Date(checkOutRaw);
-      }
-      
-      // איפוס השעות, דקות ושניות
-      checkInDateObj.setHours(0, 0, 0, 0);
-      checkOutDateObj.setHours(0, 0, 0, 0);
+      // יצירת אובייקטי תאריך בפורמט אחיד ללא התייחסות לשעות
+      const checkInDate = new Date(booking.checkIn.split('T')[0]);
+      const checkOutDate = new Date(booking.checkOut.split('T')[0]);
       
       // המרה לפורמט yyyy-MM-dd ללא שעות
-      const checkInDate = format(checkInDateObj, 'yyyy-MM-dd');
-      const checkOutDate = format(checkOutDateObj, 'yyyy-MM-dd');
+      const checkInDateStr = format(checkInDate, 'yyyy-MM-dd');
+      const checkOutDateStr = format(checkOutDate, 'yyyy-MM-dd');
       
       // חישוב מספר הלילות האמיתי של ההזמנה
       // מחושב כהפרש הימים בין צ'ק-אין לצ'ק-אאוט
-      const actualNights = Math.max(1, differenceInDays(checkOutDateObj, checkInDateObj));
+      const actualNights = Math.max(1, differenceInDays(checkOutDate, checkInDate));
       
       // הדפסת לוג מפורטת לדיבוג
       console.log(`הזמנה: ${booking._id} - ${booking.firstName} ${booking.lastName || ''}`);
-      console.log(`תאריך צ'ק-אין:`, checkInDate, 'תאריך מקורי:', booking.checkIn);
-      console.log(`תאריך צ'ק-אאוט:`, checkOutDate, 'תאריך מקורי:', booking.checkOut);
+      console.log(`תאריך צ'ק-אין:`, checkInDateStr, 'תאריך מקורי:', booking.checkIn);
+      console.log(`תאריך צ'ק-אאוט:`, checkOutDateStr, 'תאריך מקורי:', booking.checkOut);
       console.log(`מספר לילות:`, actualNights);
       
       // הוספת לוג לגבי טווח התצוגה הנוכחי
       console.log(`טווח תצוגה נוכחי: ${format(daysInRange[0], 'yyyy-MM-dd')} עד ${format(daysInRange[daysInRange.length - 1], 'yyyy-MM-dd')}`);
       
       // בדיקת תקינות תאריכים
-      if (isNaN(checkInDateObj.getTime()) || isNaN(checkOutDateObj.getTime())) {
+      if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
         console.error('תאריכי הזמנה לא תקינים:', booking._id);
         return null;
       }
       
       // מציאת האינדקס של תאריך הצ'ק-אין בטווח התאריכים המוצג
-      const startIndex = dateToIndex[checkInDate];
+      const startIndex = dateToIndex[checkInDateStr];
       
       // מציאת האינדקס של תאריך הצ'ק-אאוט בטווח התאריכים המוצג
-      const endIndex = dateToIndex[checkOutDate];
+      const endIndex = dateToIndex[checkOutDateStr];
       
       console.log('אינדקסים לתצוגה:', {
-        checkInDate,
-        checkOutDate,
+        checkInDate: checkInDateStr,
+        checkOutDate: checkOutDateStr,
         startIndex,
         endIndex,
         daysInRangeLength: daysInRange.length
@@ -259,8 +235,8 @@ const BookingsCalendar = ({
       // תנאי מורחב - הזמנה מוצגת אם: (1) הצ'ק-אין בטווח (2) ההזמנה מקיפה את הטווח (3) זו הזמנה ליום האחרון (4) הצ'ק-אאוט בטווח
       if (!isCheckInInRange && !isBookingCoveringRange && !isLastDay && !isCheckOutInRange) {
         console.log('הזמנה מחוץ לטווח תצוגה:', booking._id, {
-          checkInDate,
-          checkOutDate,
+          checkInDate: checkInDateStr,
+          checkOutDate: checkOutDateStr,
           lastDayInRange,
           isCheckInInRange,
           isBookingCoveringRange,
@@ -315,20 +291,20 @@ const BookingsCalendar = ({
       const statusColors = bookingStatusColors[booking.status] || bookingStatusColors.pending;
       
       // בדיקה האם תאריך הצ'ק-אין רלוונטי (אתמול, היום או מחר)
-      const isRelevantDate = isCheckInRelevant(checkInDateObj);
+      const isRelevantDate = isCheckInRelevant(checkInDate);
       
       // בדיקה האם יש הערה להזמנה
       const hasNotes = booking.notes && booking.notes.trim().length > 0;
       
       // בדיקה האם ההזמנה לא שולמה ותאריך הצ'ק-אין עבר או שהוא היום
       const isPastOrTodayAndNotPaid = (booking.paymentStatus === 'לא שולם' || booking.paymentStatus === 'unpaid') && 
-        (isSameDay(checkInDateObj, today) || checkInDateObj < today);
+        (isSameDay(checkInDate, today) || checkInDate < today);
       
       console.log('בדיקת תשלום:', {
         bookingId: booking._id,
         paymentStatus: booking.paymentStatus,
-        checkInDate: checkInDate,
-        isPastOrToday: isSameDay(checkInDateObj, today) || checkInDateObj < today,
+        checkInDate: checkInDateStr,
+        isPastOrToday: isSameDay(checkInDate, today) || checkInDate < today,
         isPastOrTodayAndNotPaid
       });
       

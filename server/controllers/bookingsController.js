@@ -45,17 +45,26 @@ exports.getBookingsByDateRange = async (req, res) => {
       return res.status(400).json({ message: 'נדרשים תאריך התחלה ותאריך סיום' });
     }
     
+    // המרת תאריכים לפורמט אחיד ללא שעות
+    const startDateObj = new Date(startDate);
+    const startDateString = startDateObj.toISOString().split('T')[0];
+    const formattedStartDate = new Date(startDateString);
+    
+    const endDateObj = new Date(endDate);
+    const endDateString = endDateObj.toISOString().split('T')[0];
+    const formattedEndDate = new Date(endDateString);
+    
     // בניית פילטר חיפוש
     const dateFilter = {
       $or: [
         // הזמנות שמתחילות בטווח המבוקש
-        { checkIn: { $gte: new Date(startDate), $lte: new Date(endDate) } },
+        { checkIn: { $gte: formattedStartDate, $lte: formattedEndDate } },
         // הזמנות שמסתיימות בטווח המבוקש
-        { checkOut: { $gte: new Date(startDate), $lte: new Date(endDate) } },
+        { checkOut: { $gte: formattedStartDate, $lte: formattedEndDate } },
         // הזמנות שמתחילות לפני הטווח ומסתיימות אחריו (כלומר, הטווח המבוקש נמצא בתוך תקופת ההזמנה)
         { 
-          checkIn: { $lt: new Date(startDate) },
-          checkOut: { $gt: new Date(endDate) }
+          checkIn: { $lt: formattedStartDate },
+          checkOut: { $gt: formattedEndDate }
         }
       ]
     };
@@ -123,62 +132,53 @@ exports.createBooking = async (req, res) => {
       return res.status(404).json({ message: 'החדר המבוקש לא נמצא' });
     }
     
-    // טיפול בשעות התאריכים - צ'ק-אין בשעה 14:00 וצ'ק-אאוט בשעה 12:00
+    // עבודה עם תאריכים בלבד, ללא שעות
+    // יצירת תאריכים חדשים בפורמט יום-חודש-שנה בלבד
     const checkInDate = new Date(checkIn);
-    checkInDate.setHours(0, 0, 0, 0);
+    const checkInDateString = checkInDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
+    const formattedCheckIn = new Date(checkInDateString);
     
     const checkOutDate = new Date(checkOut);
-    checkOutDate.setHours(0, 0, 0, 0);
+    const checkOutDateString = checkOutDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
+    const formattedCheckOut = new Date(checkOutDateString);
     
-    // בדיקת זמינות החדר בתאריכים המבוקשים
-    const existingBooking = await Booking.findOne({
-      room: roomId,
-      status: { $nin: ['cancelled'] },
-      $or: [
-        // הזמנה קיימת שמתחילה בטווח התאריכים המבוקש
-        { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
-        // הזמנה קיימת שמסתיימת בטווח התאריכים המבוקש 
-        // אבל מאפשרים צ'ק-אין בתאריך צ'ק-אאוט של הזמנה קיימת
-        { checkOut: { $gt: checkInDate, $lt: checkOutDate } },
-        // הזמנה קיימת שמכילה את כל טווח התאריכים המבוקש
-        { 
-          checkIn: { $lte: checkInDate },
-          checkOut: { $gte: checkOutDate }
-        }
-      ]
-    });
+    // בדיקת זמינות חדר
+    const conflictingBooking = await Booking.checkRoomAvailability(
+      roomId,
+      formattedCheckIn,
+      formattedCheckOut
+    );
     
-    if (existingBooking) {
+    if (conflictingBooking) {
       return res.status(400).json({ 
-        message: 'החדר כבר מוזמן בתאריכים המבוקשים',
+        message: 'החדר כבר מוזמן בתאריכים אלו',
         conflict: {
-          bookingId: existingBooking._id,
-          guestName: existingBooking.firstName + ' ' + existingBooking.lastName,
-          checkIn: existingBooking.checkIn,
-          checkOut: existingBooking.checkOut
+          guestName: `${conflictingBooking.firstName} ${conflictingBooking.lastName}`,
+          checkIn: conflictingBooking.checkIn,
+          checkOut: conflictingBooking.checkOut,
+          roomNumber: conflictingBooking.room.roomNumber
         }
       });
     }
     
-    // יצירת ההזמנה החדשה
+    // יצירת אובייקט ההזמנה
     const newBooking = new Booking({
       room: roomId,
       location,
-      roomNumber: room.roomNumber,
       firstName,
       lastName,
       phone,
       email,
-      checkIn: checkInDate,  // משתמשים בתאריך עם השעה 14:00
-      checkOut: checkOutDate, // משתמשים בתאריך עם השעה 12:00
-      nights,
-      isTourist,
+      checkIn: formattedCheckIn,
+      checkOut: formattedCheckOut,
+      nights: nights || Math.ceil((formattedCheckOut - formattedCheckIn) / (1000 * 60 * 60 * 24)),
+      isTourist: isTourist || false,
       price,
       pricePerNight,
       pricePerNightNoVat,
-      paymentStatus,
+      paymentStatus: paymentStatus || 'unpaid',
       creditCard,
-      status,
+      status: status || 'pending',
       notes
     });
     
@@ -210,65 +210,55 @@ exports.updateBooking = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
-    // הסרת שדות שאסור לעדכן ישירות
-    delete updateData._id;
-    delete updateData.__v;
-    
-    // בדיקה אם ההזמנה קיימת
+    // וידוא שההזמנה קיימת
     const booking = await Booking.findById(id);
-    
     if (!booking) {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
     
-    // טיפול בשעות התאריכים אם הם עודכנו
-    if (updateData.checkIn) {
+    // טיפול בתאריכים במידה והם מעודכנים
+    if (updateData.checkIn && updateData.checkOut) {
+      // עבודה עם תאריכים בלבד, ללא שעות
       const checkInDate = new Date(updateData.checkIn);
-      checkInDate.setHours(0, 0, 0, 0);
-      updateData.checkIn = checkInDate;
-    }
-    
-    if (updateData.checkOut) {
+      const checkInDateString = checkInDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
+      updateData.checkIn = new Date(checkInDateString);
+      
       const checkOutDate = new Date(updateData.checkOut);
-      checkOutDate.setHours(0, 0, 0, 0);
-      updateData.checkOut = checkOutDate;
-    }
-    
-    // אם שונה החדר או התאריכים, יש לבדוק זמינות
-    if (
-      (updateData.room && updateData.room !== booking.room.toString()) ||
-      (updateData.checkIn && new Date(updateData.checkIn).getTime() !== new Date(booking.checkIn).getTime()) ||
-      (updateData.checkOut && new Date(updateData.checkOut).getTime() !== new Date(booking.checkOut).getTime())
-    ) {
-      const roomId = updateData.room || booking.room;
-      const checkIn = updateData.checkIn || booking.checkIn;
-      const checkOut = updateData.checkOut || booking.checkOut;
+      const checkOutDateString = checkOutDate.toISOString().split('T')[0]; // שימוש רק בחלק התאריך: YYYY-MM-DD
+      updateData.checkOut = new Date(checkOutDateString);
       
-      // בדיקת זמינות החדר בתאריכים החדשים
-      const existingBooking = await Booking.findOne({
-        _id: { $ne: id }, // לא לבדוק את ההזמנה הנוכחית
-        room: roomId,
-        status: { $nin: ['cancelled'] },
-        $or: [
-          { checkIn: { $lt: checkOut, $gte: checkIn } },
-          { checkOut: { $gt: checkIn, $lte: checkOut } },
-          { 
-            checkIn: { $lte: checkIn },
-            checkOut: { $gte: checkOut }
-          }
-        ]
-      });
+      // עדכון מספר לילות
+      if (!updateData.nights) {
+        updateData.nights = Math.ceil((updateData.checkOut - updateData.checkIn) / (1000 * 60 * 60 * 24));
+      }
       
-      if (existingBooking) {
-        return res.status(400).json({ 
-          message: 'החדר כבר מוזמן בתאריכים המבוקשים',
-          conflict: {
-            bookingId: existingBooking._id,
-            guestName: existingBooking.firstName + ' ' + existingBooking.lastName,
-            checkIn: existingBooking.checkIn,
-            checkOut: existingBooking.checkOut
-          }
-        });
+      // בדיקת זמינות חדר אם יש שינוי בתאריכים או בחדר
+      if (
+        updateData.checkIn.getTime() !== booking.checkIn.getTime() ||
+        updateData.checkOut.getTime() !== booking.checkOut.getTime() ||
+        (updateData.room && updateData.room !== booking.room.toString())
+      ) {
+        const roomId = updateData.room || booking.room;
+        
+        // בדיקת זמינות חדר
+        const conflictingBooking = await Booking.checkRoomAvailability(
+          roomId,
+          updateData.checkIn,
+          updateData.checkOut,
+          id // מזהה ההזמנה הנוכחית להתעלם ממנה בבדיקה
+        );
+        
+        if (conflictingBooking) {
+          return res.status(400).json({ 
+            message: 'החדר כבר מוזמן בתאריכים אלו',
+            conflict: {
+              guestName: `${conflictingBooking.firstName} ${conflictingBooking.lastName}`,
+              checkIn: conflictingBooking.checkIn,
+              checkOut: conflictingBooking.checkOut,
+              roomNumber: conflictingBooking.room.roomNumber
+            }
+          });
+        }
       }
     }
     
