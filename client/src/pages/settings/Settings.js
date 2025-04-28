@@ -26,6 +26,7 @@ const Settings = () => {
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
               borderRadius: 2,
               transition: 'all 0.2s',
               '&:hover': {
@@ -35,6 +36,14 @@ const Settings = () => {
               }
             }}
           >
+            <Box sx={{ maxWidth: '70%' }}>
+              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+                ניהול חדרים - אור יהודה
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                הוספה, עריכה ומחיקת חדרים במתחם אור יהודה
+              </Typography>
+            </Box>
             <Box
               sx={{
                 bgcolor: 'rgba(0, 113, 227, 0.1)',
@@ -44,18 +53,9 @@ const Settings = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 2,
-                mr: 3.5,
               }}
             >
               <FlightIcon fontSize="large" />
-            </Box>
-            <Box>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
-                ניהול חדרים - אור יהודה
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                הוספה, עריכה ומחיקת חדרים במתחם אור יהודה
-              </Typography>
             </Box>
           </Paper>
         </Grid>
@@ -70,6 +70,7 @@ const Settings = () => {
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
               borderRadius: 2,
               transition: 'all 0.2s',
               '&:hover': {
@@ -79,6 +80,14 @@ const Settings = () => {
               }
             }}
           >
+            <Box sx={{ maxWidth: '70%' }}>
+              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+                ניהול חדרים - רוטשילד
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                הוספה, עריכה ומחיקת חדרים במתחם רוטשילד
+              </Typography>
+            </Box>
             <Box
               sx={{
                 bgcolor: 'rgba(227, 74, 111, 0.1)',
@@ -88,18 +97,9 @@ const Settings = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 2,
-                mr: 3.5,
               }}
             >
               <ApartmentIcon fontSize="large" />
-            </Box>
-            <Box>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
-                ניהול חדרים - רוטשילד
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                הוספה, עריכה ומחיקת חדרים במתחם רוטשילד
-              </Typography>
             </Box>
           </Paper>
         </Grid>
