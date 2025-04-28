@@ -934,6 +934,7 @@ const NewBookingForm = ({
                       onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                     required
                       size="small"
+                      autoFocus={true}
                       inputProps={{
                         style: { 
                           textAlign: 'center',
