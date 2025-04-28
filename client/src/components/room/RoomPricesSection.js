@@ -3,8 +3,6 @@ import { Grid, Typography, TextField, InputAdornment } from '@mui/material';
 import { getHebrewInputStyle } from '../../design-system/styles/StyleConstants';
 
 const RoomPricesSection = ({ formData, onChange, viewOnly }) => {
-  const inputStyle = getHebrewInputStyle('10px');
-  
   return (
     <>
       <Grid item xs={12} sm={6}>
@@ -28,23 +26,36 @@ const RoomPricesSection = ({ formData, onChange, viewOnly }) => {
           }}
           InputLabelProps={{ 
             shrink: true,
-            style: { 
+            sx: {
+              right: 14,
+              left: 'auto',
+              transformOrigin: 'top right',
               fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555'
+              color: '#555',
+              position: 'absolute',
+              background: 'white',
+              padding: '0 5px',
+              '&.MuiInputLabel-shrink': {
+                transform: 'translate(0, -9px) scale(0.75)'
+              }
             }
           }}
           InputProps={{ 
             endAdornment: <InputAdornment position="end" sx={{ '& p': {fontSize: '0.85rem', color: '#555'} }}>₪</InputAdornment>,
             readOnly: viewOnly,
-            style: { height: '40px' }
+            style: { height: '32px' }
           }}
           sx={{
-            ...inputStyle,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto",
-              transformOrigin: 'right top'
+            "& .MuiOutlinedInput-notchedOutline": {
+              textAlign: "right",
+              borderColor: 'rgba(0, 0, 0, 0.2)'
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: 'rgba(0, 0, 0, 0.3)'
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: '#1976d2'
             }
           }}
           disabled={viewOnly}
@@ -72,23 +83,36 @@ const RoomPricesSection = ({ formData, onChange, viewOnly }) => {
           }}
           InputLabelProps={{ 
             shrink: true,
-            style: { 
+            sx: {
+              right: 14,
+              left: 'auto',
+              transformOrigin: 'top right',
               fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555'
+              color: '#555',
+              position: 'absolute',
+              background: 'white',
+              padding: '0 5px',
+              '&.MuiInputLabel-shrink': {
+                transform: 'translate(0, -9px) scale(0.75)'
+              }
             }
           }}
           InputProps={{ 
             endAdornment: <InputAdornment position="end" sx={{ '& p': {fontSize: '0.85rem', color: '#555'} }}>₪</InputAdornment>,
             readOnly: viewOnly,
-            style: { height: '40px' } 
+            style: { height: '32px' } 
           }}
           sx={{
-            ...inputStyle,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto",
-              transformOrigin: 'right top'
+            "& .MuiOutlinedInput-notchedOutline": {
+              textAlign: "right",
+              borderColor: 'rgba(0, 0, 0, 0.2)'
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: 'rgba(0, 0, 0, 0.3)'
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: '#1976d2'
             }
           }}
           disabled={viewOnly}
@@ -116,23 +140,36 @@ const RoomPricesSection = ({ formData, onChange, viewOnly }) => {
           }}
           InputLabelProps={{ 
             shrink: true,
-            style: { 
+            sx: {
+              right: 14,
+              left: 'auto',
+              transformOrigin: 'top right',
               fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555'
+              color: '#555',
+              position: 'absolute',
+              background: 'white',
+              padding: '0 5px',
+              '&.MuiInputLabel-shrink': {
+                transform: 'translate(0, -9px) scale(0.75)'
+              }
             }
           }}
           InputProps={{ 
             endAdornment: <InputAdornment position="end" sx={{ '& p': {fontSize: '0.85rem', color: '#555'} }}>₪</InputAdornment>,
             readOnly: viewOnly,
-            style: { height: '40px' } 
+            style: { height: '32px' } 
           }}
           sx={{
-            ...inputStyle,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto",
-              transformOrigin: 'right top'
+            "& .MuiOutlinedInput-notchedOutline": {
+              textAlign: "right",
+              borderColor: 'rgba(0, 0, 0, 0.2)'
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: 'rgba(0, 0, 0, 0.3)'
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: '#1976d2'
             }
           }}
           disabled={viewOnly}
@@ -160,23 +197,36 @@ const RoomPricesSection = ({ formData, onChange, viewOnly }) => {
           }}
           InputLabelProps={{ 
             shrink: true,
-            style: { 
+            sx: {
+              right: 14,
+              left: 'auto',
+              transformOrigin: 'top right',
               fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555'
+              color: '#555',
+              position: 'absolute',
+              background: 'white',
+              padding: '0 5px',
+              '&.MuiInputLabel-shrink': {
+                transform: 'translate(0, -9px) scale(0.75)'
+              }
             }
           }}
           InputProps={{ 
             endAdornment: <InputAdornment position="end" sx={{ '& p': {fontSize: '0.85rem', color: '#555'} }}>₪</InputAdornment>,
             readOnly: viewOnly,
-            style: { height: '40px' } 
+            style: { height: '32px' } 
           }}
           sx={{
-            ...inputStyle,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto",
-              transformOrigin: 'right top'
+            "& .MuiOutlinedInput-notchedOutline": {
+              textAlign: "right",
+              borderColor: 'rgba(0, 0, 0, 0.2)'
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: 'rgba(0, 0, 0, 0.3)'
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: '#1976d2'
             }
           }}
           disabled={viewOnly}

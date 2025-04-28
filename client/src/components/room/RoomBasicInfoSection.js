@@ -32,10 +32,19 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
           type="text"
           InputLabelProps={{ 
             shrink: true,
-            style: { 
+            sx: {
+              right: 14,
+              left: 'auto',
+              transformOrigin: 'top right',
               fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555'
+              color: '#555',
+              position: 'absolute',
+              background: 'white',
+              padding: '0 5px',
+              '&.MuiInputLabel-shrink': {
+                transform: 'translate(0, -9px) scale(0.75)'
+              }
             }
           }}
           inputProps={{ 
@@ -48,11 +57,15 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
             } 
           }}
           sx={{
-            ...inputStyle,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto",
-              transformOrigin: 'right top'
+            "& .MuiOutlinedInput-notchedOutline": {
+              textAlign: "right",
+              borderColor: 'rgba(0, 0, 0, 0.2)'
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: 'rgba(0, 0, 0, 0.3)'
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: '#1976d2'
             }
           }}
           disabled={viewOnly}
@@ -74,10 +87,19 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
           size="small"
           InputLabelProps={{ 
             shrink: true,
-            style: { 
+            sx: {
+              right: 14,
+              left: 'auto',
+              transformOrigin: 'top right',
               fontSize: '0.8rem',
               fontWeight: 500,
-              color: '#555'
+              color: '#555',
+              position: 'absolute',
+              background: 'white',
+              padding: '0 5px',
+              '&.MuiInputLabel-shrink': {
+                transform: 'translate(0, -9px) scale(0.75)'
+              }
             }
           }}
           inputProps={{ 
@@ -107,11 +129,15 @@ const RoomBasicInfoSection = ({ formData, onChange, viewOnly }) => {
             }
           }}
           sx={{
-            ...inputStyle,
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto",
-              transformOrigin: 'right top'
+            "& .MuiOutlinedInput-notchedOutline": {
+              textAlign: "right",
+              borderColor: 'rgba(0, 0, 0, 0.2)'
+            },
+            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: 'rgba(0, 0, 0, 0.3)'
+            },
+            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: '#1976d2'
             }
           }}
           disabled={viewOnly}
