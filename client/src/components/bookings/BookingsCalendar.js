@@ -175,24 +175,25 @@ const BookingsCalendar = ({
   const renderBooking = (booking, room) => {
     // המרת תאריכים למבנה אחיד ובדיקת תקינות
     try {
-      // יצירת אובייקטי תאריך תקינים עם איפוס השעה
+      // יצירת אובייקטי תאריך תקינים עם שמירה על אזור זמן נכון
       const checkInRaw = new Date(booking.checkIn);
       const checkOutRaw = new Date(booking.checkOut);
       
-      // איפוס השעה, הדקות והשניות כדי לטפל בבעיות אזור זמן
-      const checkInDateObj = new Date(
-        checkInRaw.getFullYear(),
-        checkInRaw.getMonth(),
-        checkInRaw.getDate(),
+      // טיפול באזורי זמן - המרה תקינה שלוקחת בחשבון את אזור הזמן
+      // שימוש ב-UTC כדי למנוע הפרשי שעות בין השרתים השונים
+      const checkInDateObj = new Date(Date.UTC(
+        checkInRaw.getUTCFullYear(),
+        checkInRaw.getUTCMonth(),
+        checkInRaw.getUTCDate(),
         0, 0, 0
-      );
+      ));
       
-      const checkOutDateObj = new Date(
-        checkOutRaw.getFullYear(),
-        checkOutRaw.getMonth(),
-        checkOutRaw.getDate(),
+      const checkOutDateObj = new Date(Date.UTC(
+        checkOutRaw.getUTCFullYear(),
+        checkOutRaw.getUTCMonth(),
+        checkOutRaw.getUTCDate(),
         0, 0, 0
-      );
+      ));
       
       // המרה לפורמט yyyy-MM-dd ללא שעות
       const checkInDate = format(checkInDateObj, 'yyyy-MM-dd');
