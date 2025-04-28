@@ -59,7 +59,7 @@ const LocationSection = ({
   if (!rooms || rooms.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', p: 3 }}>
-        <Typography>אין חדרים זמינים</Typography>
+        <Typography sx={{ color: colors.text.primary, fontWeight: 500 }}>אין חדרים זמינים</Typography>
       </Box>
     );
   }
@@ -82,8 +82,10 @@ const LocationSection = ({
         alignItems: 'center', 
         p: 1,
         pb: 1.5,
-        borderBottom: `1px solid ${locationColors.bgLight}`,
-        mb: 1
+        borderBottom: `1px solid ${locationColors.main}30`,
+        mb: 1,
+        maxWidth: '95%',
+        mx: 'auto'
       }}>
         {/* כותרת ממוקמת בצד שמאל עם אייקון */}
         <Box sx={{ 
@@ -96,7 +98,7 @@ const LocationSection = ({
           <LocationIcon 
             sx={{ 
               color: locationColors.main,
-              fontSize: '1.1rem'
+              fontSize: '1.2rem'
             }} 
           />
           
@@ -104,10 +106,10 @@ const LocationSection = ({
           <Box>
             <Typography 
               variant="h6" 
-              fontWeight={500} 
+              fontWeight={600} 
               sx={{ 
                 color: locationColors.main,
-                fontSize: '1rem',
+                fontSize: '1.1rem',
                 letterSpacing: '0.1px'
               }}
             >
@@ -119,10 +121,11 @@ const LocationSection = ({
         {/* מידע על חדרים זמינים */}
         <Typography 
           variant="caption" 
-          color="text.secondary"
           sx={{
-            fontSize: '0.75rem',
-            mr: 1
+            fontSize: '0.8rem',
+            mr: 1,
+            color: colors.text.primary,
+            fontWeight: 500
           }}
         >
           {availableRooms} חדרים זמינים
@@ -130,7 +133,11 @@ const LocationSection = ({
       </Box>
 
       {/* רשימת החדרים */}
-      <Box sx={{ p: 0.5 }}>
+      <Box sx={{ 
+        p: 0.5,
+        maxWidth: '90%',
+        mx: 'auto'
+      }}>
         {rooms.map(room => {
           // קבלת סטטוס החדר והזמנה אם יש
           const { status, booking } = getRoomStatus(room._id, bookings);

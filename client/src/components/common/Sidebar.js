@@ -10,7 +10,6 @@ import {
   Flight as AirportIcon,
   ArrowBack as ArrowBackIcon,
   Receipt as ReceiptIcon,
-  CleaningServices as CleaningIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -130,6 +129,17 @@ const Sidebar = () => {
     return location.pathname.includes('/settings/rooms/');
   };
 
+  // צבעים חדשים לאייקונים בסרגל
+  const iconColors = {
+    dashboard: '#4A90E2', // כחול כהה יותר
+    bookings: '#5E97F6', // כחול בהיר
+    invoices: '#34A853', // ירוק
+    rothschild: '#304dbd', // צבע רוטשילד מקורי
+    airport: '#0059b3', // צבע אייפורט מקורי 
+    settings: '#F5B400', // צהוב/כתום
+    logout: '#EA4335' // אדום
+  };
+
   return (
     <StyledDrawer variant="permanent" anchor="right">
       <Box sx={{ 
@@ -151,43 +161,37 @@ const Sidebar = () => {
             icon={<DashboardIcon />}
             to="/dashboard"
             title="דאשבורד"
-            iconColor={STYLE_CONSTANTS.colors.accent.green}
+            iconColor={iconColors.dashboard}
           />
           <SidebarItem
             icon={<BookingsIcon />}
             to="/bookings"
             title="ניהול הזמנות"
-            iconColor={STYLE_CONSTANTS.colors.airport.main}
+            iconColor={iconColors.bookings}
           />
           <SidebarItem
             icon={<ReceiptIcon />}
             to="/invoices"
             title="חשבוניות"
-            iconColor={STYLE_CONSTANTS.colors.accent.blue}
+            iconColor={iconColors.invoices}
           />
           <SidebarItem
             icon={<RothschildIcon />}
             to="/rothschild-site"
             title="אתר Rothschild"
-            iconColor={STYLE_CONSTANTS.colors.rothschild.main}
+            iconColor={iconColors.rothschild}
           />
           <SidebarItem
             icon={<AirportIcon />}
             to="/airport-site"
             title="אתר Airport Guest House"
-            iconColor={STYLE_CONSTANTS.colors.airport.main}
+            iconColor={iconColors.airport}
           />
           <SidebarItem
             icon={<SettingsIcon />}
             to="/settings"
             title="הגדרות"
-            iconColor={STYLE_CONSTANTS.colors.accent.orange}
-          />
-          <SidebarItem
-            icon={<CleaningIcon />}
-            to="/cleaning"
-            title="דף ניקיון"
-            iconColor={STYLE_CONSTANTS.colors.accent.mint}
+            iconColor={iconColors.settings}
           />
         </List>
         
@@ -212,11 +216,11 @@ const Sidebar = () => {
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    backgroundColor: `rgba(${STYLE_CONSTANTS.colors.accent.red.replace('#', '').match(/../g).map(hex => parseInt(hex, 16)).join(', ')}, 0.1)`,
-                    color: STYLE_CONSTANTS.colors.accent.red,
+                    backgroundColor: `rgba(${iconColors.logout.replace('#', '').match(/../g).map(hex => parseInt(hex, 16)).join(', ')}, 0.1)`,
+                    color: iconColors.logout,
                   },
                   '& .MuiSvgIcon-root': {
-                    color: STYLE_CONSTANTS.colors.accent.red,
+                    color: iconColors.logout,
                   },
                 }}
               >

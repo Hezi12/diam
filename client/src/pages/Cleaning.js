@@ -13,7 +13,8 @@ import {
   Grid,
   Divider,
   CircularProgress,
-  Checkbox
+  Checkbox,
+  Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
@@ -24,10 +25,12 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import FlightIcon from '@mui/icons-material/Flight';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { format, addDays, isToday, isTomorrow } from 'date-fns';
 import { he } from 'date-fns/locale';
 import cleaningService from '../services/cleaningService';
 import { useSnackbar } from 'notistack';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * דף ניקיון - עבור צוות הניקיון
@@ -37,6 +40,7 @@ const Cleaning = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { enqueueSnackbar } = useSnackbar();
+  const { isAuthenticated } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [currentDateIndex, setCurrentDateIndex] = useState(0); // 0 = היום, 1 = מחר, וכן הלאה
@@ -267,8 +271,8 @@ const Cleaning = () => {
   
   // הצבעים של המתחמים
   const locationColors = {
-    airport: '#0071e3',    // כחול לאור יהודה
-    rothschild: '#e34a6f'  // ורוד-אדום לרוטשילד
+    airport: '#0058b0',    // כחול כהה יותר לאור יהודה
+    rothschild: '#d62e58'  // אדום כהה יותר לרוטשילד
   };
   
   // רינדור של כרטיס חדר
@@ -282,27 +286,27 @@ const Cleaning = () => {
         <Card 
           sx={{ 
             height: '100%',
-            boxShadow: isClean ? '0px 1px 3px rgba(0, 0, 0, 0.03)' : '0px 2px 8px rgba(0, 0, 0, 0.06)',
+            boxShadow: isClean ? '0px 1px 3px rgba(0, 0, 0, 0.03)' : '0px 2px 8px rgba(0, 0, 0, 0.1)',
             borderRadius: 2,
             borderRight: isClean ? '2px solid' : '4px solid',
             borderColor: locationColor,
-            opacity: isClean ? 0.7 : 1,
+            opacity: isClean ? 0.8 : 1,
             transition: 'all 0.2s ease',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: isClean ? '#f9f9f9' : '#fff'
+            backgroundColor: isClean ? '#f7f7f7' : '#fff'
           }}
         >
           <CardContent sx={{ py: 1.5, px: 2, flexGrow: 1 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: isClean ? '#888' : 'inherit' }}>
+                <Typography variant="h6" component="div" sx={{ fontWeight: 700, color: isClean ? '#626262' : '#333333' }}>
                   {task.roomNumber}
                 </Typography>
                 {isClean && (
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <CheckCircleOutlineIcon sx={{ fontSize: 14, color: '#6bb26e', mr: 0.5 }} />
-                    <Typography variant="caption" color="#6bb26e" sx={{ fontWeight: 'medium' }}>
+                    <CheckCircleOutlineIcon sx={{ fontSize: 14, color: '#4a9c50', mr: 0.5 }} />
+                    <Typography variant="caption" color="#4a9c50" sx={{ fontWeight: 'medium' }}>
                       נקי
                     </Typography>
                   </Box>
@@ -313,8 +317,11 @@ const Cleaning = () => {
                   size="small"
                   variant="text"
                   sx={{ 
-                    color: '#86868b',
-                    minWidth: 'auto'
+                    color: '#666666',
+                    minWidth: 'auto',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.05)'
+                    }
                   }}
                   onClick={() => markRoomAsDirty(task._id)}
                 >
@@ -360,7 +367,8 @@ const Cleaning = () => {
             borderRadius: 2,
             display: 'flex',
             alignItems: 'center',
-            bgcolor: isRothschild ? 'rgba(227, 74, 111, 0.1)' : 'rgba(0, 113, 227, 0.1)',
+            bgcolor: isRothschild ? 'rgba(214, 46, 88, 0.1)' : 'rgba(0, 88, 176, 0.1)',
+            borderBottom: `2px solid ${locationColor}`
           }}
         >
           <LocationIcon sx={{ color: locationColor, mr: 1 }} />
@@ -388,10 +396,11 @@ const Cleaning = () => {
               p: 2, 
               textAlign: 'center',
               borderRadius: 2,
-              bgcolor: 'rgba(0, 0, 0, 0.02)'
+              bgcolor: 'rgba(0, 0, 0, 0.03)',
+              border: '1px solid rgba(0, 0, 0, 0.09)'
             }}
           >
-            <Typography color="text.secondary">
+            <Typography sx={{ color: '#444', fontWeight: 500 }}>
               אין חדרים לניקוי במתחם {locationName}
             </Typography>
           </Paper>
@@ -401,6 +410,39 @@ const Cleaning = () => {
   };
   
   const locationsToRender = ['airport', 'rothschild'];
+  
+  // פונקציה ליצירת הודעת וואטסאפ עם רשימת החדרים לניקוי
+  const createWhatsAppMessage = () => {
+    const date = getDateDisplay(currentDateIndex);
+    const tasks = cleaningTasks[currentDateIndex].filter(task => task.status === 'dirty');
+    
+    if (tasks.length === 0) {
+      return `שלום, אין חדרים לניקוי ${date}.`;
+    }
+    
+    // קיבוץ לפי מתחם
+    const airportRooms = tasks.filter(task => task.location === 'airport').map(task => task.roomNumber);
+    const rothschildRooms = tasks.filter(task => task.location === 'rothschild').map(task => task.roomNumber);
+    
+    let message = `שלום, להלן רשימת החדרים לניקוי ${date}:\n`;
+    
+    if (airportRooms.length > 0) {
+      message += `\nאור יהודה: ${airportRooms.join(', ')}\n`;
+    }
+    
+    if (rothschildRooms.length > 0) {
+      message += `\nרוטשילד: ${rothschildRooms.join(', ')}\n`;
+    }
+    
+    return message;
+  };
+  
+  // פונקציה לפתיחת וואטסאפ עם ההודעה המוכנה
+  const openWhatsApp = () => {
+    const message = encodeURIComponent(createWhatsAppMessage());
+    const whatsappUrl = `https://wa.me/972533337490?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
   
   return (
     <Container maxWidth="sm" sx={{ py: 3 }}>
@@ -420,11 +462,29 @@ const Cleaning = () => {
             onClick={goToPreviousDay} 
             disabled={currentDateIndex === 0}
             color="primary"
+            sx={{
+              color: currentDateIndex === 0 ? '#ccc' : '#555',
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.05)'
+              }
+            }}
           >
             <ArrowForwardIosIcon />
           </IconButton>
           
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+          <Typography 
+            variant="h5" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 700, 
+              textAlign: 'center',
+              color: '#333',
+              px: 2,
+              py: 0.5,
+              borderRadius: 1.5,
+              bgcolor: 'rgba(0, 0, 0, 0.03)'
+            }}
+          >
             {getDateDisplay(currentDateIndex)}
           </Typography>
           
@@ -432,22 +492,68 @@ const Cleaning = () => {
             onClick={goToNextDay} 
             disabled={currentDateIndex === 3}
             color="primary"
+            sx={{
+              color: currentDateIndex === 3 ? '#ccc' : '#555',
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.05)'
+              }
+            }}
           >
             <ArrowBackIosIcon />
           </IconButton>
         </Box>
+        
+        {/* אייקון שליחה לוואטסאפ - מוצג רק למשתמשים מחוברים */}
+        {isAuthenticated && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Tooltip title="שלח רשימת חדרים לוואטסאפ" placement="bottom">
+              <IconButton
+                onClick={openWhatsApp}
+                sx={{
+                  color: '#25D366', // צבע רשמי של וואטסאפ
+                  bgcolor: 'rgba(37, 211, 102, 0.1)',
+                  '&:hover': {
+                    bgcolor: 'rgba(37, 211, 102, 0.2)',
+                    transform: 'scale(1.1)',
+                    transition: 'all 0.2s'
+                  },
+                  p: 1,
+                  borderRadius: '50%',
+                  border: '1px solid rgba(37, 211, 102, 0.2)'
+                }}
+              >
+                <WhatsAppIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
       </Paper>
       
       {/* רשימת החדרים לניקוי */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4, flexDirection: 'column', alignItems: 'center' }}>
+          <CircularProgress sx={{ color: '#499C56' }} />
+          <Typography sx={{ mt: 2, color: '#555', fontWeight: 500 }}>טוען משימות ניקיון...</Typography>
         </Box>
       ) : (
         <>
           {cleaningTasks[currentDateIndex].length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
-              <Typography>אין חדרים לניקוי {getDateDisplay(currentDateIndex)}</Typography>
+            <Paper 
+              sx={{ 
+                p: 3, 
+                textAlign: 'center', 
+                borderRadius: 2,
+                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
+                border: '1px solid rgba(0, 0, 0, 0.08)'
+              }}
+            >
+              <Box sx={{ py: 2 }}>
+                <CheckCircleOutlineIcon sx={{ fontSize: 40, color: '#499C56', mb: 1.5 }} />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#333' }}>אין חדרים לניקוי</Typography>
+                <Typography sx={{ mt: 1, color: '#666' }}>
+                  כל החדרים נקיים {getDateDisplay(currentDateIndex)}
+                </Typography>
+              </Box>
             </Paper>
           ) : (
             <>

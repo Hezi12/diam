@@ -8,12 +8,12 @@ export const STYLE_CONSTANTS = {
   name: "קלאסי ונקי - עסקי",
   colors: {
     airport: {
-      main: '#0071e3',
-      bgLight: 'rgba(0, 113, 227, 0.08)'
+      main: '#0059b3',
+      bgLight: 'rgba(0, 113, 227, 0.15)'
     },
     rothschild: {
-      main: '#4570e5',
-      bgLight: 'rgba(69, 112, 229, 0.08)'
+      main: '#304dbd',
+      bgLight: 'rgba(69, 112, 229, 0.15)'
     },
     accent: {
       green: '#06a271',
@@ -23,12 +23,31 @@ export const STYLE_CONSTANTS = {
       mint: '#73C5A0'
     },
     text: {
-      primary: '#1d1d1f',
-      secondary: '#86868b'
+      primary: '#121212',
+      secondary: '#555555'
     },
     background: {
       default: '#f5f5f7',
       paper: '#ffffff'
+    }
+  },
+  accentColors: {
+    green: '#06a271',
+    red: '#e34a6f',
+    orange: '#f7971e'
+  },
+  style: {
+    card: {
+      borderRadius: '8px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      p: 2.5,
+    },
+    button: {
+      borderRadius: '4px',
+      textTransform: 'none',
+    },
+    dialog: {
+      borderRadius: '8px',
     }
   },
   card: {

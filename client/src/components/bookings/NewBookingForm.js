@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -42,12 +42,39 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import { DateRange } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+import { format, parse, parseISO } from 'date-fns';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
 
 // רכיב דיאלוג יצירת חשבונית
 import CreateInvoiceDialog from '../invoices/CreateInvoiceDialog';
+
+// פונקציה לסינון חדרים מקטגוריית "Not for Sale"
+const filterNotForSaleRooms = (rooms) => {
+  return rooms.filter(room => room.category !== 'Not for Sale');
+};
+
+// פונקציה למיון חדרים לפי מספר
+const sortRoomsByNumber = (rooms) => {
+  return [...rooms].sort((a, b) => {
+    // המרת מספרי החדרים למספרים (אם הם מספריים)
+    const roomNumberA = parseInt(a.roomNumber);
+    const roomNumberB = parseInt(b.roomNumber);
+    
+    // אם שניהם מספרים תקינים, נמיין לפי ערך מספרי
+    if (!isNaN(roomNumberA) && !isNaN(roomNumberB)) {
+      return roomNumberA - roomNumberB;
+    }
+    
+    // אחרת נמיין לפי מחרוזת
+    return a.roomNumber.localeCompare(b.roomNumber);
+  });
+};
 
 /**
  * טופס ליצירה/עריכה של הזמנה
@@ -62,42 +89,15 @@ const NewBookingForm = ({
   initialData = null, // אופציונלי - נתונים התחלתיים
   onDelete = null // פונקציה למחיקת הזמנה
 }) => {
-  // הגדרת צבעים לפי מיקום
-  const locationColors = {
-    airport: {
-      main: '#0071e3',
-      bgLight: 'rgba(0, 113, 227, 0.08)'
-    },
-    rothschild: {
-      main: '#4570e5',
-      bgLight: 'rgba(69, 112, 229, 0.08)'
-    }
-  };
-
-  // הגדרת צבעי אקסנט
-  const accentColors = {
-    green: '#06a271',
-    red: '#e34a6f',
-    orange: '#f7971e'
-  };
-
-  // הגדרת סגנון עיצוב
-  const style = {
-    card: {
-      borderRadius: '8px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      p: 2.5,
-    },
-    button: {
-      borderRadius: '4px',
-      textTransform: 'none',
-    },
-    dialog: {
-      borderRadius: '8px',
-    }
-  };
-
+  const style = STYLE_CONSTANTS.style;
+  const accentColors = STYLE_CONSTANTS.accentColors;
+  const locationColors = STYLE_CONSTANTS.colors;
   const currentColors = locationColors[location] || locationColors.airport;
+
+  // סינון ומיון החדרים לתצוגה
+  const filteredAndSortedRooms = useMemo(() => {
+    return sortRoomsByNumber(filterNotForSaleRooms(rooms));
+  }, [rooms]);
 
   // האם אנחנו במצב עריכה
   const isEditMode = !!editBooking;
@@ -194,6 +194,28 @@ const NewBookingForm = ({
 
   // מצב תהליך שליחת הטופס
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // מטווח תאריכים לבחירה
+  const [dateRange, setDateRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: addDays(new Date(), 1),
+      key: 'selection'
+    }
+  ]);
+
+  // מצב לחישוב מחיר
+  const [priceDetails, setPriceDetails] = useState({
+    basePrice: 0,
+    fridayPrice: 0,
+    vatPrice: 0,
+    extraGuestCharge: 0,
+    isTourist: false,
+    nights: 1,
+    fridays: 0,
+    guests: 2,
+    baseOccupancy: 2
+  });
 
   // איפוס הטופס כאשר הדיאלוג נפתח
   useEffect(() => {
@@ -363,6 +385,16 @@ const NewBookingForm = ({
           price: totalPrice
         }));
         
+        // עדכון פרטי המחיר לחישובים עתידיים
+        setPriceDetails(prev => ({
+          ...prev,
+          basePrice: roomFromProps.basePrice,
+          fridayPrice: roomFromProps.fridayPrice || roomFromProps.basePrice,
+          vatPrice: roomFromProps.vatPrice,
+          extraGuestCharge: roomFromProps.extraGuestCharge || 0,
+          baseOccupancy: roomFromProps.baseOccupancy || 2
+        }));
+        
         return;
       }
       
@@ -387,6 +419,16 @@ const NewBookingForm = ({
           pricePerNight,
           pricePerNightNoVat,
           price: totalPrice
+        }));
+        
+        // עדכון פרטי המחיר לחישובים עתידיים
+        setPriceDetails(prev => ({
+          ...prev,
+          basePrice: roomData.basePrice,
+          fridayPrice: roomData.fridayPrice || roomData.basePrice,
+          vatPrice: roomData.vatPrice,
+          extraGuestCharge: roomData.extraGuestCharge || 0,
+          baseOccupancy: roomData.baseOccupancy || 2
         }));
       }
     } catch (error) {
@@ -1220,7 +1262,7 @@ const NewBookingForm = ({
                         disabled={rooms.length === 0}
                         size="small"
                     >
-                        {rooms.map(room => (
+                        {filteredAndSortedRooms.map(room => (
                         <MenuItem key={room._id} value={room._id}>
                             {`חדר ${room.roomNumber} (${room.category})`}
                         </MenuItem>

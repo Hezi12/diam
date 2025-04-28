@@ -1,6 +1,32 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography, List, ListItem, ListItemText, ListItemIcon, Paper, Skeleton } from '@mui/material';
 import CircleIcon from '@mui/icons-material/Circle';
+
+/**
+ * פונקציה לסינון חדרים מקטגוריית "Not for Sale"
+ */
+const filterNotForSaleRooms = (rooms) => {
+  return rooms.filter(room => room.category !== 'Not for Sale');
+};
+
+/**
+ * פונקציה למיון החדרים לפי מספר
+ */
+const sortRoomsByNumber = (rooms) => {
+  return [...rooms].sort((a, b) => {
+    // המרת מספרי החדרים למספרים (אם הם מספריים)
+    const roomNumberA = parseInt(a.roomNumber);
+    const roomNumberB = parseInt(b.roomNumber);
+    
+    // אם שניהם מספרים תקינים, נמיין לפי ערך מספרי
+    if (!isNaN(roomNumberA) && !isNaN(roomNumberB)) {
+      return roomNumberA - roomNumberB;
+    }
+    
+    // אחרת נמיין לפי מחרוזת
+    return a.roomNumber.localeCompare(b.roomNumber);
+  });
+};
 
 /**
  * רכיב המציג את רשימת החדרים בצד הימני של דף ההזמנות
@@ -35,14 +61,21 @@ const RoomsList = ({ rooms, loading, selectedRoomId, onRoomSelect, location }) =
     return categoryColors[category] || '#add8e6';
   };
 
+  // סינון ומיון החדרים
+  const processedRooms = useMemo(() => {
+    return sortRoomsByNumber(filterNotForSaleRooms(rooms));
+  }, [rooms]);
+
   // יצירת מבנה היררכי של חדרים לפי קטגוריה
-  const roomsByCategory = rooms.reduce((acc, room) => {
-    if (!acc[room.category]) {
-      acc[room.category] = [];
-    }
-    acc[room.category].push(room);
-    return acc;
-  }, {});
+  const roomsByCategory = useMemo(() => {
+    return processedRooms.reduce((acc, room) => {
+      if (!acc[room.category]) {
+        acc[room.category] = [];
+      }
+      acc[room.category].push(room);
+      return acc;
+    }, {});
+  }, [processedRooms]);
 
   if (loading) {
     return (
@@ -67,7 +100,7 @@ const RoomsList = ({ rooms, loading, selectedRoomId, onRoomSelect, location }) =
       }}
     >
       <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 2 }}>
-        חדרים ({rooms.length})
+        חדרים ({processedRooms.length})
       </Typography>
 
       {/* הצגת החדרים לפי קטגוריה */}
@@ -123,7 +156,7 @@ const RoomsList = ({ rooms, loading, selectedRoomId, onRoomSelect, location }) =
         </Box>
       ))}
 
-      {rooms.length === 0 && (
+      {processedRooms.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
           לא נמצאו חדרים במיקום זה
         </Typography>

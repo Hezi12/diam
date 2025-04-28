@@ -242,24 +242,50 @@ const Dashboard = () => {
     return getRoomStatus(roomId, bookings, currentDate);
   };
 
+  // פונקציה לסינון החדרים שלא למכירה
+  const filterNotForSaleRooms = (rooms) => {
+    return rooms.filter(room => room.category !== 'Not for Sale');
+  };
+
+  // פונקציה למיון החדרים לפי מספר
+  const sortRoomsByNumber = (rooms) => {
+    return [...rooms].sort((a, b) => {
+      // המרת מספרי החדרים למספרים (אם הם מספריים)
+      const roomNumberA = parseInt(a.roomNumber);
+      const roomNumberB = parseInt(b.roomNumber);
+      
+      // אם שניהם מספרים תקינים, נמיין לפי ערך מספרי
+      if (!isNaN(roomNumberA) && !isNaN(roomNumberB)) {
+        return roomNumberA - roomNumberB;
+      }
+      
+      // אחרת נמיין לפי מחרוזת
+      return a.roomNumber.localeCompare(b.roomNumber);
+    });
+  };
+
+  // קבלת החדרים המסוננים והממוינים לכל מיקום
+  const sortedFilteredAirportRooms = sortRoomsByNumber(filterNotForSaleRooms(airportRooms));
+  const sortedFilteredRothschildRooms = sortRoomsByNumber(filterNotForSaleRooms(rothschildRooms));
+
   return (
-    <Box sx={{ px: 0, pb: 4, maxWidth: '1300px', mx: 'auto' }}>
+    <Box sx={{ px: 0, pb: 4, maxWidth: '1350px', mx: 'auto' }}>
       {/* אזור ניווט בין תאריכים */}
-      <Box sx={{ px: 2 }}>
+      <Box sx={{ px: 1 }}>
         <DashboardDateNav 
           currentDate={currentDate}
           onDateChange={handleDateChange}
         />
       </Box>
       
-      {/* תצוגת חדרים */}
-      <Grid container spacing={1}>
+      {/* תצוגת חדרים עם רווח מצומצם */}
+      <Grid container spacing={0.5} sx={{ px: 0.5 }}>
         <Grid item xs={12} md={6}>
           <LocationSection 
-            location="airport" 
-            rooms={airportRooms} 
-            bookings={airportBookings}
-            loading={loading.airportRooms || loading.airportBookings}
+            location="rothschild" 
+            rooms={sortedFilteredRothschildRooms} 
+            bookings={rothschildBookings}
+            loading={loading.rothschildRooms || loading.rothschildBookings}
             onRoomClick={handleRoomClick}
             getRoomStatus={getRoomStatusForCurrentDate}
           />
@@ -267,10 +293,10 @@ const Dashboard = () => {
         
         <Grid item xs={12} md={6}>
           <LocationSection 
-            location="rothschild" 
-            rooms={rothschildRooms} 
-            bookings={rothschildBookings}
-            loading={loading.rothschildRooms || loading.rothschildBookings}
+            location="airport" 
+            rooms={sortedFilteredAirportRooms} 
+            bookings={airportBookings}
+            loading={loading.airportRooms || loading.airportBookings}
             onRoomClick={handleRoomClick}
             getRoomStatus={getRoomStatusForCurrentDate}
           />
