@@ -31,7 +31,8 @@ import {
   Receipt as ReceiptIcon,
   Translate as TranslateIcon,
   Save as SaveIcon,
-  Print as PrintIcon
+  Print as PrintIcon,
+  Article as ArticleIcon
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -39,6 +40,7 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import invoiceService from '../../services/invoiceService';
 import logService from '../../services/logService';
+import BookingConfirmation from '../bookings/BookingConfirmation';
 
 /**
  * דיאלוג יצירת חשבונית
@@ -88,7 +90,7 @@ const CreateInvoiceDialog = ({
   // מצב החשבונית
   const [invoiceData, setInvoiceData] = useState({
     invoiceNumber: '',
-    documentType: 'invoice', // חשבונית מס, חשבונית מס/קבלה
+    documentType: 'invoice', // חשבונית מס, חשבונית מס/קבלה, אישור הזמנה
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: new Date().toISOString().split('T')[0],
     customer: {
@@ -137,6 +139,9 @@ const CreateInvoiceDialog = ({
 
   // רפרנס לתוכן החשבונית
   const invoiceContentRef = useRef(null);
+
+  // מצב אישור הזמנה
+  const [bookingConfirmationOpen, setBookingConfirmationOpen] = useState(false);
 
   // עדכון נתוני החשבונית מנתוני ההזמנה
   useEffect(() => {
@@ -651,10 +656,18 @@ const CreateInvoiceDialog = ({
   
   // עדכון סוג המסמך
   const handleDocumentTypeChange = (event) => {
-    setInvoiceData(prev => ({
-      ...prev,
-      documentType: event.target.value
-    }));
+    const documentType = event.target.value;
+    
+    // אם נבחר אישור הזמנה, פתח את הדיאלוג המתאים
+    if (documentType === 'booking_confirmation') {
+      setBookingConfirmationOpen(true);
+      onClose(); // סגור את דיאלוג החשבונית
+    } else {
+      setInvoiceData(prev => ({
+        ...prev,
+        documentType
+      }));
+    }
   };
   
   // עדכון אמצעי תשלום
@@ -668,478 +681,494 @@ const CreateInvoiceDialog = ({
   // הכותרת המתאימה לסוג המסמך
   const getDocumentTitle = () => {
     if (isEnglish) {
-      return invoiceData.documentType === 'invoice_receipt' 
-        ? 'Tax Invoice / Receipt - Original' 
-        : 'Tax Invoice - Original';
+      if (invoiceData.documentType === 'invoice_receipt') 
+        return 'Tax Invoice / Receipt - Original';
+      else if (invoiceData.documentType === 'booking_confirmation')
+        return 'Booking Confirmation';
+      else 
+        return 'Tax Invoice - Original';
     } else {
-      return invoiceData.documentType === 'invoice_receipt' 
-        ? 'חשבונית מס/קבלה - מקור' 
-        : 'חשבונית מס - מקור';
+      if (invoiceData.documentType === 'invoice_receipt') 
+        return 'חשבונית מס/קבלה - מקור';
+      else if (invoiceData.documentType === 'booking_confirmation')
+        return 'אישור הזמנה';
+      else 
+        return 'חשבונית מס - מקור';
     }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: style.borderRadius,
-          boxShadow: style.boxShadow,
-          width: '100%',
-          maxWidth: '800px'
-        }
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: `1px solid ${accentColors.border}`,
-          bgcolor: accentColors.light,
-          color: accentColors.primary,
-          px: 3,
-          py: 1
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: style.borderRadius,
+            boxShadow: style.boxShadow,
+            width: '100%',
+            maxWidth: '800px'
+          }
         }}
       >
-        <IconButton onClick={onClose} size="small" sx={{ color: accentColors.error }}>
-          <CloseIcon />
-        </IconButton>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <FormControlLabel
-            control={
-              <Switch 
-                checked={isEnglish}
-                onChange={handleLanguageToggle}
-                color="primary"
-                size="small"
-              />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <TranslateIcon fontSize="small" sx={{ mr: 0.5 }} />
-                <Typography variant="body2">
-                  {isEnglish ? 'English' : 'עברית'}
-                </Typography>
-              </Box>
-            }
-            labelPlacement="start"
-          />
-        </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-            <ReceiptIcon sx={{ mr: 1 }} />
-            {isEnglish ? 'Create Invoice' : 'יצירת חשבונית'}
-          </Typography>
-        </Box>
-      </DialogTitle>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: `1px solid ${accentColors.border}`,
+            bgcolor: accentColors.light,
+            color: accentColors.primary,
+            px: 3,
+            py: 1
+          }}
+        >
+          <IconButton onClick={onClose} size="small" sx={{ color: accentColors.error }}>
+            <CloseIcon />
+          </IconButton>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch 
+                  checked={isEnglish}
+                  onChange={handleLanguageToggle}
+                  color="primary"
+                  size="small"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <TranslateIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  <Typography variant="body2">
+                    {isEnglish ? 'English' : 'עברית'}
+                  </Typography>
+                </Box>
+              }
+              labelPlacement="start"
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+              <ReceiptIcon sx={{ mr: 1 }} />
+              {isEnglish ? 'Create Invoice' : 'יצירת חשבונית'}
+            </Typography>
+          </Box>
+        </DialogTitle>
 
-      <DialogContent sx={{ p: 3 }}>
-        {/* פאנל הגדרות */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: style.borderRadius, boxShadow: 'none', border: `1px solid ${accentColors.border}` }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>{isEnglish ? 'Document Type' : 'סוג מסמך'}</InputLabel>
-              <Select
-                value={invoiceData.documentType}
-                onChange={handleDocumentTypeChange}
-                label={isEnglish ? 'Document Type' : 'סוג מסמך'}
-              >
-                <MenuItem value="invoice">{isEnglish ? 'Tax Invoice' : 'חשבונית מס'}</MenuItem>
-                <MenuItem value="invoice_receipt">{isEnglish ? 'Tax Invoice/Receipt' : 'חשבונית מס/קבלה'}</MenuItem>
-              </Select>
-            </FormControl>
-            
-            {invoiceData.documentType === 'invoice_receipt' && (
+        <DialogContent sx={{ p: 3 }}>
+          {/* פאנל הגדרות */}
+          <Paper sx={{ p: 2, mb: 3, borderRadius: style.borderRadius, boxShadow: 'none', border: `1px solid ${accentColors.border}` }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
               <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>{isEnglish ? 'Payment Method' : 'אמצעי תשלום'}</InputLabel>
+                <InputLabel>{isEnglish ? 'Document Type' : 'סוג מסמך'}</InputLabel>
                 <Select
-                  value={invoiceData.paymentMethod}
-                  onChange={handlePaymentMethodChange}
-                  label={isEnglish ? 'Payment Method' : 'אמצעי תשלום'}
+                  value={invoiceData.documentType}
+                  onChange={handleDocumentTypeChange}
+                  label={isEnglish ? 'Document Type' : 'סוג מסמך'}
                 >
-                  <MenuItem value="cash">{isEnglish ? 'Cash' : 'מזומן'}</MenuItem>
-                  <MenuItem value="credit_card">{isEnglish ? 'Credit Card' : 'כרטיס אשראי'}</MenuItem>
-                  <MenuItem value="bank_transfer">{isEnglish ? 'Bank Transfer' : 'העברה בנקאית'}</MenuItem>
-                  <MenuItem value="check">{isEnglish ? 'Check' : 'צ\'ק'}</MenuItem>
-                  <MenuItem value="other">{isEnglish ? 'Other' : 'אחר'}</MenuItem>
+                  <MenuItem value="invoice">{isEnglish ? 'Tax Invoice' : 'חשבונית מס'}</MenuItem>
+                  <MenuItem value="invoice_receipt">{isEnglish ? 'Tax Invoice/Receipt' : 'חשבונית מס/קבלה'}</MenuItem>
+                  <MenuItem value="booking_confirmation">{isEnglish ? 'Booking Confirmation' : 'אישור הזמנה'}</MenuItem>
                 </Select>
               </FormControl>
-            )}
-          </Box>
-        </Paper>
-      
-        <div ref={invoiceContentRef} id="invoice-content">
-          {/* ראש החשבונית - פרטי עסק */}
-          <Paper 
-            sx={{ 
-              p: 0, 
-              mb: 3, 
-              borderRadius: style.borderRadius, 
-              boxShadow: 'none',
-              border: `1px solid ${accentColors.border}`,
-              overflow: 'hidden'
-            }}
-          >
-            {/* כותרת עליונה */}
-            <Box 
-              sx={{ 
-                bgcolor: accentColors.light, 
-                p: 3, 
-                color: accentColors.dark,
-                textAlign: 'center',
-                borderBottom: `1px solid ${accentColors.border}`
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                {isEnglish ? businessInfo.name_en : businessInfo.name}
-              </Typography>
-              <Typography variant="body2">
-                {isEnglish ? businessInfo.address_en : businessInfo.address}
-              </Typography>
-              <Typography variant="body2">
-                {isEnglish ? 'Tax ID: ' : 'ח.פ: '}{businessInfo.taxId}
-              </Typography>
-            </Box>
-            
-            {/* מידע חשבונית */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: 'white' }}>
-              {isEnglish ? (
-                <>
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: accentColors.dark }}>
-                      Invoice Number: 
-                      <Box component="span" sx={{ color: accentColors.dark, ml: 1, fontWeight: 'normal' }}>
-                        {invoiceData.invoiceNumber || 'Will be generated'}
-                      </Box>
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 1, color: accentColors.dark }}>
-                      Date: 
-                      <Box component="span" sx={{ fontWeight: 'bold', ml: 1 }}>
-                        {new Date(invoiceData.issueDate).toLocaleDateString('en-US')}
-                      </Box>
-                    </Typography>
-                  </Box>
-                </>
-              ) : (
-                <>
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 1, color: accentColors.dark }}>
-                      תאריך: 
-                      <Box component="span" sx={{ fontWeight: 'bold', mr: 1 }}>
-                        {new Date(invoiceData.issueDate).toLocaleDateString('he-IL')}
-                      </Box>
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: accentColors.dark }}>
-                      מספר חשבונית: 
-                      <Box component="span" sx={{ color: accentColors.dark, mr: 1, fontWeight: 'normal' }}>
-                        {invoiceData.invoiceNumber || 'יופק אוטומטית'}
-                      </Box>
-                    </Typography>
-                  </Box>
-                </>
+              
+              {invoiceData.documentType === 'invoice_receipt' && (
+                <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>{isEnglish ? 'Payment Method' : 'אמצעי תשלום'}</InputLabel>
+                  <Select
+                    value={invoiceData.paymentMethod}
+                    onChange={handlePaymentMethodChange}
+                    label={isEnglish ? 'Payment Method' : 'אמצעי תשלום'}
+                  >
+                    <MenuItem value="cash">{isEnglish ? 'Cash' : 'מזומן'}</MenuItem>
+                    <MenuItem value="credit_card">{isEnglish ? 'Credit Card' : 'כרטיס אשראי'}</MenuItem>
+                    <MenuItem value="bank_transfer">{isEnglish ? 'Bank Transfer' : 'העברה בנקאית'}</MenuItem>
+                    <MenuItem value="check">{isEnglish ? 'Check' : 'צ\'ק'}</MenuItem>
+                    <MenuItem value="other">{isEnglish ? 'Other' : 'אחר'}</MenuItem>
+                  </Select>
+                </FormControl>
               )}
             </Box>
           </Paper>
-
-          <Paper 
-            sx={{ 
-              p: 3, 
-              mb: 3, 
-              borderRadius: style.borderRadius, 
-              boxShadow: 'none',
-              border: `1px solid ${accentColors.border}`,
-              position: 'relative'
-            }}
-          >            
-            <Typography 
-              variant="h6" 
+        
+          <div ref={invoiceContentRef} id="invoice-content">
+            {/* ראש החשבונית - פרטי עסק */}
+            <Paper 
               sx={{ 
-                fontWeight: 'bold', 
+                p: 0, 
                 mb: 3, 
-                textAlign: 'center',
-                color: accentColors.primary,
-                borderBottom: `1px solid ${accentColors.border}`,
-                pb: 2
-              }}
-            >
-              {getDocumentTitle()}
-            </Typography>
-            
-            <Box 
-              sx={{ 
-                mb: 3, 
-                p: 2,
+                borderRadius: style.borderRadius, 
+                boxShadow: 'none',
                 border: `1px solid ${accentColors.border}`,
-                borderRadius: '4px',
-                bgcolor: accentColors.light,
-                textAlign: isEnglish ? 'left' : 'right'
+                overflow: 'hidden'
               }}
             >
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  mb: 1, 
-                  color: accentColors.dark,
-                  fontWeight: 'bold'
-                }}
-              >
-                {isEnglish ? 'To:' : 'לכבוד:'}
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                {invoiceData.customer.name || (isEnglish ? 'Customer Name' : 'שם הלקוח')}
-              </Typography>
-              {invoiceData.customer.identifier && (
-                <Typography variant="body2">
-                  {isEnglish ? 'ID/Business ID: ' : 'ת.ז/ח.פ: '}{invoiceData.customer.identifier}
-                </Typography>
-              )}
-              {invoiceData.customer.address && (
-                <Typography variant="body2">
-                  {isEnglish ? 'Address: ' : 'כתובת: '}{invoiceData.customer.address}
-                </Typography>
-              )}
-              {invoiceData.customer.email && (
-                <Typography variant="body2">
-                  {isEnglish ? 'Email: ' : 'דוא"ל: '}{invoiceData.customer.email}
-                </Typography>
-              )}
-            </Box>
-
-            {/* טבלת פריטים */}
-            <TableContainer sx={{ mb: 3, border: `1px solid ${accentColors.border}`, borderRadius: '4px', overflow: 'hidden' }}>
-              {isEnglish ? (
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: accentColors.light }}>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Total</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Price per Night</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Nights</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Dates</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Description</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {invoiceData.items.map((item, index) => (
-                      <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
-                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                          ₪{formatPrice(item.totalPrice)}
-                        </TableCell>
-                        <TableCell align="center">
-                          ₪{formatPrice(item.unitPrice)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {item.quantity || 1}
-                        </TableCell>
-                        <TableCell align="center">
-                          {item.dateRange_en || '04/28/2025 - 04/27/2025'}
-                        </TableCell>
-                        <TableCell align="center">
-                          {item.description_en || 'Accommodation'} - {item.roomType_en || 'Room'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: accentColors.light }}>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>תיאור</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>תאריכים</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>לילות</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>מחיר ללילה</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>סה"כ</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {invoiceData.items.map((item, index) => (
-                      <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
-                        <TableCell align="center">
-                          {item.description || 'לינה'} - {item.roomType || 'חדר'}
-                        </TableCell>
-                        <TableCell align="center">
-                          {item.dateRange || '28/04/2025 - 27/04/2025'}
-                        </TableCell>
-                        <TableCell align="center">
-                          {item.quantity || 1}
-                        </TableCell>
-                        <TableCell align="center">
-                          ₪{formatPrice(item.unitPrice)}
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                          ₪{formatPrice(item.totalPrice)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TableContainer>
-
-            {/* סיכום חשבונית */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+              {/* כותרת עליונה */}
               <Box 
                 sx={{ 
-                  width: '250px', 
-                  border: `1px solid ${accentColors.border}`,
-                  borderRadius: '4px',
-                  overflow: 'hidden'
+                  bgcolor: accentColors.light, 
+                  p: 3, 
+                  color: accentColors.dark,
+                  textAlign: 'center',
+                  borderBottom: `1px solid ${accentColors.border}`
                 }}
               >
-                <Box 
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                  {isEnglish ? businessInfo.name_en : businessInfo.name}
+                </Typography>
+                <Typography variant="body2">
+                  {isEnglish ? businessInfo.address_en : businessInfo.address}
+                </Typography>
+                <Typography variant="body2">
+                  {isEnglish ? 'Tax ID: ' : 'ח.פ: '}{businessInfo.taxId}
+                </Typography>
+              </Box>
+              
+              {/* מידע חשבונית */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: 'white' }}>
+                {isEnglish ? (
+                  <>
+                    <Box>
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: accentColors.dark }}>
+                        Invoice Number: 
+                        <Box component="span" sx={{ color: accentColors.dark, ml: 1, fontWeight: 'normal' }}>
+                          {invoiceData.invoiceNumber || 'Will be generated'}
+                        </Box>
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" sx={{ mb: 1, color: accentColors.dark }}>
+                        Date: 
+                        <Box component="span" sx={{ fontWeight: 'bold', ml: 1 }}>
+                          {new Date(invoiceData.issueDate).toLocaleDateString('en-US')}
+                        </Box>
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <Box>
+                      <Typography variant="body2" sx={{ mb: 1, color: accentColors.dark }}>
+                        תאריך: 
+                        <Box component="span" sx={{ fontWeight: 'bold', mr: 1 }}>
+                          {new Date(invoiceData.issueDate).toLocaleDateString('he-IL')}
+                        </Box>
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: accentColors.dark }}>
+                        מספר חשבונית: 
+                        <Box component="span" sx={{ color: accentColors.dark, mr: 1, fontWeight: 'normal' }}>
+                          {invoiceData.invoiceNumber || 'יופק אוטומטית'}
+                        </Box>
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            </Paper>
+
+            <Paper 
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                borderRadius: style.borderRadius, 
+                boxShadow: 'none',
+                border: `1px solid ${accentColors.border}`,
+                position: 'relative'
+              }}
+            >            
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  mb: 3, 
+                  textAlign: 'center',
+                  color: accentColors.primary,
+                  borderBottom: `1px solid ${accentColors.border}`,
+                  pb: 2
+                }}
+              >
+                {getDocumentTitle()}
+              </Typography>
+              
+              <Box 
+                sx={{ 
+                  mb: 3, 
+                  p: 2,
+                  border: `1px solid ${accentColors.border}`,
+                  borderRadius: '4px',
+                  bgcolor: accentColors.light,
+                  textAlign: isEnglish ? 'left' : 'right'
+                }}
+              >
+                <Typography 
+                  variant="subtitle1" 
                   sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 1.5,
-                    bgcolor: accentColors.light
+                    mb: 1, 
+                    color: accentColors.dark,
+                    fontWeight: 'bold'
                   }}
                 >
-                  <Typography variant="body1">{isEnglish ? 'Subtotal:' : 'סכום לפני מע"מ:'}</Typography>
-                  <Typography variant="body1">₪{formatPrice(invoiceData.subtotal)}</Typography>
-                </Box>
+                  {isEnglish ? 'To:' : 'לכבוד:'}
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                  {invoiceData.customer.name || (isEnglish ? 'Customer Name' : 'שם הלקוח')}
+                </Typography>
+                {invoiceData.customer.identifier && (
+                  <Typography variant="body2">
+                    {isEnglish ? 'ID/Business ID: ' : 'ת.ז/ח.פ: '}{invoiceData.customer.identifier}
+                  </Typography>
+                )}
+                {invoiceData.customer.address && (
+                  <Typography variant="body2">
+                    {isEnglish ? 'Address: ' : 'כתובת: '}{invoiceData.customer.address}
+                  </Typography>
+                )}
+                {invoiceData.customer.email && (
+                  <Typography variant="body2">
+                    {isEnglish ? 'Email: ' : 'דוא"ל: '}{invoiceData.customer.email}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* טבלת פריטים */}
+              <TableContainer sx={{ mb: 3, border: `1px solid ${accentColors.border}`, borderRadius: '4px', overflow: 'hidden' }}>
+                {isEnglish ? (
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: accentColors.light }}>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Total</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Price per Night</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Nights</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Dates</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>Description</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {invoiceData.items.map((item, index) => (
+                        <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
+                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                            ₪{formatPrice(item.totalPrice)}
+                          </TableCell>
+                          <TableCell align="center">
+                            ₪{formatPrice(item.unitPrice)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.quantity || 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.dateRange_en || '04/28/2025 - 04/27/2025'}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.description_en || 'Accommodation'} - {item.roomType_en || 'Room'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: accentColors.light }}>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>תיאור</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>תאריכים</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>לילות</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>מחיר ללילה</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: accentColors.dark }}>סה"כ</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {invoiceData.items.map((item, index) => (
+                        <TableRow key={index} sx={{ '&:nth-of-type(odd)': { bgcolor: 'rgba(0, 0, 0, 0.02)' } }}>
+                          <TableCell align="center">
+                            {item.description || 'לינה'} - {item.roomType || 'חדר'}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.dateRange || '28/04/2025 - 27/04/2025'}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.quantity || 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            ₪{formatPrice(item.unitPrice)}
+                          </TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                            ₪{formatPrice(item.totalPrice)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TableContainer>
+
+              {/* סיכום חשבונית */}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 <Box 
                   sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 1.5
+                    width: '250px', 
+                    border: `1px solid ${accentColors.border}`,
+                    borderRadius: '4px',
+                    overflow: 'hidden'
                   }}
                 >
-                  <Typography variant="body1">{isEnglish ? `VAT (${invoiceData.taxRate}%):` : `מע"מ (${invoiceData.taxRate}%):`}</Typography>
-                  <Typography variant="body1">₪{formatPrice(invoiceData.taxAmount)}</Typography>
-                </Box>
-                {invoiceData.discount > 0 && (
                   <Box 
                     sx={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       p: 1.5,
-                      bgcolor: 'rgba(40, 167, 69, 0.05)'
+                      bgcolor: accentColors.light
                     }}
                   >
-                    <Typography variant="body1">{isEnglish ? 'Discount:' : 'הנחה:'}</Typography>
-                    <Typography variant="body1" sx={{ color: accentColors.success }}>-₪{formatPrice(invoiceData.discount)}</Typography>
+                    <Typography variant="body1">{isEnglish ? 'Subtotal:' : 'סכום לפני מע"מ:'}</Typography>
+                    <Typography variant="body1">₪{formatPrice(invoiceData.subtotal)}</Typography>
                   </Box>
-                )}
-                <Box 
-                  sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 1.5,
-                    borderTop: `1px solid ${accentColors.border}`,
-                    bgcolor: accentColors.light,
-                    fontWeight: 'bold'
-                  }}
-                >
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{isEnglish ? 'Total:' : 'סה"כ לתשלום:'}</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>₪{formatPrice(invoiceData.total)}</Typography>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      p: 1.5
+                    }}
+                  >
+                    <Typography variant="body1">{isEnglish ? `VAT (${invoiceData.taxRate}%):` : `מע"מ (${invoiceData.taxRate}%):`}</Typography>
+                    <Typography variant="body1">₪{formatPrice(invoiceData.taxAmount)}</Typography>
+                  </Box>
+                  {invoiceData.discount > 0 && (
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        p: 1.5,
+                        bgcolor: 'rgba(40, 167, 69, 0.05)'
+                      }}
+                    >
+                      <Typography variant="body1">{isEnglish ? 'Discount:' : 'הנחה:'}</Typography>
+                      <Typography variant="body1" sx={{ color: accentColors.success }}>-₪{formatPrice(invoiceData.discount)}</Typography>
+                    </Box>
+                  )}
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      p: 1.5,
+                      borderTop: `1px solid ${accentColors.border}`,
+                      bgcolor: accentColors.light,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{isEnglish ? 'Total:' : 'סה"כ לתשלום:'}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>₪{formatPrice(invoiceData.total)}</Typography>
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-            
-            {/* הערות */}
-            {invoiceData.notes && (
-              <Box sx={{ mt: 2, p: 2, borderTop: '1px dashed #ddd' }}>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                  {isEnglish ? 'Notes:' : 'הערות:'}
-                </Typography>
-                <Typography variant="body2">{invoiceData.notes}</Typography>
-              </Box>
-            )}
-            
-            {/* פרטי תשלום - ממוקם בפינה התחתונה - מוצג רק אם זו חשבונית מס/קבלה */}
-            {invoiceData.documentType === 'invoice_receipt' && (
-              <Box 
-                sx={{ 
-                  position: 'absolute',
-                  bottom: '20px',
-                  left: isEnglish ? '20px' : 'auto',
-                  right: isEnglish ? 'auto' : '20px',
-                  borderRadius: '4px',
-                  padding: '5px 10px',
-                  backgroundColor: 'white',
-                  border: `1px solid ${accentColors.border}`,
-                  textAlign: isEnglish ? 'left' : 'right',
-                  minWidth: '150px',
-                  zIndex: 2
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                  {isEnglish ? 'Payment Method: ' : 'אמצעי תשלום: '}
-                  <Box component="span" sx={{ fontWeight: 'normal' }}>
-                  {isEnglish 
-                    ? {'cash': 'Cash', 'credit_card': 'Credit Card', 'bank_transfer': 'Bank Transfer', 'check': 'Check', 'other': 'Other'}[invoiceData.paymentMethod] 
-                    : {'cash': 'מזומן', 'credit_card': 'כרטיס אשראי', 'bank_transfer': 'העברה בנקאית', 'check': 'צ\'ק', 'other': 'אחר'}[invoiceData.paymentMethod]
-                  }
-                  </Box>
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </div>
-      </DialogContent>
+              
+              {/* הערות */}
+              {invoiceData.notes && (
+                <Box sx={{ mt: 2, p: 2, borderTop: '1px dashed #ddd' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {isEnglish ? 'Notes:' : 'הערות:'}
+                  </Typography>
+                  <Typography variant="body2">{invoiceData.notes}</Typography>
+                </Box>
+              )}
+              
+              {/* פרטי תשלום - ממוקם בפינה התחתונה - מוצג רק אם זו חשבונית מס/קבלה */}
+              {invoiceData.documentType === 'invoice_receipt' && (
+                <Box 
+                  sx={{ 
+                    position: 'absolute',
+                    bottom: '20px',
+                    left: isEnglish ? '20px' : 'auto',
+                    right: isEnglish ? 'auto' : '20px',
+                    borderRadius: '4px',
+                    padding: '5px 10px',
+                    backgroundColor: 'white',
+                    border: `1px solid ${accentColors.border}`,
+                    textAlign: isEnglish ? 'left' : 'right',
+                    minWidth: '150px',
+                    zIndex: 2
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                    {isEnglish ? 'Payment Method: ' : 'אמצעי תשלום: '}
+                    <Box component="span" sx={{ fontWeight: 'normal' }}>
+                    {isEnglish 
+                      ? {'cash': 'Cash', 'credit_card': 'Credit Card', 'bank_transfer': 'Bank Transfer', 'check': 'Check', 'other': 'Other'}[invoiceData.paymentMethod] 
+                      : {'cash': 'מזומן', 'credit_card': 'כרטיס אשראי', 'bank_transfer': 'העברה בנקאית', 'check': 'צ\'ק', 'other': 'אחר'}[invoiceData.paymentMethod]
+                    }
+                    </Box>
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </div>
+        </DialogContent>
 
-      <DialogActions sx={{ p: 2, borderTop: `1px solid ${accentColors.border}` }}>
-        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
-          {/* כפתור שמירה */}
-          <Button
-            variant="contained"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-            disabled={isLoading}
-            sx={{
-              bgcolor: accentColors.accent,
-              color: 'white',
-              '&:hover': { bgcolor: '#0069d9' }
-            }}
-          >
-            {isLoading ? (
-              <CircularProgress size={24} sx={{ color: 'white' }} />
-            ) : isEnglish ? 'Save Invoice' : 'שמור חשבונית'}
-          </Button>
-          
-          {/* כפתור הורדת PDF */}
-          <Button
-            variant="outlined"
-            startIcon={<PrintIcon />}
-            onClick={handleDownloadPdf}
-            disabled={isLoading}
-            sx={{ color: accentColors.accent, borderColor: accentColors.accent }}
-          >
-            {isEnglish ? 'Download PDF' : 'הורד PDF'}
-          </Button>
-          
-          {/* כפתור ביטול */}
-          <Button
-            variant="outlined"
-            onClick={onClose}
-            disabled={isLoading}
-            sx={{ color: accentColors.error, borderColor: accentColors.error }}
-          >
-            {isEnglish ? 'Cancel' : 'ביטול'}
-          </Button>
-        </Box>
-      </DialogActions>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${accentColors.border}` }}>
+          <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+            {/* כפתור שמירה */}
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={handleSave}
+              disabled={isLoading}
+              sx={{
+                bgcolor: accentColors.accent,
+                color: 'white',
+                '&:hover': { bgcolor: '#0069d9' }
+              }}
+            >
+              {isLoading ? (
+                <CircularProgress size={24} sx={{ color: 'white' }} />
+              ) : isEnglish ? 'Save Invoice' : 'שמור חשבונית'}
+            </Button>
+            
+            {/* כפתור הורדת PDF */}
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              onClick={handleDownloadPdf}
+              disabled={isLoading}
+              sx={{ color: accentColors.accent, borderColor: accentColors.accent }}
+            >
+              {isEnglish ? 'Download PDF' : 'הורד PDF'}
+            </Button>
+            
+            {/* כפתור ביטול */}
+            <Button
+              variant="outlined"
+              onClick={onClose}
+              disabled={isLoading}
+              sx={{ color: accentColors.error, borderColor: accentColors.error }}
+            >
+              {isEnglish ? 'Cancel' : 'ביטול'}
+            </Button>
+          </Box>
+        </DialogActions>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Dialog>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Dialog>
+
+      {/* דיאלוג אישור הזמנה */}
+      <BookingConfirmation
+        open={bookingConfirmationOpen}
+        onClose={() => setBookingConfirmationOpen(false)}
+        bookingData={bookingData}
+      />
+    </>
   );
 };
 
