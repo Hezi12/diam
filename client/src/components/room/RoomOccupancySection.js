@@ -1,152 +1,82 @@
 import React from 'react';
 import { Grid, Typography, TextField, InputAdornment } from '@mui/material';
+import { getHebrewInputStyle } from '../../design-system/styles/StyleConstants';
 
 const RoomOccupancySection = ({ formData, onChange, viewOnly }) => {
+  const inputStyle = getHebrewInputStyle('8px');
+  
+  const commonTextFieldProps = {
+    size: "small",
+    margin: "normal",
+    fullWidth: true,
+    type: "number",
+    disabled: viewOnly,
+    onChange: onChange,
+    InputLabelProps: { 
+      shrink: true,
+      style: { 
+        right: 15, 
+        left: 'auto', 
+        transformOrigin: 'right top', 
+        fontWeight: 500,
+        color: '#555',
+        fontSize: '0.85rem',
+      }
+    },
+    inputProps: { 
+      style: { 
+        textAlign: 'right',
+        fontSize: '0.9rem',
+        color: '#333',
+        padding: '12px 14px',
+        direction: 'rtl'
+      },
+      min: 1,
+      max: 10
+    },
+    sx: {
+      ...inputStyle,
+      my: 0.5,
+      "& .MuiInputLabel-root": {
+        right: 15,
+        left: "auto"
+      },
+      "& .MuiOutlinedInput-root": {
+        height: '40px'
+      }
+    }
+  };
+  
   return (
     <>
       <Grid item xs={12} sm={4}>
         <TextField
+          {...commonTextFieldProps}
           label="מספר אורחים בסיסי"
           name="baseOccupancy"
-          type="number"
           value={formData.baseOccupancy}
-          onChange={onChange}
-          fullWidth
-          size="small"
-          margin="dense"
-          inputProps={{ 
-            style: { 
-              fontSize: '0.85rem', 
-              textAlign: 'right',
-              color: '#333',
-              padding: '10px 14px'
-            },
-            dir: "rtl",
-            min: 1, 
-            max: 10 
-          }}
-          InputLabelProps={{ 
-            style: { 
-              fontSize: '0.8rem',
-              right: 15,
-              left: 'auto',
-              transformOrigin: 'right top',
-              fontWeight: 500,
-              color: '#555'
-            },
-            shrink: true
-          }}
-          InputProps={{
-            readOnly: viewOnly,
-            style: { height: '32px' }
-          }}
-          sx={{
-            "& .MuiOutlinedInput-notchedOutline": {
-              textAlign: "right"
-            },
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto"
-            }
-          }}
-          disabled={viewOnly}
         />
       </Grid>
       
       <Grid item xs={12} sm={4}>
         <TextField
+          {...commonTextFieldProps}
           label="מספר אורחים מקסימלי"
           name="maxOccupancy"
-          type="number"
           value={formData.maxOccupancy}
-          onChange={onChange}
-          fullWidth
-          size="small"
-          margin="dense"
-          inputProps={{ 
-            style: { 
-              fontSize: '0.85rem', 
-              textAlign: 'right',
-              color: '#333',
-              padding: '10px 14px'
-            },
-            dir: "rtl",
-            min: 1, 
-            max: 10 
-          }}
-          InputLabelProps={{ 
-            style: { 
-              fontSize: '0.8rem',
-              right: 15,
-              left: 'auto',
-              transformOrigin: 'right top',
-              fontWeight: 500,
-              color: '#555'
-            },
-            shrink: true
-          }}
-          InputProps={{
-            readOnly: viewOnly,
-            style: { height: '32px' }
-          }}
-          sx={{
-            "& .MuiOutlinedInput-notchedOutline": {
-              textAlign: "right"
-            },
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto"
-            }
-          }}
-          disabled={viewOnly}
         />
       </Grid>
       
       <Grid item xs={12} sm={4}>
         <TextField
+          {...commonTextFieldProps}
           label="תוספת לאורח נוסף"
           name="extraGuestCharge"
-          type="number"
           value={formData.extraGuestCharge}
-          onChange={onChange}
-          fullWidth
-          size="small"
-          margin="dense"
-          inputProps={{ 
-            style: { 
-              fontSize: '0.85rem', 
-              textAlign: 'right',
-              color: '#333',
-              padding: '10px 14px'
-            },
-            dir: "rtl" 
-          }}
-          InputLabelProps={{ 
-            style: { 
-              fontSize: '0.8rem',
-              right: 15,
-              left: 'auto',
-              transformOrigin: 'right top',
-              fontWeight: 500,
-              color: '#555'
-            },
-            shrink: true
-          }}
-          InputProps={{
-            readOnly: viewOnly,
+          InputProps={{ 
             endAdornment: <InputAdornment position="end" sx={{ '& p': {fontSize: '0.85rem', color: '#555'} }}>₪</InputAdornment>,
-            style: { height: '32px' }
+            style: { height: '40px' }
           }}
-          sx={{
-            "& .MuiOutlinedInput-notchedOutline": {
-              textAlign: "right"
-            },
-            "& .MuiInputLabel-root": {
-              right: 15,
-              left: "auto"
-            }
-          }}
-          disabled={viewOnly}
         />
       </Grid>
     </>
