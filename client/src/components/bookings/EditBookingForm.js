@@ -80,6 +80,7 @@ const EditBookingForm = ({
     checkOut: addDays(new Date(), 1),
     nights: 1,
     isTourist: false,
+    guests: 2,
     
     // פרטי מחירים
     price: 0,
@@ -94,6 +95,8 @@ const EditBookingForm = ({
     // סטטוס הזמנה ופרטים נוספים
     status: 'pending',
     notes: '',
+    source: 'direct',
+    externalBookingNumber: '',
   });
 
   // מצב שדות תיקוף
@@ -124,6 +127,7 @@ const EditBookingForm = ({
         checkOut,
         nights: booking.nights || differenceInDays(checkOut, checkIn),
         isTourist: booking.isTourist || false,
+        guests: booking.guests || 2,
         
         price: booking.price || 0,
         pricePerNight: booking.pricePerNight || 0,
@@ -135,6 +139,8 @@ const EditBookingForm = ({
         
         status: booking.status || 'pending',
         notes: booking.notes || '',
+        source: booking.source || 'direct',
+        externalBookingNumber: booking.externalBookingNumber || '',
       });
     }
   }, [booking]);
@@ -692,7 +698,7 @@ const EditBookingForm = ({
                 </Box>
               
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={1.5}>
                     <FormControl 
                       fullWidth 
                       error={!!errors.room} 
@@ -709,7 +715,7 @@ const EditBookingForm = ({
                       >
                         {rooms.map(room => (
                           <MenuItem key={room._id} value={room._id}>
-                            {room.roomNumber} - {room.category}
+                            {room.roomNumber}
                           </MenuItem>
                         ))}
                       </Select>
@@ -717,7 +723,7 @@ const EditBookingForm = ({
                     </FormControl>
                   </Grid>
                   
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2.5}>
                     <DatePicker
                       label="צ׳ק-אין"
                       value={formData.checkIn}
@@ -735,7 +741,7 @@ const EditBookingForm = ({
                     />
                   </Grid>
                   
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2.5}>
                     <DatePicker
                       label="צ׳ק-אאוט"
                       value={formData.checkOut}
@@ -753,9 +759,9 @@ const EditBookingForm = ({
                     />
                   </Grid>
                   
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={3} md={1}>
                     <TextField
-                      label="מספר לילות"
+                      label="לילות"
                       type="number"
                       fullWidth
                       value={formData.nights}
@@ -767,6 +773,71 @@ const EditBookingForm = ({
                       sx={formStyles.textField}
                     />
                   </Grid>
+                  
+                  <Grid item xs={12} sm={3} md={1}>
+                    <TextField
+                      label="אורחים"
+                      name="guests"
+                      type="number"
+                      fullWidth
+                      value={formData.guests}
+                      onChange={handleChange}
+                      InputProps={{
+                        inputProps: { min: 1 }
+                      }}
+                      size="small"
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3.5}>
+                    <FormControl 
+                      fullWidth 
+                      size="small"
+                      sx={formStyles.select}
+                    >
+                      <InputLabel>מקור ההזמנה</InputLabel>
+                      <Select
+                        name="source"
+                        value={formData.source || 'direct'}
+                        onChange={handleChange}
+                        label="מקור ההזמנה"
+                      >
+                        <MenuItem value="direct">ישיר</MenuItem>
+                        <MenuItem value="home_website">אתר הבית (Home Website)</MenuItem>
+                        <MenuItem value="diam">Diam</MenuItem>
+                        <MenuItem value="airport_stay">Airport Stay</MenuItem>
+                        <MenuItem value="rothschild_stay">Rothschild Stay</MenuItem>
+                        <MenuItem value="booking">Booking.com</MenuItem>
+                        <MenuItem value="expedia">Expedia</MenuItem>
+                        <MenuItem value="airbnb">Airbnb</MenuItem>
+                        <MenuItem value="agoda">Agoda</MenuItem>
+                        <MenuItem value="other">אחר</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* שדה מספר הזמנה חיצוני שיופיע רק כאשר המקור אינו ישיר או אתר הבית */}
+                  {formData.source && formData.source !== 'direct' && formData.source !== 'home_website' && (
+                    <Grid item xs={12} sm={6} md={3.5}>
+                      <TextField
+                        label="מספר הזמנה חיצוני"
+                        name="externalBookingNumber"
+                        fullWidth
+                        value={formData.externalBookingNumber}
+                        onChange={handleChange}
+                        size="small"
+                        sx={formStyles.textField}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <ReceiptIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                  )}
 
                   <Grid item xs={12}>
                     <TextField
