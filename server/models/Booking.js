@@ -185,8 +185,12 @@ const BookingSchema = new mongoose.Schema(
     // מקור ההזמנה
     source: {
       type: String,
-      enum: ['direct', 'booking', 'expedia', 'airbnb', 'agoda', 'other'],
+      enum: ['direct', 'booking', 'expedia', 'airbnb', 'agoda', 'home_website', 'diam', 'airport_stay', 'rothschild_stay', 'other'],
       default: 'direct'
+    },
+    externalBookingNumber: {
+      type: String,
+      trim: true
     }
   },
   {

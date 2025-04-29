@@ -135,6 +135,7 @@ const NewBookingForm = ({
     
     // פרטים נוספים
     source: 'direct',
+    externalBookingNumber: '',
     notes: '',
   };
 
@@ -171,6 +172,7 @@ const NewBookingForm = ({
     
     // פרטים נוספים
     source: 'direct',
+    externalBookingNumber: '',
     notes: '',
   });
 
@@ -1231,7 +1233,7 @@ const NewBookingForm = ({
                 </Box>
               
               <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={1.5}>
                     <FormControl fullWidth error={!!errors.room} required size="small" sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: style.button.borderRadius,
@@ -1264,7 +1266,7 @@ const NewBookingForm = ({
                     >
                         {filteredAndSortedRooms.map(room => (
                         <MenuItem key={room._id} value={room._id}>
-                            {`חדר ${room.roomNumber} (${room.category})`}
+                            {`${room.roomNumber}`}
                         </MenuItem>
                       ))}
                     </Select>
@@ -1272,7 +1274,7 @@ const NewBookingForm = ({
                   </FormControl>
                 </Grid>
                 
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2.5}>
                   <DatePicker
                       label="תאריך כניסה"
                     value={formData.checkIn}
@@ -1294,7 +1296,7 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2.5}>
                   <DatePicker
                       label="תאריך יציאה"
                     value={formData.checkOut}
@@ -1316,10 +1318,10 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={3} md={1}>
                   <TextField
                       name="nights"
-                    label="מספר לילות"
+                    label="לילות"
                     fullWidth
                       type="number"
                     value={formData.nights}
@@ -1335,7 +1337,99 @@ const NewBookingForm = ({
                       }}
                   />
                 </Grid>
+                
+                <Grid item xs={12} sm={3} md={1}>
+                  <TextField
+                      name="guests"
+                    label="אורחים"
+                    fullWidth
+                      type="number"
+                    value={formData.guests}
+                      onChange={handleChange}
+                      error={!!errors.guests}
+                      helperText={errors.guests}
+                      inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        }
+                      }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3.5}>
+                  <FormControl fullWidth size="small" sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: style.button.borderRadius,
+                    },
+                    '& .MuiSelect-select': {
+                      paddingRight: '20px',
+                      textAlign: 'center',
+                    },
+                    '& .MuiInputLabel-root': {
+                      right: 18,
+                      left: 'auto',
+                      transformOrigin: 'top right'
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      textAlign: 'right',
+                    },
+                    '& .MuiInputLabel-shrink': {
+                      transform: 'translate(0, -9px) scale(0.75)',
+                      transformOrigin: 'top right'
+                    }
+                  }}>
+                    <InputLabel>מקור ההזמנה</InputLabel>
+                    <Select
+                      name="source"
+                      value={formData.source}
+                      onChange={handleChange}
+                      label="מקור ההזמנה"
+                    >
+                      <MenuItem value="direct">ישיר</MenuItem>
+                      <MenuItem value="home_website">אתר הבית (Home Website)</MenuItem>
+                      <MenuItem value="diam">Diam</MenuItem>
+                      <MenuItem value="airport_stay">Airport Stay</MenuItem>
+                      <MenuItem value="rothschild_stay">Rothschild Stay</MenuItem>
+                      <MenuItem value="booking">Booking.com</MenuItem>
+                      <MenuItem value="expedia">Expedia</MenuItem>
+                      <MenuItem value="airbnb">Airbnb</MenuItem>
+                      <MenuItem value="agoda">Agoda</MenuItem>
+                      <MenuItem value="other">אחר</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
               </Grid>
+
+              {/* שדה מספר הזמנה חיצוני - מוצג רק כאשר מקור ההזמנה אינו מקומי */}
+              {formData.source !== 'direct' && formData.source !== 'home_website' && (
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={12}>
+                    <TextField
+                      name="externalBookingNumber"
+                      label="מספר הזמנה חיצוני"
+                      fullWidth
+                      value={formData.externalBookingNumber}
+                      onChange={handleChange}
+                      size="small"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <span style={{ marginLeft: '8px', fontSize: '0.9rem', color: '#666' }}>#{formData.source}</span>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: style.button.borderRadius,
+                        }
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              )}
               </Paper>
             </Grid>
             

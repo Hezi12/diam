@@ -234,13 +234,15 @@ exports.createBooking = async (req, res) => {
       checkOut: checkOutUTC,
       nights: calculatedNights,
       isTourist: isTourist || false,
+      guests: req.body.guests || 2,
       price,
       pricePerNight,
       pricePerNightNoVat,
       paymentStatus: paymentStatus || 'unpaid',
       creditCard,
       status: status || 'pending',
-      notes
+      notes,
+      source: req.body.source || 'direct'
     });
     
     await newBooking.save();
