@@ -18,6 +18,7 @@ import RothschildRooms from './pages/settings/rooms/RothschildRooms';
 import AirportSite from './pages/sites/AirportSite';
 import RothschildSite from './pages/sites/RothschildSite';
 import Cleaning from './pages/Cleaning';
+import QuickBooking from './pages/QuickBooking';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -76,6 +77,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Bookings />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quick-booking"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <QuickBooking />
                   </Layout>
                 </ProtectedRoute>
               }

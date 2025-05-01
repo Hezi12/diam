@@ -38,19 +38,36 @@ const bookingService = {
 
   /**
    * חיפוש הזמנות
-   * @param {string} query - מחרוזת החיפוש
+   * @param {string} query - מחרוזת החיפוש (אופציונלי אם יש טווח תאריכים)
    * @param {string} location - מיקום ההזמנות (airport/rothschild)
+   * @param {string} startDate - תאריך התחלה לחיפוש (אופציונלי)
+   * @param {string} endDate - תאריך סיום לחיפוש (אופציונלי)
    * @returns {Promise<Array>} תוצאות החיפוש
    */
-  searchBookings: async (query, location) => {
+  searchBookings: async (query, location, startDate = null, endDate = null) => {
     try {
+      // הכנת פרמטרים לחיפוש
+      const params = { location };
+      
+      // הוספת פרמטר חיפוש טקסטואלי אם קיים
+      if (query && query.trim()) {
+        params.query = query;
+      }
+      
+      // הוספת פרמטרים של טווח תאריכים אם נשלחו
+      if (startDate && endDate) {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+      
+      // תיעוד הפרמטרים לבדיקה
+      logService.debug('שליחת בקשת חיפוש הזמנות', params);
+      
       const response = await axios.get(API_ENDPOINTS.bookings.search, {
-        params: {
-          query,
-          location
-        }
+        params
       });
       
+      logService.debug(`התקבלו ${response.data.length} תוצאות חיפוש`);
       return response.data;
     } catch (error) {
       const errorInfo = errorService.handleApiError(error, 'search bookings');

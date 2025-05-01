@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography, Divider } from '@mui/material';
+import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography, Divider, Button } from '@mui/material';
 import axios from 'axios';
 import { format, addDays, subDays, differenceInDays } from 'date-fns';
 import { STYLE_CONSTANTS } from '../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
+import { Link } from 'react-router-dom';
+import { Add, Search } from '@mui/icons-material';
 
 // רכיבים מקומיים
 import BookingTabs from '../components/bookings/BookingTabs';
@@ -474,114 +476,165 @@ const Bookings = () => {
     return () => clearTimeout(timer);
   }, [location, dateRange.startDate, dateRange.endDate, searchQuery]);
   
+  // טיפול בלחיצה על כפתור הזמנה חדשה
+  const handleAddBooking = () => {
+    // איפוס נתוני טופס הזמנה חדשה
+    setPrefilledBookingData({
+      checkIn: new Date(),
+      checkOut: addDays(new Date(), 1),
+      location
+    });
+    setNewBookingOpen(true);
+  };
+  
   return (
-    <Container sx={{ pb: 4, maxWidth: { xs: '100%', xl: '1400px' } }}>
-      {/* איזור טאבים וסרגל כלים */}
+    <Container maxWidth={false} disableGutters sx={{ height: '100%', overflow: 'hidden' }}>
       <Box sx={{ 
+        p: { xs: 2, md: 3 }, 
         display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        mb: 4
+        flexDirection: 'column', 
+        height: '100%' 
       }}>
-        {/* טאבים למעבר בין מיקומים */}
-        <BookingTabs
-          location={location}
-          onLocationChange={handleLocationChange}
-        />
+        {/* אזור כותרת וכפתורים */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 2 
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h5" fontWeight={500} sx={{ mr: 2 }}>
+              ניהול הזמנות
+            </Typography>
+            <BookingTabs location={location} onLocationChange={handleLocationChange} />
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleAddBooking}
+              startIcon={<Add />}
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ borderRadius: '4px', textTransform: 'none' }}
+            >
+              הזמנה חדשה
+            </Button>
+            
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              component={Link} 
+              to="/quick-booking"
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ borderRadius: '4px', textTransform: 'none' }}
+            >
+              הזנה מהירה
+            </Button>
+            
+            <Button 
+              variant="outlined" 
+              color="secondary" 
+              onClick={handleSearchClick}
+              startIcon={<Search />}
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ borderRadius: '4px', textTransform: 'none' }}
+            >
+              חיפוש
+            </Button>
+          </Box>
+        </Box>
         
-        {/* סרגל כלים עם קישורים לאתרים חיצוניים */}
-        <ExternalToolbar />
-      </Box>
-      
-      {/* אזור בחירת וניווט תאריכים */}
-      <DateNavigation
-        startDate={dateRange.startDate}
-        endDate={dateRange.endDate}
-        onDateRangeChange={handleDateRangeChange}
-        location={location}
-        onSearchClick={handleSearchClick}
-        onAddBookingClick={() => setNewBookingOpen(true)}
-      />
-      
-      {/* טבלת הזמנות על מסך מלא */}
-      <Box sx={{ mt: 2 }}>
-        <BookingsCalendar
+        {/* אזור בחירת וניווט תאריכים */}
+        <DateNavigation
           startDate={dateRange.startDate}
           endDate={dateRange.endDate}
+          onDateRangeChange={handleDateRangeChange}
+          location={location}
+          onSearchClick={handleSearchClick}
+          onAddBookingClick={() => setNewBookingOpen(true)}
+        />
+        
+        {/* טבלת הזמנות על מסך מלא */}
+        <Box sx={{ mt: 2 }}>
+          <BookingsCalendar
+            startDate={dateRange.startDate}
+            endDate={dateRange.endDate}
+            rooms={rooms}
+            bookings={bookings}
+            loading={loading.bookings}
+            onBookingClick={handleBookingClick}
+            onCreateBooking={handleCreateBookingFromCell}
+            location={location}
+          />
+        </Box>
+        
+        {/* חלון הזמנה חדשה */}
+        <NewBookingForm
+          open={newBookingOpen}
+          onClose={() => {
+            setNewBookingOpen(false);
+            setPrefilledBookingData(null);
+          }}
+          onSave={handleSaveBooking}
           rooms={rooms}
-          bookings={bookings}
-          loading={loading.bookings}
-          onBookingClick={handleBookingClick}
-          onCreateBooking={handleCreateBookingFromCell}
+          location={location}
+          initialData={prefilledBookingData}
+        />
+        
+        {/* חלון עריכה - משתמש באותו קומפוננט כמו הזמנה חדשה */}
+        <NewBookingForm
+          open={editBookingOpen}
+          onClose={() => setEditBookingOpen(false)}
+          onSave={handleUpdateBooking}
+          onDelete={handleDeleteBooking}
+          rooms={rooms}
+          location={location}
+          editBooking={editBookingData}
+        />
+        
+        {/* חלון פרטי הזמנה */}
+        <BookingDetails
+          open={bookingDetailsOpen}
+          onClose={() => setBookingDetailsOpen(false)}
+          bookingId={selectedBookingId}
+          onDelete={handleDeleteBooking}
+          onUpdate={handleUpdateBooking}
           location={location}
         />
-      </Box>
-      
-      {/* חלון הזמנה חדשה */}
-      <NewBookingForm
-        open={newBookingOpen}
-        onClose={() => {
-          setNewBookingOpen(false);
-          setPrefilledBookingData(null);
-        }}
-        onSave={handleSaveBooking}
-        rooms={rooms}
-        location={location}
-        initialData={prefilledBookingData}
-      />
-      
-      {/* חלון עריכה - משתמש באותו קומפוננט כמו הזמנה חדשה */}
-      <NewBookingForm
-        open={editBookingOpen}
-        onClose={() => setEditBookingOpen(false)}
-        onSave={handleUpdateBooking}
-        onDelete={handleDeleteBooking}
-        rooms={rooms}
-        location={location}
-        editBooking={editBookingData}
-      />
-      
-      {/* חלון פרטי הזמנה */}
-      <BookingDetails
-        open={bookingDetailsOpen}
-        onClose={() => setBookingDetailsOpen(false)}
-        bookingId={selectedBookingId}
-        onDelete={handleDeleteBooking}
-        onUpdate={handleUpdateBooking}
-        location={location}
-      />
-      
-      {/* דיאלוג החיפוש */}
-      <BookingSearchDialog
-        open={searchDialogOpen}
-        onClose={handleCloseSearchDialog}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-        location={location}
-        isSearching={isSearching}
-        onBookingClick={handleBookingClick}
-      />
-      
-      {/* הודעות */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
+        
+        {/* דיאלוג החיפוש */}
+        <BookingSearchDialog
+          open={searchDialogOpen}
+          onClose={handleCloseSearchDialog}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          location={location}
+          isSearching={isSearching}
+          onBookingClick={handleBookingClick}
+        />
+        
+        {/* הודעות */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={6000}
           onClose={handleCloseNotification}
-          severity={notification.severity}
-          variant="filled"
-          sx={{ 
-            width: '100%',
-            borderRadius: '10px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-          }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          {notification.message}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={handleCloseNotification}
+            severity={notification.severity}
+            variant="filled"
+            sx={{ 
+              width: '100%',
+              borderRadius: '10px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      </Box>
     </Container>
   );
 };

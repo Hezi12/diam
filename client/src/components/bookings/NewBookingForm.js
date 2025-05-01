@@ -27,7 +27,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { he } from 'date-fns/locale';
-import { addDays, differenceInDays } from 'date-fns';
+import { addDays, differenceInDays, format, parse, parseISO } from 'date-fns';
 import {
   Close as CloseIcon,
   Add as AddIcon,
@@ -45,7 +45,6 @@ import axios from 'axios';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import { format, parse, parseISO } from 'date-fns';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // רכיב של חישובי מחירים
@@ -234,7 +233,13 @@ const NewBookingForm = ({
             // המרת תאריכים לאובייקטי Date
             checkIn: new Date(editBooking.checkIn),
             checkOut: new Date(editBooking.checkOut),
+            // וידוא שיש אובייקט creditCard
+            creditCard: editBooking.creditCard || { cardNumber: '', expiryDate: '', cvv: '' }
           };
+          
+          console.log('טוען הזמנה לעריכה:', editFormData.firstName, 'עם פרטי אשראי:', 
+                     editFormData.creditCard ? 'קיים' : 'חסר');
+          
           setFormData(editFormData);
 
           // נעילת שדות אם ההזמנה במצב "הושלמה"
@@ -549,7 +554,7 @@ const NewBookingForm = ({
     setFormData(prev => ({
       ...prev,
       creditCard: {
-        ...prev.creditCard,
+        ...(prev.creditCard || {}),
         [name]: value
       }
     }));
@@ -737,6 +742,8 @@ const NewBookingForm = ({
           },
           
           notes: formData.notes || '',
+          source: formData.source || 'direct',
+          externalBookingNumber: formData.externalBookingNumber || '',
           
           location: location
         };
@@ -1158,10 +1165,10 @@ const NewBookingForm = ({
                       name="cardNumber"
                       label="מספר כרטיס"
                       fullWidth
-                      value={formData.creditCard.cardNumber}
+                      value={formData.creditCard ? formData.creditCard.cardNumber : ''}
                       onChange={(e) => setFormData({
                         ...formData, 
-                        creditCard: {...formData.creditCard, cardNumber: e.target.value}
+                        creditCard: {...(formData.creditCard || {}), cardNumber: e.target.value}
                       })}
                       inputProps={{ maxLength: 16, dir: "ltr", style: { textAlign: 'center' } }}
                       size="small"
@@ -1178,10 +1185,10 @@ const NewBookingForm = ({
                       name="expiryDate"
                       label="תוקף"
                       fullWidth
-                      value={formData.creditCard.expiryDate}
+                      value={formData.creditCard ? formData.creditCard.expiryDate : ''}
                       onChange={(e) => setFormData({
                         ...formData, 
-                        creditCard: {...formData.creditCard, expiryDate: e.target.value}
+                        creditCard: {...(formData.creditCard || {}), expiryDate: e.target.value}
                       })}
                       placeholder="MM/YY"
                       inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
@@ -1199,10 +1206,10 @@ const NewBookingForm = ({
                       name="cvv"
                       label="CVV"
                       fullWidth
-                      value={formData.creditCard.cvv}
+                      value={formData.creditCard ? formData.creditCard.cvv : ''}
                       onChange={(e) => setFormData({
                         ...formData, 
-                        creditCard: {...formData.creditCard, cvv: e.target.value}
+                        creditCard: {...(formData.creditCard || {}), cvv: e.target.value}
                       })}
                       inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
                       size="small"

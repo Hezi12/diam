@@ -242,7 +242,8 @@ exports.createBooking = async (req, res) => {
       creditCard,
       status: status || 'pending',
       notes,
-      source: req.body.source || 'direct'
+      source: req.body.source || 'direct',
+      externalBookingNumber: req.body.externalBookingNumber || ''
     });
     
     await newBooking.save();
@@ -258,7 +259,9 @@ exports.createBooking = async (req, res) => {
       checkIn: savedBooking.checkIn.toISOString(),
       checkOut: savedBooking.checkOut.toISOString(),
       room: savedBooking.room.roomNumber,
-      nights: savedBooking.nights
+      nights: savedBooking.nights,
+      source: savedBooking.source,
+      externalBookingNumber: savedBooking.externalBookingNumber || '(לא הוגדר)'
     });
     
     res.status(201).json({
@@ -484,51 +487,134 @@ exports.checkRoomAvailability = async (req, res) => {
 // חיפוש הזמנות לפי טקסט חופשי
 exports.searchBookings = async (req, res) => {
   try {
-    const { query, location } = req.query;
+    const { query, location, startDate, endDate } = req.query;
     
-    if (!query || query.trim() === '') {
-      return res.status(400).json({ message: 'נדרש טקסט לחיפוש' });
-    }
-    
-    // פיצול מילות המפתח לחיפוש
-    const keywords = query.trim().split(/\s+/).filter(word => word.length > 0);
-    
-    // יצירת תבנית חיפוש לכל השדות הטקסטואליים
-    const searchPattern = keywords.map(keyword => new RegExp(keyword, 'i'));
-    
-    // בדיקה אם אחת ממילות המפתח היא מספר (לשימוש עבור מספר הזמנה)
-    const numberKeywords = keywords
-      .map(k => parseInt(k))
-      .filter(n => !isNaN(n));
-    
-    // בניית תנאי חיפוש מורכב
-    const searchConditions = [
-      { firstName: { $in: searchPattern } },
-      { lastName: { $in: searchPattern } },
-      { phone: { $in: searchPattern } },
-      { email: { $in: searchPattern } },
-      { roomNumber: { $in: searchPattern } }
-    ];
-    
-    // הוספת חיפוש למספר הזמנה רק אם יש מספרים בחיפוש
-    if (numberKeywords.length > 0) {
-      searchConditions.push({ bookingNumber: { $in: numberKeywords } });
-    }
+    // הגדרת פילטר בסיסי
+    let filter = {};
     
     // הוספת תנאי מיקום אם קיים
-    const filter = location ? 
-      { $and: [{ location }, { $or: searchConditions }] } :
-      { $or: searchConditions };
+    if (location) {
+      filter.location = location;
+    }
+    
+    // חיפוש לפי טווח תאריכים אם סופקו הפרמטרים המתאימים
+    if (startDate && endDate) {
+      // המרת תאריכים לפורמט אחיד ללא שעות
+      const startDateParts = new Date(startDate).toISOString().split('T')[0].split('-');
+      const endDateParts = new Date(endDate).toISOString().split('T')[0].split('-');
+      
+      // יצירת תאריכים חדשים עם הגדרת השעה ל-00:00:00 UTC
+      const formattedStartDate = new Date(Date.UTC(
+        parseInt(startDateParts[0]),
+        parseInt(startDateParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+        parseInt(startDateParts[2])
+      ));
+      
+      const formattedEndDate = new Date(Date.UTC(
+        parseInt(endDateParts[0]),
+        parseInt(endDateParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+        parseInt(endDateParts[2])
+      ));
+      
+      console.log('חיפוש הזמנות בטווח תאריכים:', {
+        startDate: formattedStartDate.toISOString(),
+        endDate: formattedEndDate.toISOString(),
+        location
+      });
+      
+      // בניית פילטר חיפוש משופר לטווח תאריכים
+      const dateFilter = {
+        $or: [
+          // מקרה 1: הזמנות שמתחילות בטווח המבוקש (צ'ק-אין בתוך הטווח)
+          { 
+            checkIn: { $gte: formattedStartDate, $lte: formattedEndDate } 
+          },
+          
+          // מקרה 2: הזמנות שמסתיימות בטווח המבוקש (צ'ק-אאוט בתוך הטווח)
+          { 
+            checkOut: { $gt: formattedStartDate, $lte: formattedEndDate } 
+          },
+          
+          // מקרה 3: הזמנות שמקיפות את הטווח כולו (צ'ק-אין לפני, צ'ק-אאוט אחרי)
+          { 
+            checkIn: { $lt: formattedStartDate },
+            checkOut: { $gt: formattedEndDate }
+          },
+          
+          // מקרה 4: הזמנות שחלק מהן בתוך הטווח (צ'ק-אין לפני הטווח, צ'ק-אאוט אחרי תחילת הטווח)
+          {
+            checkIn: { $lt: formattedStartDate },
+            checkOut: { $gt: formattedStartDate, $lte: formattedEndDate }
+          }
+        ]
+      };
+      
+      // שילוב פילטר התאריכים עם הפילטר הבסיסי
+      filter = { ...filter, ...dateFilter };
+    }
+    
+    // חיפוש לפי טקסט חופשי אם סופק פרמטר query
+    if (query && query.trim() !== '') {
+      // פיצול מילות המפתח לחיפוש
+      const keywords = query.trim().split(/\s+/).filter(word => word.length > 0);
+      
+      // יצירת תבנית חיפוש לכל השדות הטקסטואליים
+      const searchPattern = keywords.map(keyword => new RegExp(keyword, 'i'));
+      
+      // בדיקה אם אחת ממילות המפתח היא מספר (לשימוש עבור מספר הזמנה)
+      const numberKeywords = keywords
+        .map(k => parseInt(k))
+        .filter(n => !isNaN(n));
+      
+      // בניית תנאי חיפוש מורכב
+      const searchConditions = [
+        { firstName: { $in: searchPattern } },
+        { lastName: { $in: searchPattern } },
+        { phone: { $in: searchPattern } },
+        { email: { $in: searchPattern } },
+        { roomNumber: { $in: searchPattern } },
+        { externalBookingNumber: { $in: searchPattern } }
+      ];
+      
+      // הוספת חיפוש למספר הזמנה רק אם יש מספרים בחיפוש
+      if (numberKeywords.length > 0) {
+        searchConditions.push({ bookingNumber: { $in: numberKeywords } });
+      }
+      
+      // שילוב פילטר החיפוש הטקסטואלי עם הפילטר הקיים
+      const textFilter = { $or: searchConditions };
+      
+      // אם יש כבר פילטר תאריכים, נשלב את שניהם ב-$and
+      if (Object.keys(filter).length > 0 && !filter.location) {
+        filter = { $and: [filter, textFilter] };
+      } else if (filter.location && Object.keys(filter).length === 1) {
+        // אם יש רק פילטר מיקום, נוסיף את תנאי החיפוש ונשמור על פילטר המיקום
+        filter = { $and: [{ location }, textFilter] };
+      } else {
+        // אם אין פילטרים אחרים או יש כבר פילטר מורכב, נשלב לפי התנאים
+        filter = { ...filter, ...textFilter };
+      }
+    }
+    
+    console.log('פילטר חיפוש:', JSON.stringify(filter, null, 2));
+    
+    // אם אין פילטרים פרט למיקום, נחזיר שגיאה
+    if (Object.keys(filter).length === 0 || (Object.keys(filter).length === 1 && filter.location)) {
+      return res.status(400).json({ 
+        message: 'נדרש לפחות אחד מהפרמטרים: טקסט לחיפוש או טווח תאריכים' 
+      });
+    }
     
     // ביצוע החיפוש
     const bookings = await Booking.find(filter)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: -1 }) // הזמנות עדכניות קודם
-      .limit(20); // הגבלה ל-20 תוצאות
+      .limit(50); // הגבלה ל-50 תוצאות
     
+    console.log(`נמצאו ${bookings.length} הזמנות מתאימות לחיפוש`);
     res.json(bookings);
   } catch (error) {
     console.error('Error searching bookings:', error);
     res.status(500).json({ message: 'שגיאה בחיפוש הזמנות' });
   }
-}; 
+};
