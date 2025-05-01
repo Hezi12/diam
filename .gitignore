@@ -5,6 +5,8 @@ node_modules/
 
 # Production build
 /client/build/
+/build/
+/dist/
 
 # Logs and databases
 logs
@@ -26,6 +28,9 @@ yarn-error.log*
 .idea/
 *.sublime-project
 *.sublime-workspace
+*.swp
+*.swo
+.editorconfig
 
 # Operating System Files
 .DS_Store
@@ -37,12 +42,18 @@ ehthumbs.db
 Thumbs.db
 
 # Uploaded Files
-/server/uploads/
-/server/public/
-/uploads/
+/server/uploads/*
+!/server/uploads/.gitkeep
+!/server/uploads/invoices
+/server/uploads/invoices/*
+!/server/uploads/invoices/.gitkeep
+/uploads/*
+!/uploads/.gitkeep
 
 # Testing
 /coverage
+/cypress/videos/
+/cypress/screenshots/
 
 # Debug
 npm-debug.log*
@@ -53,4 +64,8 @@ yarn-error.log*
 .cache/
 dist/
 .temp
-.tmp 
+.tmp
+.eslintcache
+.nyc_output
+.history/
+.vercel 

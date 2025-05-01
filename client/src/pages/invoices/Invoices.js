@@ -35,11 +35,11 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
-import CreateInvoiceDialog from '../components/invoices/CreateInvoiceDialog';
-import { STYLE_CONSTANTS } from '../styles/StyleConstants';
+import { useAuth } from '../../contexts/AuthContext';
+import CreateInvoiceDialog from '../../components/invoices/CreateInvoiceDialog';
+import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useNavigate } from 'react-router-dom';
-import invoiceService from '../services/invoiceService';
+import invoiceService from '../../services/invoiceService';
 
 const documentTypesHebrew = {
   invoice: 'חשבונית מס',

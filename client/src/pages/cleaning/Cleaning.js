@@ -28,9 +28,9 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { format, addDays, isToday, isTomorrow } from 'date-fns';
 import { he } from 'date-fns/locale';
-import cleaningService from '../services/cleaningService';
+import cleaningService from '../../services/cleaningService';
 import { useSnackbar } from 'notistack';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * דף ניקיון - עבור צוות הניקיון

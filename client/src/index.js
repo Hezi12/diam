@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import axios from 'axios';
 import './index.css';
 import App from './App';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { API_URL } from './config/apiConfig';
 import logService from './services/logService';
 import { SnackbarProvider } from 'notistack';

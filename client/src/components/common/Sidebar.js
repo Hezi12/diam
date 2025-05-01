@@ -10,8 +10,9 @@ import {
   Flight as AirportIcon,
   ArrowBack as ArrowBackIcon,
   Receipt as ReceiptIcon,
+  BarChart as RevenueIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 const drawerWidth = 70;
@@ -134,6 +135,7 @@ const Sidebar = () => {
     dashboard: '#4A90E2', // כחול כהה יותר
     bookings: '#5E97F6', // כחול בהיר
     invoices: '#34A853', // ירוק
+    revenue: '#9C27B0', // סגול
     rothschild: '#304dbd', // צבע רוטשילד מקורי
     airport: '#0059b3', // צבע אייפורט מקורי 
     settings: '#F5B400', // צהוב/כתום
@@ -174,6 +176,12 @@ const Sidebar = () => {
             to="/invoices"
             title="חשבוניות"
             iconColor={iconColors.invoices}
+          />
+          <SidebarItem
+            icon={<RevenueIcon />}
+            to="/revenue"
+            title="דוחות הכנסות"
+            iconColor={iconColors.revenue}
           />
           <SidebarItem
             icon={<RothschildIcon />}

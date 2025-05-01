@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -100,6 +100,15 @@ const NewBookingForm = ({
 
   // האם אנחנו במצב עריכה
   const isEditMode = !!editBooking;
+
+  // מצב לעקיבה אחר עריכת הזמנה קיימת
+  const [isExistingBooking, setIsExistingBooking] = useState(false);
+  
+  // מצב קודם של הטופס עבור השוואות
+  const prevFormState = useRef(null);
+
+  // מצב חלונות ההזמנה
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
 
   // הגדרת מצב התחלתי של הטופס - משמש לאיפוס בעת פתיחת טופס חדש
   const initialFormData = {
@@ -240,6 +249,9 @@ const NewBookingForm = ({
           console.log('טוען הזמנה לעריכה:', editFormData.firstName, 'עם פרטי אשראי:', 
                      editFormData.creditCard ? 'קיים' : 'חסר');
           
+          // סימון שמדובר בהזמנה קיימת
+          setIsExistingBooking(true);
+          
           setFormData(editFormData);
 
           // נעילת שדות אם ההזמנה במצב "הושלמה"
@@ -258,6 +270,9 @@ const NewBookingForm = ({
           setError('שגיאה בטעינת פרטי ההזמנה לעריכה');
         }
       } else if (initialData) {
+        // איפוס הדגל - זו לא הזמנה קיימת
+        setIsExistingBooking(false);
+        
         // יש לנו נתונים התחלתיים (למשל מלחיצה על תא בלוח השנה)
         const defaultData = {
           // פרטי אורח
@@ -312,8 +327,11 @@ const NewBookingForm = ({
           }
         }
       } else {
+        // איפוס הדגל - זו לא הזמנה קיימת
+        setIsExistingBooking(false);
+        
         // מצב הזמנה חדשה - איפוס מלא של הטופס לערכי ברירת מחדל
-      setFormData({
+        setFormData({
           // פרטי אורח
           firstName: '',
           lastName: '',
@@ -502,6 +520,71 @@ const NewBookingForm = ({
       }
     }
   }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist]);
+
+  // מעקב אחר שינויים בחדר הנבחר
+  useEffect(() => {
+    // שמירת המצב הקודם לשימוש בהשוואה
+    if (!prevFormState.current) {
+      // מצב ראשוני - יצירת אובייקט מעקב
+      prevFormState.current = {
+        checkIn: formData.checkIn,
+        checkOut: formData.checkOut,
+        room: formData.room,
+        isTourist: formData.isTourist,
+        hasRoomBeenChanged: false
+      };
+      
+      // אם זו הזמנה חדשה ויש חדר, נטען את פרטי המחיר
+      if (formData.room && !isExistingBooking) {
+        fetchRoomData(formData.room);
+      }
+      return;
+    }
+    
+    // אם הוחלף החדר, נטען את פרטי המחיר של החדר החדש
+    if (formData.room && prevFormState.current.room !== formData.room) {
+      console.log('חדר השתנה:', prevFormState.current.room, '->', formData.room);
+      
+      // אם זו הזמנה קיימת בעריכה ועדיין לא שינו את החדר, נדלג על טעינת המחיר הסטנדרטי
+      if (isExistingBooking && !prevFormState.current.hasRoomBeenChanged) {
+        console.log('דילוג על עדכון מחיר להזמנה קיימת');
+        prevFormState.current.hasRoomBeenChanged = true;
+      } else {
+        console.log('טעינת מחיר חדר חדש');
+        fetchRoomData(formData.room);
+      }
+    }
+    
+    // עדכון המעקב אחר החדר
+    prevFormState.current.room = formData.room;
+  }, [formData.room, isExistingBooking]);
+
+  // מעקב אחר שינויים כשאחד מהשדות משתנה
+  useEffect(() => {
+    // לא נעשה כלום אם אין מצב קודם עדיין
+    if (!prevFormState.current) {
+      return;
+    }
+    
+    // פונקציה לבדיקה אם יום מסוים הוא יום שישי
+    const isFriday = (date) => {
+      const day = new Date(date).getDay();
+      return day === 5; // 0 = ראשון, 5 = שישי
+    };
+    
+    // אם התאריכים או מספר האורחים השתנו, נעדכן את המחיר בהתאם
+    const checkInChanged = formData.checkIn.getTime() !== prevFormState.current.checkIn.getTime();
+    const checkOutChanged = formData.checkOut.getTime() !== prevFormState.current.checkOut.getTime();
+    const isTouristChanged = formData.isTourist !== prevFormState.current.isTourist;
+    const guestsChanged = formData.guests !== prevFormState.current.guests;
+    
+    if ((checkInChanged || checkOutChanged || isTouristChanged || guestsChanged) && !isExistingBooking) {
+      // לוגיקה מורכבת לחישוב מחיר מחדש...
+      // בהזמנות קיימות נשמור על המחיר המקורי אלא אם המשתמש שינה אותו באופן מפורש
+    }
+    
+    // אין קריאה ל-fetchRoomData כאן - הועבר ל-useEffect הקודם
+  }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist, formData.guests]);
 
   // בדיקת תקינות הטופס
   const validateForm = () => {
@@ -831,12 +914,24 @@ const NewBookingForm = ({
     setInvoiceDialogOpen(true);
   };
 
+  // טיפול בסגירת החלון
+  const handleClose = () => {
+    // איפוס דגלי העקיבה
+    setIsExistingBooking(false);
+    if (prevFormState.current) {
+      prevFormState.current.hasRoomBeenChanged = false;
+    }
+    
+    // סגירת החלון
+    onClose();
+  };
+
   return (
     <Dialog 
       open={open} 
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="md"
-      fullWidth
+      fullWidth 
       PaperProps={{
         sx: {
           borderRadius: style.dialog.borderRadius,
