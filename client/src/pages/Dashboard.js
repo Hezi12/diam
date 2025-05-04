@@ -298,30 +298,6 @@ const Dashboard = () => {
       </Box>
     
       <Grid container spacing={isMobile ? 2 : 3} sx={{ mt: isMobile ? 1 : 2 }}>
-        {/* מודול airport */}
-        <Grid item xs={12} md={6}>
-          <Box sx={{ 
-            borderRadius: 2.5, 
-            overflow: 'hidden', 
-            backgroundColor: '#fff',
-            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
-            border: '1px solid rgba(0, 0, 0, 0.03)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-            }
-          }}>
-            <LocationSection 
-              location="airport" 
-              rooms={preparedAirportRooms}
-              bookings={airportBookings}
-              loading={loading.airportRooms || loading.airportBookings}
-              onRoomClick={handleRoomClick}
-              getRoomStatus={(roomId, bookings) => getRoomStatusForCurrentDate(roomId, bookings)}
-            />
-          </Box>
-        </Grid>
-  
         {/* מודול rothschild */}
         <Grid item xs={12} md={6}>
           <Box sx={{ 
@@ -340,6 +316,30 @@ const Dashboard = () => {
               rooms={preparedRothschildRooms}
               bookings={rothschildBookings}
               loading={loading.rothschildRooms || loading.rothschildBookings}
+              onRoomClick={handleRoomClick}
+              getRoomStatus={(roomId, bookings) => getRoomStatusForCurrentDate(roomId, bookings)}
+            />
+          </Box>
+        </Grid>
+
+        {/* מודול airport */}
+        <Grid item xs={12} md={6}>
+          <Box sx={{ 
+            borderRadius: 2.5, 
+            overflow: 'hidden', 
+            backgroundColor: '#fff',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
+            border: '1px solid rgba(0, 0, 0, 0.03)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+            }
+          }}>
+            <LocationSection 
+              location="airport" 
+              rooms={preparedAirportRooms}
+              bookings={airportBookings}
+              loading={loading.airportRooms || loading.airportBookings}
               onRoomClick={handleRoomClick}
               getRoomStatus={(roomId, bookings) => getRoomStatusForCurrentDate(roomId, bookings)}
             />
