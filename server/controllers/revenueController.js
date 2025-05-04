@@ -389,13 +389,37 @@ exports.getMonthlyRevenue = async (req, res) => {
     // עדכון נתוני סיכום - השתמש בסכום אמצעי התשלום כסכום הכנסות החודש
     response.summary = {
       currentRevenue: Math.round(totalPaymentMethodsRevenue),
-      forecast: Math.round(isCurrentMonth ? (totalPaymentMethodsRevenue / daysPassed) * daysInMonth : totalPaymentMethodsRevenue),
+      forecast: Math.round(isCurrentMonth ? calculateForecast(response.dailyRevenue, daysPassed, daysInMonth, currentDate) : totalPaymentMethodsRevenue),
       dailyAverage: Math.round(totalPaymentMethodsRevenue / daysInMonth),
       currentRevenueChange: revenueChange,
       forecastChange: forecastChange,
       dailyAverageChange: dailyAvgChange,
       daysPassed: daysPassed
     };
+    
+    // פונקציה לחישוב תחזית יותר מדויקת
+    function calculateForecast(dailyRevenue, daysPassed, daysInMonth, currentDate) {
+      // אם רק יום אחד חלף, נחזיר את הסכום היומי * מספר ימי החודש
+      if (daysPassed <= 1) {
+        const firstDayRevenue = dailyRevenue.find(day => day.day === 1)?.revenue || 0;
+        return firstDayRevenue * daysInMonth;
+      }
+      
+      // לוקחים רק את ההכנסות עד אתמול (לא כולל היום הנוכחי)
+      const yesterday = currentDate.getDate() - 1;
+      const revenueUntilYesterday = dailyRevenue
+        .filter(day => day.day <= yesterday)
+        .reduce((sum, day) => sum + day.revenue, 0);
+      
+      // נחלק את ההכנסות עד אתמול במספר הימים שחלפו עד אתמול
+      const daysUntilYesterday = yesterday;
+      
+      // חישוב ממוצע יומי לפי ההכנסות עד אתמול
+      const dailyAverageUntilYesterday = revenueUntilYesterday / daysUntilYesterday;
+      
+      // החישוב הסופי: הממוצע היומי עד אתמול * מספר הימים בחודש
+      return dailyAverageUntilYesterday * daysInMonth;
+    }
     
     // 5. חישוב הכנסות לפי חדרים
     const roomRevenue = {};
