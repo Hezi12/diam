@@ -1,6 +1,6 @@
 {
   "short_name": "DIAM",
-  "name": "DIAM",
+  "name": "DIAM Hotel Management",
   "icons": [
     {
       "src": "icons/favicon-16x16.png",
@@ -20,16 +20,24 @@
     {
       "src": "icons/android-chrome-192x192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "icons/android-chrome-512x512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#ffde00",
-  "background_color": "#ffffff"
+  "orientation": "portrait",
+  "theme_color": "#0071e3",
+  "background_color": "#ffffff",
+  "description": "מערכת לניהול מלון דיאם",
+  "dir": "rtl",
+  "lang": "he",
+  "prefer_related_applications": false
 } 

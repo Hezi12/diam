@@ -130,6 +130,12 @@ const DateNavigation = ({
 
   // פורמט תאריכים עברי
   const formatDateRange = () => {
+    // בדיקת תקינות של תאריכים לפני שימוש בפונקציית format
+    if (!startDate || !endDate || !(startDate instanceof Date) || !(endDate instanceof Date) || 
+        isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error('שגיאה בפורמט תאריכים:', { startDate, endDate });
+      return 'טווח תאריכים לא תקין';
+    }
     return `${format(startDate, 'dd/MM')} - ${format(endDate, 'dd/MM')}`;
   };
 

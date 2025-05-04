@@ -1,15 +1,21 @@
 import React from 'react';
-import { Box, styled } from '@mui/material';
+import { Box, styled, useMediaQuery, useTheme } from '@mui/material';
 import Sidebar from './Sidebar';
 
 const drawerWidth = 70;
 
-const Main = styled('main')(({ theme }) => ({
+const Main = styled('main', {
+  shouldForwardProp: (prop) => prop !== 'isMobile'
+})(({ theme, isMobile }) => ({
   flexGrow: 1,
-  padding: '24px',
-  marginRight: `${drawerWidth}px`,
+  padding: isMobile ? '16px 12px 70px 12px' : '24px',
+  marginRight: isMobile ? 0 : `${drawerWidth}px`,
   backgroundColor: '#f5f5f7',
   minHeight: '100vh',
+  transition: theme.transitions.create(['margin', 'padding'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
 }));
 
 /**
@@ -17,10 +23,13 @@ const Main = styled('main')(({ theme }) => ({
  * ומוסיף את הסרגל הצדדי
  */
 const Layout = ({ children }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   return (
     <Box sx={{ display: 'flex' }}>
       <Sidebar />
-      <Main>
+      <Main isMobile={isMobile}>
         {children}
       </Main>
     </Box>
