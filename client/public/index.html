@@ -11,6 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0071e3" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="DIAM" />
     <meta
@@ -25,14 +26,18 @@
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-              console.log('Service Worker registered with scope:', registration.scope);
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            navigator.serviceWorker.register('%PUBLIC_URL%/service-worker.js', {
+              scope: '/'
             })
-            .catch(error => {
-              console.error('Service Worker registration failed:', error);
+            .then(function(registration) {
+              console.log('Service Worker נרשם בהצלחה עם scope:', registration.scope);
+            })
+            .catch(function(error) {
+              console.log('רישום Service Worker נכשל:', error);
             });
+          }, 1000);
         });
       }
     </script>

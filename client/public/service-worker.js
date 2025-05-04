@@ -1,13 +1,10 @@
 // שם ה-Cache לשמירת קבצים
-const CACHE_NAME = 'diam-hotel-cache-v1';
+const CACHE_NAME = 'diam-hotel-cache-v2';
 
 // רשימת הקבצים שיש לשמור ב-Cache
 const urlsToCache = [
   '/',
   '/index.html',
-  '/static/js/main.chunk.js',
-  '/static/js/0.chunk.js',
-  '/static/js/bundle.js',
   '/manifest.json',
   '/icons/favicon.ico',
   '/icons/favicon-16x16.png',
@@ -20,6 +17,7 @@ const urlsToCache = [
 
 // התקנת ה-service worker וטעינת קבצים ל-Cache
 self.addEventListener('install', event => {
+  console.log('התקנת Service Worker');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -27,48 +25,71 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
   );
+  // מבטיח שה-service worker החדש ייכנס לפעולה מיד
+  self.skipWaiting();
 });
 
 // האזנה לבקשות רשת וניסיון להחזיר תוכן מה-Cache
 self.addEventListener('fetch', event => {
-  // אסטרטגיית Cache First, Network Fallback
+  // מתעלם מבקשות שאינן GET
+  if (event.request.method !== 'GET') return;
+  
+  // מתעלם מבקשות API
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // טיפול בקבצי סטטיים מהבילד
+  const isStaticAsset = event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|ico)$/i);
+
+  if (isStaticAsset) {
+    // עבור משאבים סטטיים, ננסה קודם מהרשת ואם נכשל, ננסה מה-cache
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // עבור שאר הבקשות (בעיקר ניווט HTML), ננסה קודם מה-cache ואז מהרשת
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // אם יש תוצאה ב-Cache, החזר אותה
-        if (response) {
-          return response;
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
         
-        // אם אין תוצאה ב-Cache, נסה להביא מהרשת
         return fetch(event.request)
           .then(response => {
-            // בדיקה שהתשובה תקינה
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            // בודק אם התגובה תקפה
+            if (!response || response.status !== 200) {
               return response;
             }
             
-            // שיכפול התשובה כי response יכול להיות בשימוש רק פעם אחת
+            // מכין עותק של התגובה לפני שהיא נצרכת
             const responseToCache = response.clone();
             
-            // שמירת התשובה ב-Cache
+            // מוסיף את התגובה למטמון
             caches.open(CACHE_NAME)
               .then(cache => {
-                // לא לשמור בקשות API
-                if (!event.request.url.includes('/api/')) {
-                  cache.put(event.request, responseToCache);
-                }
+                cache.put(event.request, responseToCache);
               });
             
             return response;
           })
           .catch(error => {
-            // במקרה של בעיה ברשת, ננסה להחזיר את דף הבית מה-Cache
+            // אם הבקשה היא לדף ניווט והרשת נכשלה, חזור לדף הבית מהמטמון
             if (event.request.mode === 'navigate') {
               return caches.match('/');
             }
-            console.error('Error fetching resource: ', event.request.url, error);
-            return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
+            
+            console.error('שגיאה בטעינת משאב:', error);
+            return new Response('שגיאת רשת', { 
+              status: 503, 
+              statusText: 'השירות אינו זמין' 
+            });
           });
       })
   );
@@ -76,6 +97,8 @@ self.addEventListener('fetch', event => {
 
 // מחיקת מטמונים ישנים בעת הפעלת Service Worker חדש
 self.addEventListener('activate', event => {
+  console.log('הפעלת Service Worker');
+  
   const cacheWhitelist = [CACHE_NAME];
   
   event.waitUntil(
@@ -83,11 +106,14 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // מחיקת מטמונים ישנים
+            console.log('מחיקת מטמון ישן:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // מבטיח שה-service worker ישלוט בכל הלקוחות ללא המתנה
+      return self.clients.claim();
     })
   );
 }); 
