@@ -277,9 +277,9 @@ const Dashboard = () => {
     <Box sx={{ pb: isMobile ? 6 : 2 }}>
       <Box sx={{ 
         pb: isMobile ? 0 : 2,
-        pt: isMobile ? 0 : 1,
-        position: 'sticky',
-        top: 0,
+        pt: isMobile ? 2.5 : 1,
+        position: isMobile ? 'relative' : 'sticky',
+        top: isMobile ? 'auto' : 0,
         width: '100%',
         zIndex: 10,
         backgroundColor: theme.palette.background.default,

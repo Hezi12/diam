@@ -51,7 +51,7 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
       alignItems: 'center',
       justifyContent: 'space-between',
       py: isMobile ? 0.8 : 1.5,
-      mt: isMobile ? 0.5 : 0,
+      mt: isMobile ? 2 : 0,
       mb: 1.5,
       width: '100%',
       maxWidth: '98%',
@@ -112,9 +112,9 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
             </Box>
             <Box component="span" sx={{ 
               fontWeight: 400,
-              fontSize: isMobile ? '0.85rem' : '0.95rem', 
+              fontSize: isMobile ? '0.75rem' : '0.95rem', 
               opacity: 0.75,
-              display: isMobile ? 'none' : 'inline' // מסתיר את שם היום במובייל
+              display: 'inline' // החזרת תצוגת שם היום במובייל
             }}>
               {dayNameShort}
             </Box>
