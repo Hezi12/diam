@@ -127,6 +127,9 @@ const RoomCard = ({ room, status, booking, onClick }) => {
   const openWhatsApp = (e, phoneNumber) => {
     e.stopPropagation(); // מניעת המשך הקליק לכרטיס
     if (phoneNumber) {
+      // בדיקה אם המספר מתחיל עם קידומת בינלאומית (+)
+      const startsWithPlus = phoneNumber.trim().startsWith('+');
+      
       // עיבוד מספר הטלפון לפורמט בינלאומי תקין
       let processedNumber = phoneNumber.replace(/\D/g, '');
       
@@ -135,9 +138,16 @@ const RoomCard = ({ room, status, booking, onClick }) => {
         processedNumber = processedNumber.substring(1);
       }
       
-      // אם המספר לא מתחיל ב-972 או +, נוסיף קידומת ישראל
-      if (!processedNumber.startsWith('972') && !processedNumber.startsWith('+')) {
-        processedNumber = '972' + processedNumber;
+      // אם המספר התחיל עם + - הוא כבר בפורמט בינלאומי
+      // רק אם המספר לא התחיל עם + וגם לא מתחיל ב-972, נוסיף קידומת ישראל
+      if (!startsWithPlus && !processedNumber.startsWith('972')) {
+        // בדיקה אם המספר מתחיל בקוד מדינה אחר (לפי אורך וספרה ראשונה)
+        const startsWithCountryCode = /^[1-9][0-9]/.test(processedNumber) && processedNumber.length > 6;
+        
+        // נוסיף 972 רק אם זה מספר ישראלי (שלא מתחיל בקוד מדינה אחר)
+        if (!startsWithCountryCode) {
+          processedNumber = '972' + processedNumber;
+        }
       }
       
       // פתיחת WhatsApp Web או האפליקציה
@@ -266,6 +276,9 @@ Warm regards,
     // פתיחת וואטסאפ עם ההודעה המתאימה
     const phoneNumber = getPhoneNumber();
     if (phoneNumber) {
+      // בדיקה אם המספר מתחיל עם קידומת בינלאומית (+)
+      const startsWithPlus = phoneNumber.trim().startsWith('+');
+      
       // עיבוד מספר הטלפון לפורמט בינלאומי תקין
       let processedNumber = phoneNumber.replace(/\D/g, '');
       
@@ -274,9 +287,16 @@ Warm regards,
         processedNumber = processedNumber.substring(1);
       }
       
-      // אם המספר לא מתחיל ב-972 או +, נוסיף קידומת ישראל
-      if (!processedNumber.startsWith('972') && !processedNumber.startsWith('+')) {
-        processedNumber = '972' + processedNumber;
+      // אם המספר התחיל עם + - הוא כבר בפורמט בינלאומי
+      // רק אם המספר לא התחיל עם + וגם לא מתחיל ב-972, נוסיף קידומת ישראל
+      if (!startsWithPlus && !processedNumber.startsWith('972')) {
+        // בדיקה אם המספר מתחיל בקוד מדינה אחר (לפי אורך וספרה ראשונה)
+        const startsWithCountryCode = /^[1-9][0-9]/.test(processedNumber) && processedNumber.length > 6;
+        
+        // נוסיף 972 רק אם זה מספר ישראלי (שלא מתחיל בקוד מדינה אחר)
+        if (!startsWithCountryCode) {
+          processedNumber = '972' + processedNumber;
+        }
       }
       
       const encodedMessage = encodeURIComponent(message);
@@ -422,7 +442,7 @@ Warm regards,
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               {/* אייקון צ'ק-אין אוטומטי להזמנות עם צ'ק-אין היום */}
-              {isCheckInToday && (
+              {isCheckInToday && hasPhoneNumber && (
                 <Tooltip title="שלח הודעת צ'ק-אין">
                   <IconButton 
                     size="small"

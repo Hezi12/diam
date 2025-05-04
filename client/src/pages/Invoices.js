@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   Box, 
   Typography, 
@@ -43,6 +43,9 @@ import CreateInvoiceDialog from '../components/invoices/CreateInvoiceDialog';
 import { STYLE_CONSTANTS } from '../styles/StyleConstants';
 import { useNavigate } from 'react-router-dom';
 import invoiceService from '../services/invoiceService';
+import { API_URL, API_ENDPOINTS } from '../config/apiConfig';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const documentTypesHebrew = {
   invoice: 'חשבונית מס',
@@ -190,9 +193,15 @@ const Invoices = () => {
   // הורדת חשבונית
   const handleDownloadInvoice = async (id, invoiceNumber) => {
     try {
-      const response = await axios.get(`/api/invoices/${id}/pdf`, {
+      // מנסה לקבל את הקובץ מהשרת
+      const response = await axios.get(`${API_URL}/api/invoices/${id}/pdf`, {
         responseType: 'blob'
       });
+      
+      // בדיקה שהתקבל קובץ תקין
+      if (response.data.size === 0) {
+        throw new Error('התקבל קובץ ריק');
+      }
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -208,10 +217,170 @@ const Invoices = () => {
       );
     } catch (error) {
       console.error('שגיאה בהורדת החשבונית:', error);
-      enqueueSnackbar(
-        isEnglish ? 'Error downloading invoice' : 'שגיאה בהורדת החשבונית',
-        { variant: 'error' }
-      );
+      
+      try {
+        // מנסה לקבל את פרטי החשבונית
+        const invoiceResponse = await axios.get(`${API_URL}/api/invoices/${id}`);
+        
+        if (!invoiceResponse.data.success || !invoiceResponse.data.invoice) {
+          throw new Error('לא ניתן לקבל את פרטי החשבונית');
+        }
+        
+        const invoice = invoiceResponse.data.invoice;
+        
+        // אם אין פרטי חשבונית מספיקים
+        if (!invoice.items || invoice.items.length === 0) {
+          throw new Error('פרטי החשבונית חסרים או לא מלאים');
+        }
+        
+        // יצירת אלמנט זמני להצגת החשבונית
+        const tempDiv = document.createElement('div');
+        tempDiv.id = 'temp-invoice-content';
+        tempDiv.style.position = 'fixed';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.width = '800px';
+        tempDiv.style.backgroundColor = 'white';
+        tempDiv.style.padding = '20px';
+        tempDiv.style.direction = 'rtl';
+        tempDiv.style.fontFamily = 'Assistant, Arial, sans-serif';
+        document.body.appendChild(tempDiv);
+        
+        // נקבע את מיקום החברה לפי מספר החשבונית
+        // חשבוניות שמסתיימות ב-01 אז זה אור יהודה, 02 לרוטשילד
+        let isAirport = false;
+        if (invoice.invoiceNumber) {
+          isAirport = invoice.invoiceNumber.endsWith('-01');
+        }
+        
+        // עיצוב החשבונית - בדיוק כמו התבנית המקורית
+        tempDiv.innerHTML = `
+          <div style="border: 1px solid #ccc; padding: 20px; max-width: 800px; direction: rtl; background-color: white;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+              <div>
+                <h2 style="margin: 0; color: #333;">דיאם אס הוטלס</h2>
+                <p style="margin: 5px 0; color: #666;">${isAirport ? 'הארז 12, אור יהודה' : 'רוטשילד 79, פתח תקווה'}</p>
+                <p style="margin: 5px 0; color: #666;">טלפון: 050-6070160</p>
+                <p style="margin: 5px 0; color: #666;">diamshotels@gmail.com</p>
+              </div>
+              <div style="text-align: left;">
+                <h1 style="margin: 0; color: #333; font-size: 24px;">
+                  ${invoice.documentType === 'invoice' ? 'חשבונית מס' : 
+                    invoice.documentType === 'invoice_receipt' ? 'חשבונית מס/קבלה' : 
+                    invoice.documentType === 'credit_invoice' ? 'חשבונית זיכוי' : 'חשבונית'}
+                </h1>
+                <p style="margin: 5px 0; font-size: 18px; color: #666;">מספר: ${invoice.invoiceNumber}</p>
+                <p style="margin: 5px 0; color: #666;">תאריך: ${new Date(invoice.issueDate).toLocaleDateString('he-IL')}</p>
+                ${invoice.bookingNumber ? `<p style="margin: 5px 0; color: #666;">הזמנה מספר: ${invoice.bookingNumber}</p>` : ''}
+              </div>
+            </div>
+            
+            <div style="border: 1px solid #eee; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9;">
+              <h3 style="margin: 0 0 10px 0; color: #333;">פרטי לקוח</h3>
+              <p style="margin: 2px 0; color: #666;"><strong>שם:</strong> ${invoice.customer?.name || ''}</p>
+              ${invoice.customer?.identifier ? `<p style="margin: 2px 0; color: #666;"><strong>ת.ז/ח.פ:</strong> ${invoice.customer.identifier}</p>` : ''}
+              ${invoice.customer?.address ? `<p style="margin: 2px 0; color: #666;"><strong>כתובת:</strong> ${invoice.customer.address}</p>` : ''}
+              ${invoice.customer?.phone ? `<p style="margin: 2px 0; color: #666;"><strong>טלפון:</strong> ${invoice.customer.phone}</p>` : ''}
+              ${invoice.customer?.email ? `<p style="margin: 2px 0; color: #666;"><strong>דוא"ל:</strong> ${invoice.customer.email}</p>` : ''}
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+              <thead>
+                <tr style="background-color: #f2f2f2;">
+                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">תיאור</th>
+                  <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">כמות</th>
+                  <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">מחיר יחידה</th>
+                  <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">סה"כ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoice.items.map(item => `
+                  <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.description}</td>
+                    <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">${item.quantity}</td>
+                    <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">₪${item.unitPrice.toFixed(2)}</td>
+                    <td style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">₪${item.totalPrice.toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <div style="display: flex; justify-content: flex-end;">
+              <div style="width: 300px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                  <p style="margin: 0; color: #666; font-weight: bold;">סיכום ביניים:</p>
+                  <p style="margin: 0; color: #666;">₪${invoice.subtotal.toFixed(2)}</p>
+                </div>
+                ${invoice.discount ? `
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <p style="margin: 0; color: #666; font-weight: bold;">הנחה:</p>
+                    <p style="margin: 0; color: #666;">₪${invoice.discount.toFixed(2)}</p>
+                  </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                  <p style="margin: 0; color: #666; font-weight: bold;">מע"מ (${(invoice.taxRate * 100).toFixed(0)}%):</p>
+                  <p style="margin: 0; color: #666;">₪${invoice.taxAmount.toFixed(2)}</p>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 2px solid #ccc; margin-top: 10px;">
+                  <p style="margin: 0; color: #333; font-weight: bold; font-size: 18px;">סה"כ לתשלום:</p>
+                  <p style="margin: 0; color: #333; font-weight: bold; font-size: 18px;">₪${invoice.total.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+            
+            ${invoice.notes ? `
+              <div style="margin-top: 30px; padding: 15px; background-color: #f9f9f9; border-radius: 5px;">
+                <h3 style="margin: 0 0 10px 0; color: #333;">הערות</h3>
+                <p style="margin: 0; color: #666;">${invoice.notes}</p>
+              </div>
+            ` : ''}
+          </div>
+        `;
+        
+        try {
+          // השתמש ב-html2canvas ליצירת תמונה מהחשבונית
+          const canvas = await html2canvas(tempDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+          });
+          
+          // הגדרות ה-PDF
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
+          
+          // חישוב יחס לשמירה על פרופורציות התמונה
+          const imgWidth = 210; // רוחב A4 במ"מ
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          // הוספת התמונה ל-PDF
+          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+          
+          // הורדת הקובץ
+          pdf.save(`חשבונית-${invoice.invoiceNumber}.pdf`);
+          
+          enqueueSnackbar(
+            isEnglish ? 'Invoice recreated and downloaded successfully' : 'החשבונית שוחזרה והורדה בהצלחה',
+            { variant: 'success' }
+          );
+        } finally {
+          // ניקוי - הסרת האלמנט הזמני מהדף
+          if (tempDiv && tempDiv.parentNode) {
+            tempDiv.parentNode.removeChild(tempDiv);
+          }
+        }
+      } catch (secondError) {
+        console.error('שגיאה בניסיון החלופי:', secondError);
+        enqueueSnackbar(
+          isEnglish 
+            ? `Error downloading invoice: ${secondError.message || 'Please try again later'}` 
+            : `שגיאה בהורדת החשבונית: ${secondError.message || 'נסה שוב מאוחר יותר'}`,
+          { variant: 'error' }
+        );
+      }
     }
   };
   
