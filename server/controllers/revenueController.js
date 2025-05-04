@@ -80,12 +80,14 @@ exports.getMonthlyRevenue = async (req, res) => {
 
     // שליפת כל החדרים באתר
     const allRooms = await Room.find({ location: site });
-    console.log(`נמצאו ${allRooms.length} חדרים באתר ${site}`);
+    const activeRooms = allRooms.filter(room => room.status !== false);
+    console.log(`נמצאו ${allRooms.length} חדרים באתר ${site}, מתוכם ${activeRooms.length} פעילים`);
     
     // 1. חישוב הכנסות יומיות
     const dailyRevenueMap = {};
     const dailyBookingsMap = {};
     const occupancyMap = {};
+    const occupiedRoomDetailsByDay = {}; // מבנה נתונים חדש לשמירת פרטי החדרים התפוסים לכל יום
     
     // אתחול מערכי הכנסות ותפוסה לכל יום בחודש
     for (let day = 1; day <= daysInMonth; day++) {
@@ -96,8 +98,9 @@ exports.getMonthlyRevenue = async (req, res) => {
       dailyBookingsMap[day] = 0;
       occupancyMap[day] = {
         occupiedRooms: 0,
-        totalRooms: allRooms.length
+        totalRooms: activeRooms.length || 1 // מוודא שלא נחלק באפס אם אין חדרים פעילים
       };
+      occupiedRoomDetailsByDay[day] = new Set(); // שימוש ב-Set למניעת כפילויות באופן אוטומטי
     }
     
     // חישוב הכנסה יומית והזמנות יומיות
@@ -109,24 +112,23 @@ exports.getMonthlyRevenue = async (req, res) => {
       const bookingStart = new Date(Math.max(booking.checkIn, startDate));
       const bookingEnd = new Date(Math.min(booking.checkOut, endDate));
       
-      // מספר ימים שהחדר תפוס בחודש זה
-      const daysInThisMonth = Math.ceil((bookingEnd - bookingStart) / (1000 * 60 * 60 * 24));
+      // מספר ימים שהחדר תפוס בחודש זה (לא כולל יום הצ'ק-אאוט)
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysInThisMonth = Math.max(1, Math.ceil((bookingEnd - bookingStart) / msPerDay) - (bookingEnd.getTime() === endDate.getTime() ? 0 : 1));
       
       // תעריף יומי
-      const dailyRate = booking.price / 
-        Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24));
+      const totalBookingDays = Math.ceil((booking.checkOut - booking.checkIn) / msPerDay);
+      const dailyRate = booking.price / totalBookingDays;
       
       // סך ההכנסה מההזמנה בחודש זה
       const totalBookingRevenue = dailyRate * daysInThisMonth;
       
-      console.log(`מחשב הכנסה להזמנה #${booking.bookingNumber}: ימים בחודש=${daysInThisMonth}, תעריף יומי=${dailyRate}, סך הכנסה=${totalBookingRevenue}`);
+      console.log(`מחשב הכנסה להזמנה #${booking.bookingNumber}: ימים בחודש=${daysInThisMonth}, תעריף יומי=${dailyRate}, סך הכנסה=${totalBookingRevenue}, חדר=${booking.room?.roomNumber || 'לא ידוע'}`);
       
-      // במקום להוסיף את התעריף היומי לכל יום נפרד, נוסיף רק את ההכנסה היומית האמיתית
       // חלוקה שווה של ההכנסה על פני ימי ההזמנה בחודש זה
-      const revenuePerDay = totalBookingRevenue / daysInThisMonth;
+      const revenuePerDay = daysInThisMonth > 0 ? totalBookingRevenue / daysInThisMonth : 0;
       
-      // נשתמש בלולאה שיוצרת מערך של תאריכים בין תאריך ההתחלה וסיום
-      // זה מבטיח שהימים יתאימו בדיוק לימים שההזמנה בתוקף
+      // יצירת מערך של כל התאריכים שהחדר תפוס בהם (לא כולל יום הצ'ק-אאוט)
       const dates = [];
       let currentDate = new Date(bookingStart);
       
@@ -135,41 +137,44 @@ exports.getMonthlyRevenue = async (req, res) => {
         currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      // יצירת מבנה נתונים לניהול חדרים על פי מספר חדר כדי למנוע ספירה כפולה
-      const roomTracker = {};
-      
       // עכשיו נעבור על מערך התאריכים ונוסיף את ההכנסה היומית לכל יום
       dates.forEach(date => {
         const day = date.getDate();
+        
+        // מוסיפים הכנסה והזמנה לכל יום
         dailyRevenueMap[day] += revenuePerDay;
         dailyBookingsMap[day]++;
         
-        // רק אם יש מספר חדר ואם החדר עוד לא נספר ביום זה
+        // מוסיפים את החדר לרשימת החדרים התפוסים ביום זה
         if (booking.room && booking.room.roomNumber) {
-          const roomNumber = booking.room.roomNumber;
-          
-          // יוצרים מפתח ייחודי עבור שילוב של יום וחדר
-          const roomDayKey = `${day}_${roomNumber}`;
-          
-          // נוודא שלא ספרנו את החדר הזה כבר ביום הזה
-          if (!roomTracker[roomDayKey]) {
-            roomTracker[roomDayKey] = true;
-            occupancyMap[day].occupiedRooms++;
-            
-            // בדיקת תקינות - לא יותר חדרים תפוסים ממספר החדרים הכולל
-            if (occupancyMap[day].occupiedRooms > occupancyMap[day].totalRooms) {
-              console.warn(`אזהרה: ביום ${day} יש יותר חדרים תפוסים (${occupancyMap[day].occupiedRooms}) ממספר החדרים הכולל (${occupancyMap[day].totalRooms})`);
-              occupancyMap[day].occupiedRooms = occupancyMap[day].totalRooms;
-            }
-          }
-        } else {
-          // אם אין מידע על מספר חדר - מעלים רק אם עדיין יש מקום
-          if (occupancyMap[day].occupiedRooms < occupancyMap[day].totalRooms) {
-            occupancyMap[day].occupiedRooms++;
-          }
+          const roomIdentifier = booking.room._id.toString();
+          occupiedRoomDetailsByDay[day].add(roomIdentifier);
         }
       });
     });
+    
+    // עכשיו נעדכן את מספר החדרים התפוסים לכל יום על פי הנתונים שאספנו
+    for (let day = 1; day <= daysInMonth; day++) {
+      if (occupiedRoomDetailsByDay[day]) {
+        const uniqueOccupiedRooms = occupiedRoomDetailsByDay[day].size;
+        occupancyMap[day].occupiedRooms = uniqueOccupiedRooms;
+        
+        // וידוא שאין יותר חדרים תפוסים ממספר החדרים הפעילים הכולל
+        if (occupancyMap[day].occupiedRooms > occupancyMap[day].totalRooms) {
+          console.warn(`אזהרה: ביום ${day} יש יותר חדרים תפוסים (${occupancyMap[day].occupiedRooms}) ממספר החדרים הפעילים (${occupancyMap[day].totalRooms})`);
+          console.log(`חדרים תפוסים ביום ${day}:`, Array.from(occupiedRoomDetailsByDay[day]));
+          occupancyMap[day].occupiedRooms = occupancyMap[day].totalRooms;
+        }
+      }
+    }
+    
+    // הדפסת סיכום תפוסה יומית
+    for (let day = 1; day <= daysInMonth; day++) {
+      if (occupancyMap[day].occupiedRooms > 0) {
+        const occupancyRate = Math.round((occupancyMap[day].occupiedRooms / occupancyMap[day].totalRooms) * 100);
+        console.log(`יום ${day}: תפוסה=${occupancyRate}%, חדרים תפוסים=${occupancyMap[day].occupiedRooms}/${occupancyMap[day].totalRooms}`);
+      }
+    }
     
     // הדפסת סיכום הכנסות יומיות
     for (let day = 1; day <= daysInMonth; day++) {
