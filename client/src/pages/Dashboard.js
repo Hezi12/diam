@@ -276,10 +276,13 @@ const Dashboard = () => {
   return (
     <Box sx={{ pb: isMobile ? 6 : 2 }}>
       <Box sx={{ 
-        pb: isMobile ? 1 : 2,
+        pb: isMobile ? 0 : 2,
         pt: isMobile ? 0 : 1,
-        position: 'relative',
+        position: 'sticky',
+        top: 0,
+        width: '100%',
         zIndex: 10,
+        backgroundColor: theme.palette.background.default,
       }}>
         <DashboardDateNav 
           currentDate={currentDate} 

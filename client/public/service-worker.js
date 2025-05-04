@@ -1,5 +1,5 @@
 // שם ה-Cache לשמירת קבצים
-const CACHE_NAME = 'diam-hotel-cache-v2';
+const CACHE_NAME = 'diam-hotel-cache-v3';
 
 // רשימת הקבצים שיש לשמור ב-Cache
 const urlsToCache = [
@@ -31,6 +31,11 @@ self.addEventListener('install', event => {
 
 // האזנה לבקשות רשת וניסיון להחזיר תוכן מה-Cache
 self.addEventListener('fetch', event => {
+  // בדיקה אם הבקשה תקינה
+  if (!event.request || !event.request.url || !event.request.method) {
+    return;
+  }
+
   // מתעלם מבקשות שאינן GET
   if (event.request.method !== 'GET') return;
   
@@ -39,60 +44,89 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // בודק אם זו בקשת ניווט (HTML)
+  const isHTMLRequest = event.request.mode === 'navigate' || 
+                       (event.request.method === 'GET' && 
+                        event.request.headers.get('accept') && 
+                        event.request.headers.get('accept').includes('text/html'));
+
   // טיפול בקבצי סטטיים מהבילד
-  const isStaticAsset = event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|ico)$/i);
+  const isStaticAsset = event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|ico|json)$/i);
 
-  if (isStaticAsset) {
-    // עבור משאבים סטטיים, ננסה קודם מהרשת ואם נכשל, ננסה מה-cache
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
-
-  // עבור שאר הבקשות (בעיקר ניווט HTML), ננסה קודם מה-cache ואז מהרשת
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        
-        return fetch(event.request)
+  try {
+    if (isStaticAsset) {
+      // עבור משאבים סטטיים, ננסה קודם מהרשת ואם נכשל, ננסה מה-cache
+      event.respondWith(
+        fetch(event.request)
           .then(response => {
-            // בודק אם התגובה תקפה
+            // בדיקה שהתגובה תקינה
             if (!response || response.status !== 200) {
               return response;
             }
             
-            // מכין עותק של התגובה לפני שהיא נצרכת
+            // העתקת התגובה ושמירה במטמון
             const responseToCache = response.clone();
-            
-            // מוסיף את התגובה למטמון
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
-              });
+              })
+              .catch(err => console.log('שגיאה בשמירה במטמון:', err));
             
             return response;
           })
-          .catch(error => {
-            // אם הבקשה היא לדף ניווט והרשת נכשלה, חזור לדף הבית מהמטמון
-            if (event.request.mode === 'navigate') {
-              return caches.match('/');
+          .catch(() => {
+            return caches.match(event.request)
+              .then(cachedResponse => {
+                if (cachedResponse) {
+                  return cachedResponse;
+                }
+                // אם אין תגובה במטמון, החזר דף שגיאה או הודעת שגיאה בסיסית
+                if (isHTMLRequest) {
+                  return caches.match('/');
+                }
+                return new Response('Resource not found', { status: 404 });
+              });
+          })
+      );
+    } else if (isHTMLRequest) {
+      // עבור בקשות HTML, החזר את הדף מהמטמון אם קיים, אחרת נסה להביא מהרשת
+      event.respondWith(
+        caches.match('/')
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              // נסה להביא גרסה עדכנית מהרשת
+              const fetchPromise = fetch(event.request)
+                .then(networkResponse => {
+                  // עדכן את המטמון עם הגרסה החדשה
+                  caches.open(CACHE_NAME)
+                    .then(cache => {
+                      cache.put(event.request, networkResponse.clone());
+                    })
+                    .catch(err => console.log('שגיאה בעדכון המטמון:', err));
+                  
+                  return networkResponse;
+                })
+                .catch(() => {
+                  // אם נכשל, השתמש בגרסה מהמטמון
+                  return cachedResponse;
+                });
+              
+              // החזר מהמטמון תוך כדי ניסיון להביא מהרשת
+              return cachedResponse;
             }
             
-            console.error('שגיאה בטעינת משאב:', error);
-            return new Response('שגיאת רשת', { 
-              status: 503, 
-              statusText: 'השירות אינו זמין' 
-            });
-          });
-      })
-  );
+            // אם אין במטמון, נסה להביא מהרשת
+            return fetch(event.request);
+          })
+      );
+    } else {
+      // עבור שאר הבקשות, השאר את ברירת המחדל של הדפדפן
+      return;
+    }
+  } catch (error) {
+    console.error('שגיאה בטיפול בבקשה:', error);
+    return;
+  }
 });
 
 // מחיקת מטמונים ישנים בעת הפעלת Service Worker חדש
@@ -109,6 +143,7 @@ self.addEventListener('activate', event => {
             console.log('מחיקת מטמון ישן:', cacheName);
             return caches.delete(cacheName);
           }
+          return null;
         })
       );
     }).then(() => {
