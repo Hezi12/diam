@@ -1,10 +1,10 @@
 import React from 'react';
-import { Box, IconButton, Typography, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import { Box, IconButton, Typography, Tooltip } from '@mui/material';
 import { 
   ArrowBack, 
   ArrowForward, 
-  Today as TodayIcon,
-  CleaningServices as CleaningIcon
+  Today as TodayIcon, 
+  CleaningServices as CleaningIcon 
 } from '@mui/icons-material';
 import { format, addDays, subDays, isToday, isValid } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -12,176 +12,128 @@ import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { Link } from 'react-router-dom';
 
 /**
- * קומפוננטת ניווט בין תאריכים בדאשבורד עם עיצוב מינימליסטי מודרני
+ * רכיב ניווט תאריכים פשוט ומינימליסטי
  */
 export const DashboardDateNav = ({ currentDate, onDateChange }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
   // וידוא שהתאריך תקין
   const safeDate = currentDate instanceof Date && isValid(currentDate) ? currentDate : new Date();
-  
-  const handleNextDay = () => {
-    const newDate = addDays(safeDate, 1);
-    onDateChange(newDate);
-  };
-
-  const handlePrevDay = () => {
-    const newDate = subDays(safeDate, 1);
-    onDateChange(newDate);
-  };
-  
-  // פונקציה לחזרה ליום הנוכחי
-  const handleToday = () => {
-    onDateChange(new Date());
-  };
   
   // בדיקה אם התאריך הנוכחי הוא היום
   const isCurrentDateToday = isToday(safeDate);
   
-  // פורמט תאריך מינימליסטי ומודרני - יום בשבוע ותאריך
+  // פורמט התאריך
   const dayName = format(safeDate, 'EEEE', { locale: he });
-  const dayNameShort = dayName.charAt(0).toUpperCase() + dayName.slice(1); // שם היום בשבוע
-  const dayNum = format(safeDate, 'd', { locale: he }); // מספר היום בחודש
-  const monthNum = format(safeDate, 'M', { locale: he }); // מספר החודש
+  const formattedDay = format(safeDate, 'd', { locale: he });
+  const formattedMonth = format(safeDate, 'MMM', { locale: he });
+  const formattedYear = format(safeDate, 'yyyy', { locale: he });
+  
+  // צבעים
+  const accentColor = STYLE_CONSTANTS.colors.airport.main;
+  
+  // פונקציות ניווט
+  const handlePrevDay = () => onDateChange(subDays(safeDate, 1));
+  const handleNextDay = () => onDateChange(addDays(safeDate, 1));
+  const handleToday = () => onDateChange(new Date());
 
   return (
     <Box sx={{ 
-      display: 'flex', 
-      alignItems: 'center',
+      display: 'flex',
       justifyContent: 'space-between',
-      py: isMobile ? 0.8 : 1.5,
-      mt: isMobile ? 2 : 0,
-      mb: 1.5,
+      alignItems: 'center',
+      py: 1.5,
+      my: 1,
       width: '100%',
-      maxWidth: '98%',
-      mx: 'auto',
-      position: 'relative',
-      zIndex: 20,
-      borderRadius: isMobile ? '12px' : 0,
-      backgroundColor: isMobile ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-      backdropFilter: isMobile ? 'blur(8px)' : 'none',
-      boxShadow: isMobile ? '0 2px 8px rgba(0, 0, 0, 0.05)' : 'none',
-      border: isMobile ? '1px solid rgba(0, 0, 0, 0.05)' : 'none',
     }}>
-      {/* אזור ניווט בתאריכים - עכשיו בצד ימין */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center',
-        flexGrow: 0,
-        minWidth: isMobile ? '120px' : '150px',
-        justifyContent: 'flex-start'
-      }}>
-        {/* כפתור לחזרה לתאריך קודם */}
+      {/* תצוגת תאריך וחיצים - בצד ימין */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', pl: 2 }}>
+        {/* חץ ימינה - יום קודם */}
         <IconButton 
-          onClick={handlePrevDay} 
-          size={isMobile ? "small" : "medium"}
+          onClick={handlePrevDay}
+          size="small"
           sx={{ 
-            color: 'text.secondary',
-            p: isMobile ? 0.5 : 1,
+            color: accentColor,
+            mr: 1,
+            p: 0.5,
           }}
         >
-          <ArrowForward fontSize={isMobile ? "small" : "small"} />
+          <ArrowForward fontSize="small" />
         </IconButton>
         
+        {/* תצוגת תאריך */}
         <Box sx={{ 
-          mx: isMobile ? 0.5 : 1, 
-          display: 'flex',
-          alignItems: 'center',
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          mx: 1,
         }}>
-          <Typography 
-            variant={isMobile ? "body1" : "h6"}
-            sx={{ 
-              fontWeight: 500,
-              color: STYLE_CONSTANTS.colors.airport.main,
-              fontSize: isMobile ? '0.95rem' : '1.1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '2px' : '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Box 
-              component="span" 
-              sx={{ 
-                fontWeight: 500,
-                color: STYLE_CONSTANTS.colors.airport.main,
-              }}
-            >
-              {`${dayNum}/${monthNum}`}
-            </Box>
-            <Box component="span" sx={{ 
-              fontWeight: 400,
-              fontSize: isMobile ? '0.75rem' : '0.95rem', 
-              opacity: 0.75,
-              display: 'inline' // החזרת תצוגת שם היום במובייל
-            }}>
-              {dayNameShort}
-            </Box>
+          <Typography sx={{ 
+            fontSize: '0.95rem',
+            fontWeight: 500,
+            color: '#333',
+          }}>
+            {dayName}
           </Typography>
           
-          {/* כפתור לחזרה ליום הנוכחי */}
-          {!isCurrentDateToday && (
-            <Tooltip title="היום" placement="top" arrow>
-              <IconButton 
-                onClick={handleToday} 
-                size="small"
-                sx={{ 
-                  ml: 0.5,
-                  p: isMobile ? 0.2 : 0.3,
-                  color: STYLE_CONSTANTS.colors.airport.main,
-                  opacity: 0.8,
-                  '&:hover': {
-                    opacity: 1,
-                    bgcolor: 'transparent'
-                  }
-                }}
-              >
-                <TodayIcon sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }} />
-              </IconButton>
-            </Tooltip>
-          )}
+          <Typography sx={{ 
+            fontSize: '0.85rem',
+            color: '#666',
+            mt: 0.2,
+          }}>
+            {formattedDay} {formattedMonth} {formattedYear}
+          </Typography>
         </Box>
         
-        {/* כפתור לקידום לתאריך הבא */}
+        {/* חץ שמאלה - יום הבא */}
         <IconButton 
-          onClick={handleNextDay} 
-          size={isMobile ? "small" : "medium"} 
+          onClick={handleNextDay}
+          size="small"
           sx={{ 
-            color: 'text.secondary',
-            p: isMobile ? 0.5 : 1,
+            color: accentColor,
+            ml: 1,
+            p: 0.5,
           }}
         >
-          <ArrowBack fontSize={isMobile ? "small" : "small"} />
+          <ArrowBack fontSize="small" />
         </IconButton>
+        
+        {/* אייקון חזרה ליום הנוכחי */}
+        {!isCurrentDateToday && (
+          <Tooltip title="חזור להיום" placement="top" arrow>
+            <IconButton 
+              onClick={handleToday}
+              size="small"
+              sx={{ 
+                color: accentColor,
+                opacity: 0.8,
+                ml: 1,
+                '&:hover': {
+                  opacity: 1
+                }
+              }}
+            >
+              <TodayIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
       
-      {/* אזור סרגל כלים - עכשיו בצד שמאל */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: isMobile ? 0.5 : 1,
-        position: 'static',
-      }}>
+      {/* ניווט במרכז - ריק */}
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      </Box>
+      
+      {/* אייקון ניקיון בצד שמאל */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', pr: 2 }}>
         <Tooltip title="דף ניקיון" placement="bottom">
           <IconButton 
             component={Link} 
             to="/cleaning"
-            size="small" 
+            size="small"
             sx={{ 
-              color: '#499C56',  // צבע ירוק יותר כהה
-              bgcolor: 'rgba(73, 156, 86, 0.12)', // רקע ירוק שקוף עם יותר אטימות
-              '&:hover': {
-                bgcolor: 'rgba(73, 156, 86, 0.2)',
-                transform: 'translateY(-2px)',
-                transition: 'all 0.2s'
-              },
-              p: isMobile ? 0.5 : 1,
-              borderRadius: '8px',
-              border: '1px solid rgba(73, 156, 86, 0.15)' // הוספת מסגרת דקה
+              color: '#408B4E',
+              p: 0.5,
             }}
           >
-            <CleaningIcon fontSize={isMobile ? "small" : "small"} />
+            <CleaningIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
