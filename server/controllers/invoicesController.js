@@ -30,29 +30,36 @@ exports.createInvoice = async (req, res) => {
       });
     }
 
+    // קבלת המיקום מהחשבונית או ברירת מחדל 'rothschild'
+    const location = invoiceData.location || 'rothschild';
+    
     // קבלת מספר חשבונית - אם נשלח מהלקוח נשתמש בו, אחרת ניצור חדש
-    const invoiceNumber = invoiceData.invoiceNumber || await getNextInvoiceNumber();
+    const invoiceNumber = invoiceData.invoiceNumber || await getNextInvoiceNumber(location);
     
     // יצירת אובייקט חשבונית עם מספר חשבונית ייחודי
     const invoice = new Invoice({
       ...invoiceData,
       invoiceNumber,
-      status: invoiceData.status || 'active' // שימוש בסטטוס ברירת מחדל אם לא סופק
+      status: invoiceData.status || 'active', // שימוש בסטטוס ברירת מחדל אם לא סופק
+      bookingNumber: invoiceData.bookingNumber || null // שמירת מספר ההזמנה אם יש
     });
 
     // קישור להזמנה אם נשלח מזהה הזמנה
     if (bookingId) {
       try {
-      const booking = await Booking.findById(bookingId);
-      if (!booking) {
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
           return res.status(404).json({ 
             success: false, 
             error: `הזמנה עם מזהה ${bookingId} לא נמצאה` 
           });
-      }
+        }
         
         // קישור בין החשבונית להזמנה
-        invoice.booking = bookingId;
+        invoice.booking = booking._id;
+        
+        // שמירת מספר ההזמנה בחשבונית
+        invoice.bookingNumber = booking.bookingNumber;
         
         // אם אין פרטי לקוח בחשבונית, השתמש בפרטי הלקוח מההזמנה
         if (!invoice.customer || Object.keys(invoice.customer).length === 0) {
@@ -123,7 +130,9 @@ exports.getInvoices = async (req, res) => {
       toDate,
       invoiceNumber,
       minAmount,
-      maxAmount
+      maxAmount,
+      documentType,
+      location
     } = req.query;
     
     // בניית מסנן הזמנות
@@ -132,6 +141,16 @@ exports.getInvoices = async (req, res) => {
     // סינון לפי סטטוס
     if (status) {
       filter.status = status;
+    }
+    
+    // סינון לפי סוג מסמך
+    if (documentType) {
+      filter.documentType = documentType;
+    }
+    
+    // סינון לפי מיקום
+    if (location) {
+      filter.location = location;
     }
     
     // סינון לפי מספר חשבונית
@@ -481,12 +500,45 @@ exports.saveInvoicePdf = async (req, res) => {
 };
 
 /**
- * קבלת מספר חשבונית הבא בסדרה ללא יצירת חשבונית בפועל
- * משמש לתצוגה מקדימה
+ * פונקציה פנימית - קבלת מספר חשבונית הבא בסדרה
+ * @param {string} location - המיקום: 'airport' עבור אור יהודה או 'rothschild' עבור רוטשילד
  */
+async function getNextInvoiceNumber(location = 'rothschild') {
+  // הגדרת קוד המיקום
+  const locationCode = location === 'airport' ? '01' : '02';
+  
+  // קבלת החשבונית האחרונה עם הקוד המתאים
+  const regexPattern = `-${locationCode}$`;
+  
+  // קבלת החשבונית האחרונה עם קוד המיקום המתאים
+  const lastInvoice = await Invoice.findOne({
+    invoiceNumber: { $regex: regexPattern }
+  }).sort({ invoiceNumber: -1 });
+  
+  let nextNumber = 1000; // מספר התחלתי
+  
+  if (lastInvoice) {
+    // חילוץ המספר הסידורי מהמספר האחרון
+    const lastNumberStr = lastInvoice.invoiceNumber.split('-')[0];
+    const lastNumber = parseInt(lastNumberStr, 10);
+    
+    if (!isNaN(lastNumber)) {
+      nextNumber = lastNumber + 1;
+    }
+  }
+  
+  // מספר חשבונית בפורמט: NNNN-XX (NNNN הוא המספר הסידורי, XX הוא קוד המיקום)
+  return `${nextNumber}-${locationCode}`;
+}
+
+// עדכון פונקציית קבלת מספר חשבונית הבאה בסדרה באמצעות API
 exports.getNextInvoiceNumber = async (req, res) => {
   try {
-    const nextNumber = await getNextInvoiceNumber();
+    // קבלת המיקום מפרמטר בשאילתה, אם לא צוין, ברירת המחדל היא 'rothschild'
+    const location = req.query.location || 'rothschild';
+    
+    // קבלת מספר החשבונית הבא לפי המיקום
+    const nextNumber = await getNextInvoiceNumber(location);
     
     res.status(200).json({
       success: true,
@@ -503,33 +555,35 @@ exports.getNextInvoiceNumber = async (req, res) => {
 };
 
 /**
- * פונקציה פנימית - קבלת מספר חשבונית הבא בסדרה
+ * בדיקה אם קיימת חשבונית להזמנה
  */
-async function getNextInvoiceNumber() {
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  
-  // בדיקה אם קיימות חשבוניות כבר לחודש הנוכחי
-  const regexPattern = `^${year}-${month}-`;
-  
-  // קבלת החשבונית האחרונה עם הפרפיקס הזה
-  const lastInvoice = await Invoice.findOne({
-    invoiceNumber: { $regex: regexPattern }
-  }).sort({ invoiceNumber: -1 });
-  
-  let nextNumber = 1;
-  
-  if (lastInvoice) {
-    // חילוץ המספר מהמספר האחרון
-    const lastNumberStr = lastInvoice.invoiceNumber.split('-')[2];
-    const lastNumber = parseInt(lastNumberStr, 10);
+exports.checkBookingInvoice = async (req, res) => {
+  try {
+    const bookingId = req.params.bookingId;
     
-    if (!isNaN(lastNumber)) {
-      nextNumber = lastNumber + 1;
+    if (!bookingId) {
+      return res.status(400).json({ success: false, message: 'מזהה הזמנה חסר' });
     }
+    
+    // בדיקה האם קיימת חשבונית פעילה להזמנה זו
+    const invoice = await Invoice.findOne({ 
+      booking: bookingId,
+      status: 'active'
+    });
+    
+    // בדיקה אם קיימת הזמנה
+    const booking = await Booking.findById(bookingId);
+    
+    return res.json({ 
+      success: true, 
+      exists: !!invoice, 
+      invoiceId: invoice ? invoice._id : null,
+      invoiceNumber: invoice ? invoice.invoiceNumber : null,
+      bookingNumber: booking ? booking.bookingNumber : null
+    });
+    
+  } catch (error) {
+    console.error('שגיאה בבדיקת חשבונית להזמנה:', error);
+    return res.status(500).json({ success: false, message: 'שגיאה בבדיקת חשבונית להזמנה' });
   }
-  
-  // מספר חשבונית בפורמט: YYYY-MM-NNNN
-  return `${year}-${month}-${String(nextNumber).padStart(4, '0')}`;
-} 
+}; 

@@ -27,6 +27,13 @@ const InvoiceSchema = new Schema({
     default: 'active'
   },
   
+  // מיקום החשבונית (אור יהודה או רוטשילד)
+  location: {
+    type: String,
+    enum: ['airport', 'rothschild'],
+    default: 'rothschild'
+  },
+  
   // תאריכים
   issueDate: {
     type: Date,
@@ -55,6 +62,11 @@ const InvoiceSchema = new Schema({
   booking: {
     type: Schema.Types.ObjectId,
     ref: 'Booking'
+  },
+  
+  // מספר ההזמנה הקשורה (אם קיימת)
+  bookingNumber: {
+    type: String
   },
   
   // פרטי השירות

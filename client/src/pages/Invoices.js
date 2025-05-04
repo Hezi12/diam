@@ -22,7 +22,10 @@ import {
   TextField,
   Chip,
   Dialog,
-  Tooltip
+  Tooltip,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -95,7 +98,8 @@ const Invoices = () => {
     toDate: null,
     minAmount: '',
     maxAmount: '',
-    documentType: ''
+    documentType: '',
+    location: ''
   });
   
   // מצב טעינה
@@ -176,7 +180,8 @@ const Invoices = () => {
       toDate: null,
       minAmount: '',
       maxAmount: '',
-      documentType: ''
+      documentType: '',
+      location: ''
     });
     setSearchTerm('');
     setPage(0);
@@ -265,14 +270,108 @@ const Invoices = () => {
   const formatInvoiceNumber = (invoiceNumber) => {
     if (!invoiceNumber) return '-';
     
-    // מספר חשבונית בפורמט YYYY-MM-NNNN
-    const parts = invoiceNumber.split('-');
-    if (parts.length === 3) {
-      return `${parts[0]}-${parts[1]}-${parts[2]}`;
-    }
-    
+    // מספר חשבונית בפורמט החדש: NNNN-XX
+    // מציג את המספר כפי שהוא
     return invoiceNumber;
   };
+
+  // הרנדור של דיאלוג הסינון
+  const renderFilterDialog = () => (
+    <Dialog open={filterOpen} onClose={() => setFilterOpen(false)}>
+      <DialogTitle>
+        {isEnglish ? 'Filter Invoices' : 'סינון חשבוניות'}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 300, pt: 1 }}>
+          {/* סטטוס */}
+          <FormControl fullWidth>
+            <InputLabel>{isEnglish ? 'Status' : 'סטטוס'}</InputLabel>
+            <Select
+              value={filters.status}
+              onChange={(e) => setFilters({...filters, status: e.target.value})}
+              label={isEnglish ? 'Status' : 'סטטוס'}
+            >
+              <MenuItem value="">{isEnglish ? 'All' : 'הכל'}</MenuItem>
+              <MenuItem value="active">{isEnglish ? 'Active' : 'פעילה'}</MenuItem>
+              <MenuItem value="canceled">{isEnglish ? 'Canceled' : 'מבוטלת'}</MenuItem>
+              <MenuItem value="replaced">{isEnglish ? 'Replaced' : 'הוחלפה'}</MenuItem>
+            </Select>
+          </FormControl>
+          
+          {/* סוג מסמך */}
+          <FormControl fullWidth>
+            <InputLabel>{isEnglish ? 'Document Type' : 'סוג מסמך'}</InputLabel>
+            <Select
+              value={filters.documentType}
+              onChange={(e) => setFilters({...filters, documentType: e.target.value})}
+              label={isEnglish ? 'Document Type' : 'סוג מסמך'}
+            >
+              <MenuItem value="">{isEnglish ? 'All' : 'הכל'}</MenuItem>
+              <MenuItem value="invoice">{isEnglish ? 'Invoice' : 'חשבונית מס'}</MenuItem>
+              <MenuItem value="invoice_receipt">{isEnglish ? 'Invoice/Receipt' : 'חשבונית מס/קבלה'}</MenuItem>
+              <MenuItem value="credit_invoice">{isEnglish ? 'Credit Invoice' : 'חשבונית זיכוי'}</MenuItem>
+            </Select>
+          </FormControl>
+          
+          {/* מיקום */}
+          <FormControl fullWidth>
+            <InputLabel>{isEnglish ? 'Location' : 'מיקום'}</InputLabel>
+            <Select
+              value={filters.location}
+              onChange={(e) => setFilters({...filters, location: e.target.value})}
+              label={isEnglish ? 'Location' : 'מיקום'}
+            >
+              <MenuItem value="">{isEnglish ? 'All' : 'הכל'}</MenuItem>
+              <MenuItem value="airport">{isEnglish ? 'Or Yehuda' : 'אור יהודה'}</MenuItem>
+              <MenuItem value="rothschild">{isEnglish ? 'Rothschild' : 'רוטשילד'}</MenuItem>
+            </Select>
+          </FormControl>
+          
+          {/* תאריכים */}
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <DatePicker
+              label={isEnglish ? 'From Date' : 'מתאריך'}
+              value={filters.fromDate}
+              onChange={(date) => setFilters({...filters, fromDate: date})}
+              renderInput={(params) => <TextField {...params} fullWidth />}
+            />
+            <DatePicker
+              label={isEnglish ? 'To Date' : 'עד תאריך'}
+              value={filters.toDate}
+              onChange={(date) => setFilters({...filters, toDate: date})}
+              renderInput={(params) => <TextField {...params} fullWidth />}
+            />
+          </Box>
+          
+          {/* טווח סכומים */}
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              label={isEnglish ? 'Min Amount' : 'סכום מינימלי'}
+              type="number"
+              value={filters.minAmount}
+              onChange={(e) => setFilters({...filters, minAmount: e.target.value})}
+              fullWidth
+            />
+            <TextField
+              label={isEnglish ? 'Max Amount' : 'סכום מקסימלי'}
+              type="number"
+              value={filters.maxAmount}
+              onChange={(e) => setFilters({...filters, maxAmount: e.target.value})}
+              fullWidth
+            />
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleResetFilters} color="inherit">
+          {isEnglish ? 'Reset' : 'אפס'}
+        </Button>
+        <Button onClick={() => setFilterOpen(false)} color="primary">
+          {isEnglish ? 'Apply Filters' : 'החל סינון'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -556,6 +655,9 @@ const Invoices = () => {
           </Box>
         </Box>
       </Dialog>
+      
+      {/* דיאלוג סינון */}
+      {renderFilterDialog()}
     </Container>
   );
 };

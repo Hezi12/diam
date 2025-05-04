@@ -22,12 +22,8 @@ import {
   CircularProgress,
   Alert,
   DialogContentText,
+  Tooltip,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { he } from 'date-fns/locale';
-import { addDays, differenceInDays, format, parse, parseISO } from 'date-fns';
 import {
   Close as CloseIcon,
   Add as AddIcon,
@@ -39,8 +35,14 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   WhatsApp as WhatsAppIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { he } from 'date-fns/locale';
+import { addDays, differenceInDays, format, parse, parseISO } from 'date-fns';
 import axios from 'axios';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
@@ -201,6 +203,9 @@ const NewBookingForm = ({
 
   // מצב חלון יצירת חשבונית
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  
+  // מצב עבור בדיקה אם קיימת חשבונית להזמנה
+  const [hasInvoice, setHasInvoice] = useState(false);
 
   // מצב תהליך שליחת הטופס
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -226,6 +231,20 @@ const NewBookingForm = ({
     guests: 2,
     baseOccupancy: 2
   });
+
+  // בדיקה אם קיימת חשבונית להזמנה
+  const checkIfInvoiceExists = async (bookingId) => {
+    if (!bookingId) return;
+    
+    try {
+      // שליחת בקשה לשרת לבדוק אם קיימת חשבונית להזמנה
+      const response = await axios.get(`/api/invoices/check-booking/${bookingId}`);
+      setHasInvoice(response.data.exists);
+    } catch (error) {
+      console.error('שגיאה בבדיקת קיום חשבונית:', error);
+      setHasInvoice(false);
+    }
+  };
 
   // איפוס הטופס כאשר הדיאלוג נפתח
   useEffect(() => {
@@ -253,6 +272,9 @@ const NewBookingForm = ({
           setIsExistingBooking(true);
           
           setFormData(editFormData);
+
+          // בדיקה אם קיימת חשבונית להזמנה
+          checkIfInvoiceExists(editBooking._id);
 
           // נעילת שדות אם ההזמנה במצב "הושלמה"
           if (editBooking.status === 'completed') {
@@ -974,6 +996,24 @@ const NewBookingForm = ({
           >
             <ReceiptIcon />
           </IconButton>
+          
+          {/* אייקון המציין שקיימת חשבונית */}
+          {hasInvoice && (
+            <Tooltip title="קיימת חשבונית להזמנה זו">
+              <Box sx={{ 
+                color: '#06a271', 
+                display: 'flex', 
+                alignItems: 'center', 
+                mr: 1,
+                fontSize: '0.75rem',
+                fontWeight: 'bold'
+              }}>
+                <CheckCircleIcon sx={{ fontSize: '1.2rem', mr: 0.5 }} />
+                חשבונית
+              </Box>
+            </Tooltip>
+          )}
+          
           <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
             <InputLabel>סטטוס תשלום</InputLabel>
             <Select
@@ -1043,19 +1083,7 @@ const NewBookingForm = ({
       
       <DialogContent sx={{ p: 3, mt: 2 }}>
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={he}>
-          {error && (
-            <Box sx={{ mb: 2 }}>
-              <Paper sx={{ 
-                p: 2, 
-                bgcolor: '#ffebee', 
-                borderRadius: style.card.borderRadius,
-                color: accentColors.red
-              }}>
-                <Typography>{error}</Typography>
-              </Paper>
-            </Box>
-          )}
-          <Grid container spacing={3}>
+        <Grid container spacing={3}>
             {/* חלק 1: פרטי אורח */}
             <Grid item xs={12} md={7}>
               <Paper sx={{ 

@@ -6,6 +6,16 @@ import logService from './logService';
 /**
  * שירות לניהול חשבוניות ותשלומים
  */
+
+// קאש עבור מספרי חשבוניות - מאחסן את המספר האחרון שהתקבל לכל מיקום
+const invoiceNumberCache = {
+  airport: { number: null, timestamp: 0 },
+  rothschild: { number: null, timestamp: 0 }
+};
+
+// זמן תוקף המטמון בשניות
+const CACHE_TTL = 60; // תוקף של דקה
+
 const invoiceService = {
   /**
    * קבלת רשימת חשבוניות
@@ -246,19 +256,37 @@ const invoiceService = {
 
   /**
    * קבלת מספר חשבונית הבא בסדרה
+   * @param {string} location - המיקום (airport או rothschild)
    * @returns {Promise<string>} מספר החשבונית הבא
    */
-  getNextInvoiceNumber: async () => {
+  getNextInvoiceNumber: async (location = 'rothschild') => {
     try {
-      logService.info('מבקש מספר חשבונית הבא');
-      const response = await axios.get(API_ENDPOINTS.invoices.nextNumber);
+      // בדיקה אם יש ערך במטמון שעדיין בתוקף
+      const cacheEntry = invoiceNumberCache[location];
+      const now = Date.now();
+      
+      if (cacheEntry.number && (now - cacheEntry.timestamp) < CACHE_TTL * 1000) {
+        logService.info(`משתמש במספר חשבונית מהמטמון למיקום ${location}:`, cacheEntry.number);
+        return cacheEntry.number;
+      }
+      
+      logService.info('מבקש מספר חשבונית הבא למיקום:', location);
+      const response = await axios.get(`${API_ENDPOINTS.invoices.nextNumber}?location=${location}`);
       
       if (!response.data || !response.data.success) {
         throw new Error('שגיאה בקבלת מספר חשבונית');
       }
       
-      logService.info('התקבל מספר חשבונית הבא:', response.data.nextInvoiceNumber);
-      return response.data.nextInvoiceNumber;
+      const nextNumber = response.data.nextInvoiceNumber;
+      logService.info('התקבל מספר חשבונית הבא:', nextNumber);
+      
+      // שמירה במטמון
+      invoiceNumberCache[location] = {
+        number: nextNumber,
+        timestamp: now
+      };
+      
+      return nextNumber;
     } catch (error) {
       logService.error('שגיאה בקבלת מספר חשבונית הבא:', error);
       const errorInfo = errorService.handleApiError(error, 'fetch next invoice number');

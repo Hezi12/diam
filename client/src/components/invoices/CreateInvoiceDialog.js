@@ -24,7 +24,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Tooltip
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -56,6 +57,8 @@ const CreateInvoiceDialog = ({
     name_en: "Diam S Hotels",
     address: "רוטשילד 79, פתח תקווה",
     address_en: "Rothschild St., Petah Tikva 79",
+    address_airport: "הארז 12, אור יהודה",
+    address_airport_en: "12 HaErez St., Or Yehuda",
     phone: "03-1234567",
     email: "info@diamhotels.co.il",
     website: "www.diamhotels.co.il",
@@ -86,6 +89,18 @@ const CreateInvoiceDialog = ({
 
   // הוק להודעות מערכת
   const { enqueueSnackbar } = useSnackbar();
+  
+  // משתנה מצב חדש שעוקב אחר ביצוע קריאה מוצלחת
+  const [invoiceNumberFetched, setInvoiceNumberFetched] = useState(false);
+  
+  // ref למניעת קריאות כפולות
+  const isRequestPendingRef = useRef(false);
+  
+  // מצב ששומר אם החשבונית נשמרה בשרת
+  const [invoiceSaved, setInvoiceSaved] = useState(false);
+  
+  // שמירת מזהה החשבונית לאחר שמירה
+  const [savedInvoiceId, setSavedInvoiceId] = useState(null);
 
   // מצב החשבונית
   const [invoiceData, setInvoiceData] = useState({
@@ -203,33 +218,107 @@ const CreateInvoiceDialog = ({
     }
   }, [bookingData]);
 
+  // איפוס המצב כשהדיאלוג נסגר
+  useEffect(() => {
+    if (!open) {
+      // איפוס מצב שמירת החשבונית
+      setInvoiceSaved(false);
+      setSavedInvoiceId(null);
+    }
+  }, [open]);
+  
+  // פונקציה נפרדת לקבלת מספר חשבונית
+  const fetchInvoiceNumber = async () => {
+    // אם כבר יש בקשה פעילה או כבר קיבלנו מספר חשבונית, נצא מהפונקציה
+    if (isRequestPendingRef.current || invoiceNumberFetched || !open) {
+      return;
+    }
+    
+    // מסמן שיש בקשה פעילה
+    isRequestPendingRef.current = true;
+    
+    try {
+      setIsLoading(true);
+      
+      // הגדרת המיקום מנתוני ההזמנה אם קיימים, אחרת ברירת מחדל 'rothschild'
+      const location = bookingData?.location || 'rothschild';
+      
+      // שליחת בקשה לקבלת מספר חשבונית עם פרמטר המיקום
+      const nextNumber = await invoiceService.getNextInvoiceNumber(location);
+      
+      // קבלת פרטי העסק המעודכנים לפי המיקום
+      const businessAddressInfo = getBusinessInfoForLocation(location);
+      
+      setInvoiceData(prev => ({
+        ...prev,
+        invoiceNumber: nextNumber,
+        location: location, // שמירת המיקום במידע החשבונית
+        // עדכון פרטי העסק בהתאם למיקום
+        business: {
+          ...prev.business,
+          address: businessAddressInfo.address,
+          address_en: businessAddressInfo.address_en
+        }
+      }));
+      
+      // מציין שקיבלנו בהצלחה מספר חשבונית
+      setInvoiceNumberFetched(true);
+    } catch (error) {
+      console.error('שגיאה בקבלת מספר חשבונית הבא:', error);
+      enqueueSnackbar(
+        isEnglish 
+          ? 'Error fetching invoice number' 
+          : 'שגיאה בקבלת מספר חשבונית',
+        { variant: 'error' }
+      );
+    } finally {
+      setIsLoading(false);
+      // מסמן שאין בקשה פעילה
+      isRequestPendingRef.current = false;
+    }
+  };
+
   // קבלת מספר חשבונית הבא כאשר הדיאלוג נפתח
   useEffect(() => {
-    const fetchNextInvoiceNumber = async () => {
-      if (open) {
-        try {
-          setIsLoading(true);
-          const nextNumber = await invoiceService.getNextInvoiceNumber();
-          setInvoiceData(prev => ({
-            ...prev,
-            invoiceNumber: nextNumber
-          }));
-        } catch (error) {
-          console.error('שגיאה בקבלת מספר חשבונית הבא:', error);
-          enqueueSnackbar(
-            isEnglish 
-              ? 'Error fetching invoice number' 
-              : 'שגיאה בקבלת מספר חשבונית',
-            { variant: 'error' }
-          );
-        } finally {
-          setIsLoading(false);
-        }
+    // איפוס מצב הקריאה כשהדיאלוג נסגר
+    if (!open) {
+      setInvoiceNumberFetched(false);
+      isRequestPendingRef.current = false;
+      return;
+    }
+    
+    // קורא לפונקציה רק אם הדיאלוג פתוח וטרם קיבלנו מספר חשבונית
+    if (open && !invoiceNumberFetched && !isRequestPendingRef.current) {
+      fetchInvoiceNumber();
+    }
+    
+    // פונקציית ניקוי שמתבצעת כשהקומפוננטה נעלמת או כשמשתנה אחד הערכים בתלויות
+    return () => {
+      if (!open) {
+        // אפס את המצבים המקומיים כשהדיאלוג נסגר
+        setInvoiceNumberFetched(false);
+        isRequestPendingRef.current = false;
       }
     };
-
-    fetchNextInvoiceNumber();
-  }, [open, isEnglish, enqueueSnackbar]);
+  }, [open]);
+  
+  // איפוס הנתונים כשמשתנה השפה או פרטי העסק
+  useEffect(() => {
+    if (open && invoiceNumberFetched && !isRequestPendingRef.current) {
+      // אם השפה השתנתה או פרטי העסק, עדכן כתובת בהתאם למיקום הנוכחי
+      const location = invoiceData.location || (bookingData?.location || 'rothschild');
+      const businessAddressInfo = getBusinessInfoForLocation(location);
+      
+      setInvoiceData(prev => ({
+        ...prev,
+        business: {
+          ...prev.business,
+          address: businessAddressInfo.address,
+          address_en: businessAddressInfo.address_en
+        }
+      }));
+    }
+  }, [isEnglish, businessInfo, open, invoiceNumberFetched]);
 
   // יצירת קובץ PDF מהחשבונית
   const generatePDF = async () => {
@@ -459,9 +548,13 @@ const CreateInvoiceDialog = ({
         status: 'active',
         paymentStatus: 'unpaid',
         paymentMethod: invoiceData.paymentMethod || 'cash',
+        location: invoiceData.location || 'rothschild', // וודא שמידע המיקום נשלח לשרת
         businessInfo: {
           name: businessInfo.name,
-          address: businessInfo.address,
+          name_en: businessInfo.name_en,
+          // בחירת הכתובת בהתאם למיקום
+          address: getBusinessInfoForLocation(invoiceData.location || 'rothschild').address,
+          address_en: getBusinessInfoForLocation(invoiceData.location || 'rothschild').address_en,
           phone: businessInfo.phone,
           email: businessInfo.email,
           website: businessInfo.website,
@@ -513,6 +606,10 @@ const CreateInvoiceDialog = ({
       const invoice = await invoiceService.createInvoice(invoiceDataToSend, bookingId);
       
       logService.info('חשבונית נשמרה בהצלחה:', invoice);
+      
+      // עדכון מצב החשבונית כשמורה
+      setInvoiceSaved(true);
+      setSavedInvoiceId(invoice._id);
       
       // יצירת קובץ PDF
       pdfResult = await generatePDF();
@@ -697,6 +794,23 @@ const CreateInvoiceDialog = ({
     }
   };
 
+  // קביעת פרטי העסק בהתאם למיקום
+  const getBusinessInfoForLocation = (location) => {
+    const locationInfo = location === 'airport' ? {
+      address: "הארז 12, אור יהודה",
+      address_en: "12 HaErez St., Or Yehuda"
+    } : {
+      address: "רוטשילד 79, פתח תקווה",
+      address_en: "Rothschild St., Petah Tikva 79"
+    };
+    
+    return {
+      ...businessInfo,
+      address: locationInfo.address,
+      address_en: locationInfo.address_en
+    };
+  };
+
   return (
     <>
       <Dialog
@@ -821,7 +935,10 @@ const CreateInvoiceDialog = ({
                   {isEnglish ? businessInfo.name_en : businessInfo.name}
                 </Typography>
                 <Typography variant="body2">
-                  {isEnglish ? businessInfo.address_en : businessInfo.address}
+                  {isEnglish 
+                    ? getBusinessInfoForLocation(invoiceData.location || (bookingData?.location || 'rothschild')).address_en 
+                    : getBusinessInfoForLocation(invoiceData.location || (bookingData?.location || 'rothschild')).address
+                  }
                 </Typography>
                 <Typography variant="body2">
                   {isEnglish ? 'Tax ID: ' : 'ח.פ: '}{businessInfo.taxId}
@@ -1128,21 +1245,29 @@ const CreateInvoiceDialog = ({
               ) : isEnglish ? 'Save Invoice' : 'שמור חשבונית'}
             </Button>
             
-            {/* כפתור הורדת PDF */}
-            <Button
-              variant="outlined"
-              startIcon={<PrintIcon />}
-              onClick={handleDownloadPdf}
-              disabled={isLoading}
-              sx={{ color: accentColors.accent, borderColor: accentColors.accent }}
-            >
-              {isEnglish ? 'Download PDF' : 'הורד PDF'}
-            </Button>
+            {/* כפתור הורדת PDF - מותנה בשמירת החשבונית */}
+            <Tooltip title={invoiceSaved ? '' : (isEnglish ? 'Save the invoice first' : 'יש לשמור את החשבונית תחילה')}>
+              <span>
+                <Button
+                  variant="outlined"
+                  startIcon={<PrintIcon />}
+                  onClick={handleDownloadPdf}
+                  disabled={isLoading || !invoiceSaved}
+                  sx={{ color: accentColors.accent, borderColor: accentColors.accent }}
+                >
+                  {isEnglish ? 'Download PDF' : 'הורד PDF'}
+                </Button>
+              </span>
+            </Tooltip>
             
             {/* כפתור ביטול */}
             <Button
               variant="outlined"
-              onClick={onClose}
+              onClick={() => {
+                setInvoiceSaved(false);
+                setSavedInvoiceId(null);
+                onClose();
+              }}
               disabled={isLoading}
               sx={{ color: accentColors.error, borderColor: accentColors.error }}
             >

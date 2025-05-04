@@ -50,6 +50,7 @@ router.use(auth);
 router.post('/', invoicesController.createInvoice);
 router.get('/', invoicesController.getInvoices);
 router.get('/next-number', invoicesController.getNextInvoiceNumber);
+router.get('/check-booking/:bookingId', invoicesController.checkBookingInvoice);
 router.get('/:id', invoicesController.getInvoiceById);
 router.patch('/:id/cancel', invoicesController.cancelInvoice);
 router.post('/:id/credit', invoicesController.createCreditInvoice);
