@@ -130,17 +130,44 @@ exports.getMonthlyRevenue = async (req, res) => {
       const dates = [];
       let currentDate = new Date(bookingStart);
       
-      while (currentDate <= bookingEnd) {
+      while (currentDate < bookingEnd) {
         dates.push(new Date(currentDate));
         currentDate.setDate(currentDate.getDate() + 1);
       }
+      
+      // יצירת מבנה נתונים לניהול חדרים על פי מספר חדר כדי למנוע ספירה כפולה
+      const roomTracker = {};
       
       // עכשיו נעבור על מערך התאריכים ונוסיף את ההכנסה היומית לכל יום
       dates.forEach(date => {
         const day = date.getDate();
         dailyRevenueMap[day] += revenuePerDay;
         dailyBookingsMap[day]++;
-        occupancyMap[day].occupiedRooms++;
+        
+        // רק אם יש מספר חדר ואם החדר עוד לא נספר ביום זה
+        if (booking.room && booking.room.roomNumber) {
+          const roomNumber = booking.room.roomNumber;
+          
+          // יוצרים מפתח ייחודי עבור שילוב של יום וחדר
+          const roomDayKey = `${day}_${roomNumber}`;
+          
+          // נוודא שלא ספרנו את החדר הזה כבר ביום הזה
+          if (!roomTracker[roomDayKey]) {
+            roomTracker[roomDayKey] = true;
+            occupancyMap[day].occupiedRooms++;
+            
+            // בדיקת תקינות - לא יותר חדרים תפוסים ממספר החדרים הכולל
+            if (occupancyMap[day].occupiedRooms > occupancyMap[day].totalRooms) {
+              console.warn(`אזהרה: ביום ${day} יש יותר חדרים תפוסים (${occupancyMap[day].occupiedRooms}) ממספר החדרים הכולל (${occupancyMap[day].totalRooms})`);
+              occupancyMap[day].occupiedRooms = occupancyMap[day].totalRooms;
+            }
+          }
+        } else {
+          // אם אין מידע על מספר חדר - מעלים רק אם עדיין יש מקום
+          if (occupancyMap[day].occupiedRooms < occupancyMap[day].totalRooms) {
+            occupancyMap[day].occupiedRooms++;
+          }
+        }
       });
     });
     
@@ -417,8 +444,12 @@ exports.getMonthlyRevenue = async (req, res) => {
       // חישוב ממוצע יומי לפי ההכנסות עד אתמול
       const dailyAverageUntilYesterday = revenueUntilYesterday / daysUntilYesterday;
       
-      // החישוב הסופי: הממוצע היומי עד אתמול * מספר הימים בחודש
-      return dailyAverageUntilYesterday * daysInMonth;
+      // חישוב התחזית: הכנסות בפועל + (ממוצע יומי * ימים שנותרו)
+      // כלומר, מניחים שהממוצע היומי ימשיך גם בימים הבאים
+      const daysRemaining = daysInMonth - yesterday;
+      
+      // החישוב הסופי: הכנסות בפועל עד אתמול + תחזית לימים הנותרים
+      return revenueUntilYesterday + (dailyAverageUntilYesterday * daysRemaining);
     }
     
     // 5. חישוב הכנסות לפי חדרים
