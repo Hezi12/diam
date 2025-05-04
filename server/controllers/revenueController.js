@@ -19,7 +19,8 @@ exports.getMonthlyRevenue = async (req, res) => {
     
     // יצירת מועדי תחילת וסוף החודש
     const startDate = new Date(numericYear, numericMonth - 1, 1);
-    const endDate = new Date(numericYear, numericMonth, 0);
+    const endDate = new Date(numericYear, numericMonth, 1);
+    endDate.setMilliseconds(-1);
     
     console.log(`תאריכי חיפוש: מ-${startDate.toISOString()} עד ${endDate.toISOString()}`);
     
@@ -242,18 +243,7 @@ exports.getMonthlyRevenue = async (req, res) => {
     const dailyAvgChange = prevMonthDailyAvg > 0
       ? Math.round(((dailyAverage - prevMonthDailyAvg) / prevMonthDailyAvg) * 100)
       : 0;
-    
-    // עדכון נתוני סיכום
-    response.summary = {
-      currentRevenue: Math.round(totalRevenue),
-      forecast: Math.round(forecastRevenue),
-      dailyAverage: Math.round(dailyAverage),
-      currentRevenueChange: revenueChange,
-      forecastChange: forecastChange,
-      dailyAverageChange: dailyAvgChange,
-      daysPassed: daysPassed
-    };
-    
+      
     // 3. חישוב נתוני השוואה לחודשים קודמים
     // מביאים נתונים על 6 חודשים אחרונים
     const compareMonths = [];
@@ -382,16 +372,30 @@ exports.getMonthlyRevenue = async (req, res) => {
       console.log(`אמצעי תשלום: ${method}, סכום: ${totalAmount}, הזמנה #${booking.bookingNumber}`);
     });
     
+    // סכום כל אמצעי התשלום - זהו הסכום האמיתי של הכנסות החודש
+    const totalPaymentMethodsRevenue = Object.values(paymentMethods).reduce((sum, amount) => sum + amount, 0);
+    
     // המרה למערך לתצוגה בגרף
     response.paymentMethods = Object.keys(paymentMethods).map(method => {
       return {
         name: method,
         value: Math.round(paymentMethods[method]),
-        percent: Math.round((paymentMethods[method] / totalRevenue) * 100)
+        percent: Math.round((paymentMethods[method] / totalPaymentMethodsRevenue) * 100)
       };
     });
     
     console.log('פילוח לפי אמצעי תשלום:', response.paymentMethods);
+    
+    // עדכון נתוני סיכום - השתמש בסכום אמצעי התשלום כסכום הכנסות החודש
+    response.summary = {
+      currentRevenue: Math.round(totalPaymentMethodsRevenue),
+      forecast: Math.round(isCurrentMonth ? (totalPaymentMethodsRevenue / daysPassed) * daysInMonth : totalPaymentMethodsRevenue),
+      dailyAverage: Math.round(totalPaymentMethodsRevenue / daysInMonth),
+      currentRevenueChange: revenueChange,
+      forecastChange: forecastChange,
+      dailyAverageChange: dailyAvgChange,
+      daysPassed: daysPassed
+    };
     
     // 5. חישוב הכנסות לפי חדרים
     const roomRevenue = {};
