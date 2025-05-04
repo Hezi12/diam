@@ -44,7 +44,8 @@ exports.getMonthlyRevenue = async (req, res) => {
       trends: { months: [], byDay: [], currentMonthDay: null },
       occupancy: [],
       paymentMethods: [],
-      roomRevenue: { byRoom: [], byType: [] }
+      roomRevenue: { byRoom: [], byType: [] },
+      bookings: []
     };
 
     // שליפת כל ההזמנות הרלוונטיות לחודש ואתר מסוים
@@ -520,6 +521,24 @@ exports.getMonthlyRevenue = async (req, res) => {
     }));
     
     console.log('סיום חישוב הכנסות חודשיות');
+    
+    // הוספת כל ההזמנות הרלוונטיות לתשובה
+    response.bookings = bookings
+      .filter(booking => booking.paymentStatus !== 'unpaid') // סינון הזמנות שלא שולמו
+      .map(booking => ({
+        _id: booking._id,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        paymentAmount: booking.paymentAmount || booking.price || 0,
+        paymentStatus: booking.paymentStatus,
+        price: booking.price,
+        roomType: booking.roomType,
+        room: booking.room
+      }));
+    
+    // שליחת התשובה
     res.status(200).json(response);
     
   } catch (error) {
