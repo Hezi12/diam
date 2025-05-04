@@ -275,14 +275,19 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ pb: isMobile ? 6 : 2 }}>
-      <Box sx={{ pb: 2, pt: 1 }}>
+      <Box sx={{ 
+        pb: isMobile ? 1 : 2,
+        pt: isMobile ? 0 : 1,
+        position: 'relative',
+        zIndex: 10,
+      }}>
         <DashboardDateNav 
-          date={currentDate} 
+          currentDate={currentDate} 
           onDateChange={handleDateChange}
         />
       </Box>
     
-      <Grid container spacing={isMobile ? 1 : 3}>
+      <Grid container spacing={isMobile ? 1 : 3} sx={{ mt: isMobile ? 0 : 1 }}>
         {/* מודול airport */}
         <Grid item xs={12} md={6}>
           <Box sx={{ 

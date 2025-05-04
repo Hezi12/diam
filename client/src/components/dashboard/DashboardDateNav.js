@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Typography, Tooltip } from '@mui/material';
+import { Box, IconButton, Typography, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import { 
   ArrowBack, 
   ArrowForward, 
@@ -15,6 +15,9 @@ import { Link } from 'react-router-dom';
  * קומפוננטת ניווט בין תאריכים בדאשבורד עם עיצוב מינימליסטי מודרני
  */
 export const DashboardDateNav = ({ currentDate, onDateChange }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   // וידוא שהתאריך תקין
   const safeDate = currentDate instanceof Date && isValid(currentDate) ? currentDate : new Date();
   
@@ -47,39 +50,51 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
       display: 'flex', 
       alignItems: 'center',
       justifyContent: 'space-between',
-      py: 1.5,
+      py: isMobile ? 1 : 1.5,
+      mt: isMobile ? 1 : 0,
       borderBottom: '1px solid #f0f0f0',
       mb: 1.5,
-      maxWidth: '95%',
-      mx: 'auto'
+      maxWidth: '98%',
+      mx: 'auto',
+      position: isMobile ? 'relative' : 'static',
+      borderRadius: isMobile ? '12px' : 0,
+      backgroundColor: isMobile ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+      backdropFilter: isMobile ? 'blur(8px)' : 'none',
+      boxShadow: isMobile ? '0 2px 8px rgba(0, 0, 0, 0.05)' : 'none',
     }}>
       {/* אזור ניווט בתאריכים - עכשיו בצד ימין */}
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        flexGrow: isMobile ? 1 : 0,
+        justifyContent: isMobile ? 'center' : 'flex-start'
+      }}>
         {/* כפתור לחזרה לתאריך קודם */}
         <IconButton 
           onClick={handlePrevDay} 
-          size="small" 
+          size={isMobile ? "small" : "small"}
           sx={{ 
             color: 'text.secondary',
+            p: isMobile ? 0.5 : 1,
           }}
         >
-          <ArrowForward fontSize="small" />
+          <ArrowForward fontSize={isMobile ? "small" : "small"} />
         </IconButton>
         
         <Box sx={{ 
-          mx: 1, 
+          mx: isMobile ? 0.5 : 1, 
           display: 'flex',
           alignItems: 'center',
         }}>
           <Typography 
-            variant="h6" 
+            variant={isMobile ? "body1" : "h6"}
             sx={{ 
               fontWeight: 500,
               color: STYLE_CONSTANTS.colors.airport.main,
-              fontSize: '1.1rem',
+              fontSize: isMobile ? '0.95rem' : '1.1rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: isMobile ? '3px' : '6px'
             }}
           >
             <Box 
@@ -93,8 +108,9 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
             </Box>
             <Box component="span" sx={{ 
               fontWeight: 400,
-              fontSize: '0.95rem', 
-              opacity: 0.75
+              fontSize: isMobile ? '0.85rem' : '0.95rem', 
+              opacity: 0.75,
+              display: isMobile ? 'none' : 'inline' // מסתיר את שם היום במובייל
             }}>
               {dayNameShort}
             </Box>
@@ -108,7 +124,7 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
                 size="small"
                 sx={{ 
                   ml: 0.5,
-                  p: 0.3,
+                  p: isMobile ? 0.2 : 0.3,
                   color: STYLE_CONSTANTS.colors.airport.main,
                   opacity: 0.8,
                   '&:hover': {
@@ -117,7 +133,7 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
                   }
                 }}
               >
-                <TodayIcon sx={{ fontSize: '0.8rem' }} />
+                <TodayIcon sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }} />
               </IconButton>
             </Tooltip>
           )}
@@ -126,17 +142,24 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
         {/* כפתור לקידום לתאריך הבא */}
         <IconButton 
           onClick={handleNextDay} 
-          size="small" 
+          size={isMobile ? "small" : "small"} 
           sx={{ 
             color: 'text.secondary',
+            p: isMobile ? 0.5 : 1,
           }}
         >
-          <ArrowBack fontSize="small" />
+          <ArrowBack fontSize={isMobile ? "small" : "small"} />
         </IconButton>
       </Box>
       
       {/* אזור סרגל כלים - עכשיו בצד שמאל */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: isMobile ? 0.5 : 1,
+        position: isMobile ? 'absolute' : 'static',
+        right: isMobile ? 8 : 'auto'
+      }}>
         <Tooltip title="דף ניקיון" placement="bottom">
           <IconButton 
             component={Link} 
@@ -150,12 +173,12 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
                 transform: 'translateY(-2px)',
                 transition: 'all 0.2s'
               },
-              p: 1,
+              p: isMobile ? 0.5 : 1,
               borderRadius: '8px',
               border: '1px solid rgba(73, 156, 86, 0.15)' // הוספת מסגרת דקה
             }}
           >
-            <CleaningIcon fontSize="small" />
+            <CleaningIcon fontSize={isMobile ? "small" : "small"} />
           </IconButton>
         </Tooltip>
       </Box>
