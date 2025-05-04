@@ -11,6 +11,7 @@ import {
   useMediaQuery,
   useTheme,
   IconButton,
+  GlobalStyles,
   // SwipeableDrawer, - לא בשימוש יותר
   // נסיר את הקומפוננטות הקשורות לניווט התחתון
   // BottomNavigation,
@@ -251,17 +252,34 @@ const Sidebar = () => {
         display: 'flex', 
         flexDirection: 'column',
         height: '100%',
-        padding: isMobile ? '15px 5px' : '20px 10px',
+        padding: isMobile ? '24px 10px 20px' : '20px 10px',
+        position: 'relative',
       }}>
         {/* מבטלים את מרווח העליון במובייל */}
         {!isMobile && <Box sx={{ padding: '10px 0 10px' }} />}
+        
+        {isMobile && (
+          <Box 
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: '50%',
+              transform: 'translateX(50%)',
+              width: 40,
+              height: 4,
+              borderRadius: 10,
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              mb: 2
+            }} 
+          />
+        )}
         
         <List sx={{ 
           flexGrow: 1,
           padding: isMobile ? '8px 0' : '8px 0', // יותר פדינג ברשימה עצמה 
           '& .MuiListItem-root': {
             padding: isMobile ? '10px 5px' : '8px', // יותר מרווח בין פריטים במובייל
-            marginBottom: isMobile ? '5px' : '0' // מרווח בין פריטים
+            marginBottom: isMobile ? '8px' : '0' // מרווח בין פריטים
           }
         }}>
           {shouldShowBackButton() && (
@@ -337,34 +355,103 @@ const Sidebar = () => {
   if (isMobile) {
     return (
       <>
-        {/* כפתור פתיחה של התפריט במובייל */}
+        {/* סגנונות גלובליים לאנימציות */}
+        <GlobalStyles
+          styles={{
+            '@keyframes pulse': {
+              '0%': {
+                boxShadow: '0 0 0 0 rgba(0, 89, 179, 0.4)',
+              },
+              '70%': {
+                boxShadow: '0 0 0 10px rgba(0, 89, 179, 0)',
+              },
+              '100%': {
+                boxShadow: '0 0 0 0 rgba(0, 89, 179, 0)',
+              },
+            },
+            '@keyframes rotate': {
+              '0%': {
+                transform: 'rotate(0deg)',
+              },
+              '100%': {
+                transform: 'rotate(360deg)',
+              },
+            },
+            '@keyframes floating': {
+              '0%': {
+                transform: 'translateY(0px)',
+              },
+              '50%': {
+                transform: 'translateY(-5px)',
+              },
+              '100%': {
+                transform: 'translateY(0px)',
+              },
+            },
+          }}
+        />
+        
+        {/* כפתור פתיחה של התפריט במובייל - עכשיו בתחתית המסך */}
         <Box 
           sx={{ 
             position: 'fixed', 
-            top: 10, 
-            right: 10, 
+            bottom: 20, 
+            right: 20, 
             zIndex: 1200,
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
-            width: 48,
-            height: 48,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            width: 60,
+            height: 60,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            transition: 'all 0.3s ease',
+            animation: 'floating 3s ease-in-out infinite',
+            '&:hover': {
+              transform: 'scale(1.05)',
+              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)',
+            },
+            '&:active': {
+              transform: 'scale(0.95)',
+            },
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              background: 'transparent',
+              border: `2px solid ${STYLE_CONSTANTS.colors.airport.main}`,
+              opacity: 0.3,
+              animation: 'pulse 2s infinite',
+            }
           }}
         >
           <IconButton 
             onClick={toggleDrawer(true)} 
-            size="medium"
+            size="large"
             sx={{
               color: STYLE_CONSTANTS.colors.airport.main,
+              backgroundColor: 'transparent',
               '&:hover': {
                 backgroundColor: 'transparent',
-              }
+              },
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease',
             }}
           >
-            <MenuIcon sx={{ fontSize: '1.9rem' }} />
+            <MenuIcon sx={{ 
+              fontSize: '2.2rem',
+              transition: 'transform 0.3s ease',
+              transform: mobileOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+            }} />
           </IconButton>
         </Box>
         
@@ -381,6 +468,7 @@ const Sidebar = () => {
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
               zIndex: 1250,
               transition: 'opacity 0.3s ease',
+              backdropFilter: 'blur(3px)',
             }}
           />
         )}
@@ -392,14 +480,19 @@ const Sidebar = () => {
             top: 0,
             right: mobileOpen ? 0 : '-180px', // נפתח מימין לשמאל
             bottom: 0,
-            width: '40%',
-            maxWidth: '180px',
-            minWidth: '150px',
+            width: '45%',
+            maxWidth: '200px',
+            minWidth: '160px',
             backgroundColor: STYLE_CONSTANTS.colors.background.paper,
-            boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+            boxShadow: '0 0 20px rgba(0, 0, 0, 0.2)',
             zIndex: 1300,
-            transition: 'right 0.3s ease',
+            transition: 'right 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             overflowY: 'auto',
+            borderTopLeftRadius: '16px',
+            borderBottomLeftRadius: '16px',
+            backdropFilter: 'blur(10px)',
+            // למראה זכוכיתי אם המכשיר תומך
+            background: 'rgba(255, 255, 255, 0.95)',
           }}
         >
           {drawerContent}

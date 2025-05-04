@@ -8,7 +8,7 @@ const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'isMobile'
 })(({ theme, isMobile }) => ({
   flexGrow: 1,
-  padding: isMobile ? '16px 12px 70px 12px' : '24px',
+  padding: isMobile ? '16px 12px 100px 12px' : '24px',
   marginRight: isMobile ? 0 : `${drawerWidth}px`,
   backgroundColor: '#f5f5f7',
   minHeight: '100vh',
