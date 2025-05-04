@@ -96,29 +96,18 @@ const MonthlyRevenue = () => {
         mb: 3,
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
-        {/* אייקון ולוגו */}
-        <HomeIcon 
-          sx={{ 
-            fontSize: '1.25rem', 
-            color: 'text.secondary',
-            mr: 1 
-          }}
-        />
-        
-        {/* אייקון מטוס בעיגול כחול */}
+        {/* כותרת הדף עם אייקון של כסף */}
         <Avatar 
           sx={{ 
-            bgcolor: '#0052CC', 
+            bgcolor: theme.palette.primary.main, 
             width: 36, 
             height: 36,
-            mr: 1,
-            ml: 1
+            mr: 1
           }}
         >
-          <FlightIcon fontSize="small" />
+          <AttachMoneyIcon fontSize="small" />
         </Avatar>
         
-        {/* כותרת הדף */}
         <Typography 
           variant="h6" 
           component="h1" 
@@ -127,7 +116,7 @@ const MonthlyRevenue = () => {
             fontSize: '1.1rem'
           }}
         >
-          ניהול הזמנות
+          הכנסות
         </Typography>
         
         {/* מרווח אוטומטי */}
