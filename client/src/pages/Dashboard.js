@@ -274,7 +274,12 @@ const Dashboard = () => {
   const preparedRothschildRooms = prepareRooms(rothschildRooms);
 
   return (
-    <Box sx={{ pb: isMobile ? 6 : 2 }}>
+    <Box sx={{ 
+      pb: isMobile ? 6 : 2,
+      maxWidth: '1600px',
+      margin: '0 auto',
+      px: { xs: 1, sm: 2, md: 3 }
+    }}>
       <Box sx={{ 
         pb: isMobile ? 0 : 2,
         pt: isMobile ? 2.5 : 1,
@@ -283,6 +288,8 @@ const Dashboard = () => {
         width: '100%',
         zIndex: 10,
         backgroundColor: theme.palette.background.default,
+        boxShadow: 'none',
+        borderRadius: isMobile ? 2 : 0
       }}>
         <DashboardDateNav 
           currentDate={currentDate} 
@@ -290,14 +297,19 @@ const Dashboard = () => {
         />
       </Box>
     
-      <Grid container spacing={isMobile ? 1 : 3} sx={{ mt: isMobile ? 0 : 1 }}>
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mt: isMobile ? 1 : 2 }}>
         {/* מודול airport */}
         <Grid item xs={12} md={6}>
           <Box sx={{ 
-            borderRadius: 2, 
+            borderRadius: 2.5, 
             overflow: 'hidden', 
             backgroundColor: '#fff',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
+            border: '1px solid rgba(0, 0, 0, 0.03)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+            }
           }}>
             <LocationSection 
               location="airport" 
@@ -313,10 +325,15 @@ const Dashboard = () => {
         {/* מודול rothschild */}
         <Grid item xs={12} md={6}>
           <Box sx={{ 
-            borderRadius: 2, 
+            borderRadius: 2.5, 
             overflow: 'hidden', 
             backgroundColor: '#fff',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
+            border: '1px solid rgba(0, 0, 0, 0.03)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+            }
           }}>
             <LocationSection 
               location="rothschild" 
@@ -366,7 +383,11 @@ const Dashboard = () => {
           severity={notification.severity} 
           onClose={handleCloseNotification}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            borderRadius: '10px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}
         >
           {notification.message}
         </Alert>

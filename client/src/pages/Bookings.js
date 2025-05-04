@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography, Divider, Button } from '@mui/material';
+import { Box, useMediaQuery, useTheme, Snackbar, Alert, Container, Typography, Divider, Button, Tooltip, IconButton } from '@mui/material';
 import axios from 'axios';
 import { format, addDays, subDays, differenceInDays } from 'date-fns';
 import { STYLE_CONSTANTS } from '../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
 import { Link } from 'react-router-dom';
-import { Add, Search } from '@mui/icons-material';
+import { AddCircleOutlined, SearchOutlined, FlashOn, BookmarkAdd } from '@mui/icons-material';
 
 // רכיבים מקומיים
 import BookingTabs from '../components/bookings/BookingTabs';
@@ -27,7 +27,7 @@ const Bookings = () => {
   const { enqueueSnackbar } = useSnackbar();
   
   // מצב מיקום
-  const [location, setLocation] = useState('airport');
+  const [location, setLocation] = useState('rothschild');
   
   // מצב חיפוש
   const [searchQuery, setSearchQuery] = useState('');
@@ -509,39 +509,57 @@ const Bookings = () => {
             <BookingTabs location={location} onLocationChange={handleLocationChange} />
           </Box>
           
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={handleAddBooking}
-              startIcon={<Add />}
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: '4px', textTransform: 'none' }}
-            >
-              הזמנה חדשה
-            </Button>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Tooltip title="חיפוש" arrow placement="bottom">
+              <IconButton 
+                onClick={handleSearchClick}
+                size="medium"
+                sx={{ 
+                  backgroundColor: '#f3f3f3',
+                  color: '#666',
+                  p: 1,
+                  borderRadius: '50%',
+                }}
+              >
+                <SearchOutlined fontSize="small" />
+              </IconButton>
+            </Tooltip>
             
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              component={Link} 
-              to="/quick-booking"
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: '4px', textTransform: 'none' }}
-            >
-              הזנה מהירה
-            </Button>
+            <Tooltip title="הזנה מהירה" arrow placement="bottom">
+              <IconButton 
+                component={Link} 
+                to="/quick-booking"
+                size="medium"
+                sx={{ 
+                  backgroundColor: '#e8f4ff',
+                  color: '#1976d2',
+                  p: 1,
+                  borderRadius: '50%',
+                }}
+              >
+                <FlashOn fontSize="small" />
+              </IconButton>
+            </Tooltip>
             
-            <Button 
-              variant="outlined" 
-              color="secondary" 
-              onClick={handleSearchClick}
-              startIcon={<Search />}
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: '4px', textTransform: 'none' }}
-            >
-              חיפוש
-            </Button>
+            <Tooltip title="הזמנה חדשה" arrow placement="bottom">
+              <IconButton 
+                color="primary" 
+                onClick={handleAddBooking}
+                size="medium"
+                sx={{ 
+                  backgroundColor: '#1976d2',
+                  color: 'white',
+                  p: 1,
+                  borderRadius: '50%',
+                }}
+              >
+                <BookmarkAdd fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+            
+            <ExternalToolbar />
           </Box>
         </Box>
         

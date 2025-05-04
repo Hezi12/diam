@@ -71,7 +71,7 @@ const LocationSection = ({
     <Box 
       sx={{ 
         position: 'relative',
-        maxWidth: '98%',
+        maxWidth: '100%',
         mx: 'auto',
         mb: 3,
       }}
@@ -80,11 +80,11 @@ const LocationSection = ({
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center', 
-        p: 1,
+        p: 2,
         pb: 1.5,
-        borderBottom: `1px solid ${locationColors.main}30`,
-        mb: 1,
-        maxWidth: '95%',
+        borderBottom: `1px solid ${locationColors.main}20`,
+        mb: 1.5,
+        maxWidth: '100%',
         mx: 'auto'
       }}>
         {/* כותרת ממוקמת בצד שמאל עם אייקון */}
@@ -92,15 +92,25 @@ const LocationSection = ({
           ml: 'auto', 
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '10px'
         }}>
           {/* האייקון */}
-          <LocationIcon 
-            sx={{ 
-              color: locationColors.main,
-              fontSize: '1.2rem'
-            }} 
-          />
+          <Box sx={{
+            backgroundColor: `${locationColors.main}15`,
+            borderRadius: '50%',
+            width: 34,
+            height: 34,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <LocationIcon 
+              sx={{ 
+                color: locationColors.main,
+                fontSize: '1.1rem'
+              }} 
+            />
+          </Box>
           
           {/* טקסט הכותרת */}
           <Box>
@@ -119,24 +129,39 @@ const LocationSection = ({
         </Box>
         
         {/* מידע על חדרים זמינים */}
-        <Typography 
-          variant="caption" 
+        <Box
           sx={{
-            fontSize: '0.8rem',
-            mr: 1,
-            color: colors.text.primary,
-            fontWeight: 500
+            backgroundColor: '#f5f5f5',
+            borderRadius: '16px',
+            px: 1.5,
+            py: 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            mr: 1
           }}
         >
-          {availableRooms} חדרים זמינים
-        </Typography>
+          <Typography 
+            variant="caption" 
+            sx={{
+              fontSize: '0.8rem',
+              color: colors.text.primary,
+              fontWeight: 500
+            }}
+          >
+            {availableRooms} חדרים זמינים
+          </Typography>
+        </Box>
       </Box>
 
       {/* רשימת החדרים */}
       <Box sx={{ 
-        p: 0.5,
-        maxWidth: '90%',
-        mx: 'auto'
+        p: 1.5,
+        pt: 0.5,
+        maxWidth: '100%',
+        mx: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.5
       }}>
         {rooms.map(room => {
           // קבלת סטטוס החדר והזמנה אם יש
