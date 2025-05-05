@@ -1,6 +1,6 @@
 const Booking = require('../models/Booking');
 const Room = require('../models/Room');
-const { getDaysInMonth, getDate, startOfMonth, endOfMonth, subMonths, format } = require('date-fns');
+const { getDaysInMonth, getDate, startOfMonth, endOfMonth, subMonths, format, differenceInDays, isWithinInterval, parseISO } = require('date-fns');
 
 /**
  * חישוב הכנסות חודשיות לפי אתר, חודש ושנה
@@ -18,9 +18,8 @@ exports.getMonthlyRevenue = async (req, res) => {
     const numericMonth = parseInt(month);
     
     // יצירת מועדי תחילת וסוף החודש
-    const startDate = new Date(numericYear, numericMonth - 1, 1);
-    const endDate = new Date(numericYear, numericMonth, 1);
-    endDate.setMilliseconds(-1);
+    const startDate = new Date(Date.UTC(numericYear, numericMonth - 1, 1));
+    const endDate = new Date(Date.UTC(numericYear, numericMonth, 0)); // היום האחרון בחודש (שים לב לשינוי)
     
     console.log(`תאריכי חיפוש: מ-${startDate.toISOString()} עד ${endDate.toISOString()}`);
     
@@ -48,23 +47,14 @@ exports.getMonthlyRevenue = async (req, res) => {
       bookings: []
     };
 
-    // שליפת כל ההזמנות הרלוונטיות לחודש ואתר מסוים
+    // שליפת כל ההזמנות שיש להן לילות בחודש הזה
+    // אנחנו מבצעים שינוי משמעותי כאן בתנאי החיפוש
     const bookings = await Booking.find({
       location: site,
-      $or: [
-        // הזמנות שמתחילות בחודש הנוכחי
-        {
-          checkIn: { $gte: startDate, $lte: endDate }
-        },
-        // הזמנות שמסתיימות בחודש הנוכחי
-        {
-          checkOut: { $gte: startDate, $lte: endDate }
-        },
-        // הזמנות שמתפרסות על פני החודש
-        {
-          checkIn: { $lt: startDate },
-          checkOut: { $gt: endDate }
-        }
+      // שינוי התנאי כדי להבטיח שרק הזמנות עם לילות בחודש זה ייכללו
+      $and: [
+        { checkIn: { $lt: new Date(Date.UTC(numericYear, numericMonth, 1)) } }, // צ'ק-אין לפני תחילת החודש הבא
+        { checkOut: { $gt: startDate } } // צ'ק-אאוט אחרי תחילת החודש הנוכחי
       ]
     }).populate('room');
 
@@ -92,7 +82,7 @@ exports.getMonthlyRevenue = async (req, res) => {
     
     // אתחול מערכי הכנסות ותפוסה לכל יום בחודש
     for (let day = 1; day <= daysInMonth; day++) {
-      const currentDay = new Date(numericYear, numericMonth - 1, day);
+      const currentDay = new Date(Date.UTC(numericYear, numericMonth - 1, day));
       const dayStr = format(currentDay, 'yyyy-MM-dd');
       
       dailyRevenueMap[day] = 0;
@@ -104,54 +94,68 @@ exports.getMonthlyRevenue = async (req, res) => {
       occupiedRoomDetailsByDay[day] = new Set(); // שימוש ב-Set למניעת כפילויות באופן אוטומטי
     }
     
-    // חישוב הכנסה יומית והזמנות יומיות
-    bookings.forEach(booking => {
-      // לא כוללים הזמנות שלא שולמו (שדה paymentStatus הוא 'unpaid')
-      if (booking.paymentStatus === 'unpaid') return;
-      
-      // חישוב ימים שההזמנה פעילה בחודש הזה
-      const bookingStart = new Date(Math.max(booking.checkIn, startDate));
-      const bookingEnd = new Date(Math.min(booking.checkOut, endDate));
-      
-      // מספר ימים שהחדר תפוס בחודש זה (לא כולל יום הצ'ק-אאוט)
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const daysInThisMonth = Math.max(1, Math.ceil((bookingEnd - bookingStart) / msPerDay) - (bookingEnd.getTime() === endDate.getTime() ? 0 : 1));
-      
-      // תעריף יומי
-      const totalBookingDays = Math.ceil((booking.checkOut - booking.checkIn) / msPerDay);
-      const dailyRate = booking.price / totalBookingDays;
-      
-      // סך ההכנסה מההזמנה בחודש זה
-      const totalBookingRevenue = dailyRate * daysInThisMonth;
-      
-      console.log(`מחשב הכנסה להזמנה #${booking.bookingNumber}: ימים בחודש=${daysInThisMonth}, תעריף יומי=${dailyRate}, סך הכנסה=${totalBookingRevenue}, חדר=${booking.room?.roomNumber || 'לא ידוע'}`);
-      
-      // חלוקה שווה של ההכנסה על פני ימי ההזמנה בחודש זה
-      const revenuePerDay = daysInThisMonth > 0 ? totalBookingRevenue / daysInThisMonth : 0;
-      
-      // יצירת מערך של כל התאריכים שהחדר תפוס בהם (לא כולל יום הצ'ק-אאוט)
-      const dates = [];
-      let currentDate = new Date(bookingStart);
-      
-      while (currentDate < bookingEnd) {
-        dates.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      // עכשיו נעבור על מערך התאריכים ונוסיף את ההכנסה היומית לכל יום
-      dates.forEach(date => {
-        const day = date.getDate();
+    // חישוב הכנסה יומית והזמנות יומיות - שיפור מנגנון החישוב
+    paidBookings.forEach(booking => {
+      try {
+        // המרת תאריכים לאובייקטי Date אחידים
+        const checkInDate = new Date(booking.checkIn);
+        const checkOutDate = new Date(booking.checkOut);
         
-        // מוסיפים הכנסה והזמנה לכל יום
-        dailyRevenueMap[day] += revenuePerDay;
-        dailyBookingsMap[day]++;
+        // חישוב סך הלילות הכולל של ההזמנה
+        const totalNights = differenceInDays(checkOutDate, checkInDate);
+        console.log(`הזמנה #${booking.bookingNumber}: סך לילות כולל=${totalNights}`);
         
-        // מוסיפים את החדר לרשימת החדרים התפוסים ביום זה
-        if (booking.room && booking.room.roomNumber) {
-          const roomIdentifier = booking.room._id.toString();
-          occupiedRoomDetailsByDay[day].add(roomIdentifier);
+        if (totalNights <= 0) {
+          console.warn(`אזהרה: הזמנה #${booking.bookingNumber} עם מספר לילות לא תקין (${totalNights}), דילוג...`);
+          return; // דילוג על הזמנה לא תקינה
         }
-      });
+        
+        // חישוב תעריף לכל לילה
+        const ratePerNight = booking.price / totalNights;
+        
+        // חישוב ימי הלינה בחודש הנוכחי בלבד
+        let nightsInMonth = 0;
+        let nightsInThisMonth = [];
+        
+        // בדיקה עבור כל יום בחודש הנוכחי האם יש בו לינה מהזמנה זו
+        for (let day = 1; day <= daysInMonth; day++) {
+          const currentNightDate = new Date(Date.UTC(numericYear, numericMonth - 1, day));
+          const nextDay = new Date(Date.UTC(numericYear, numericMonth - 1, day + 1));
+          
+          // בדיקה אם היום הזה הוא יום לינה בהזמנה
+          // לילה נחשב אם הצ'ק-אין היה לפני או באותו יום וצ'ק-אאוט לאחר היום
+          if (checkInDate <= currentNightDate && checkOutDate > currentNightDate) {
+            nightsInMonth++;
+            nightsInThisMonth.push(day);
+            
+            // הוספת הזמנה לחדר ביום זה
+            if (booking.room && booking.room._id) {
+              occupiedRoomDetailsByDay[day].add(booking.room._id.toString());
+            }
+            
+            // הוספת ספירת הזמנות ליום זה
+            dailyBookingsMap[day]++;
+          }
+        }
+        
+        console.log(`הזמנה #${booking.bookingNumber}: לילות בחודש ${month}/${year}=${nightsInMonth}, ימים=${nightsInThisMonth.join(',')}`);
+        
+        // חישוב ההכנסה היחסית לחודש זה
+        const revenueInThisMonth = ratePerNight * nightsInMonth;
+        console.log(`הזמנה #${booking.bookingNumber}: הכנסה בחודש=${revenueInThisMonth}, תעריף לילה=${ratePerNight}`);
+        
+        // חלוקת ההכנסה שווה בשווה על פני ימי הלינה בחודש
+        if (nightsInMonth > 0) {
+          const revenuePerNightInMonth = revenueInThisMonth / nightsInMonth;
+          
+          // הוספת ההכנסה לכל יום לינה בחודש זה
+          nightsInThisMonth.forEach(day => {
+            dailyRevenueMap[day] += revenuePerNightInMonth;
+          });
+        }
+      } catch (error) {
+        console.error(`שגיאה בחישוב הכנסה להזמנה #${booking.bookingNumber || booking._id}:`, error);
+      }
     });
     
     // עכשיו נעדכן את מספר החדרים התפוסים לכל יום על פי הנתונים שאספנו
@@ -186,7 +190,7 @@ exports.getMonthlyRevenue = async (req, res) => {
     
     // בניית מערך ההכנסות היומיות
     for (let day = 1; day <= daysInMonth; day++) {
-      const fullDate = format(new Date(numericYear, numericMonth - 1, day), 'dd/MM/yyyy');
+      const fullDate = format(new Date(Date.UTC(numericYear, numericMonth - 1, day)), 'dd/MM/yyyy');
       
       // הכנסות יומיות
       response.dailyRevenue.push({
@@ -223,20 +227,16 @@ exports.getMonthlyRevenue = async (req, res) => {
       ? (totalRevenue / daysPassed) * daysInMonth
       : totalRevenue;
     
-    // השוואה לחודש קודם
-    const prevMonthStartDate = subMonths(startDate, 1);
-    const prevMonthEndDate = subMonths(endDate, 1);
+    // השוואה לחודש קודם - עדכון החיפוש לשיטה החדשה
+    const prevMonthStartDate = new Date(Date.UTC(numericYear, numericMonth - 2, 1)); // חודש קודם
+    const prevMonthEndDate = new Date(Date.UTC(numericYear, numericMonth - 1, 0)); // היום האחרון של החודש הקודם
     
     const prevMonthBookings = await Booking.find({
       location: site,
       paymentStatus: { $ne: 'unpaid' }, // רק הזמנות ששולמו
-      $or: [
-        { checkIn: { $gte: prevMonthStartDate, $lte: prevMonthEndDate } },
-        { checkOut: { $gte: prevMonthStartDate, $lte: prevMonthEndDate } },
-        { 
-          checkIn: { $lt: prevMonthStartDate },
-          checkOut: { $gt: prevMonthEndDate }
-        }
+      $and: [
+        { checkIn: { $lt: new Date(Date.UTC(numericYear, numericMonth - 1, 1)) } }, // צ'ק-אין לפני תחילת החודש הנוכחי
+        { checkOut: { $gt: prevMonthStartDate } } // צ'ק-אאוט אחרי תחילת החודש הקודם
       ]
     });
     
@@ -247,20 +247,58 @@ exports.getMonthlyRevenue = async (req, res) => {
     if (prevMonthBookings.length > 0) {
       const prevDaysInMonth = getDaysInMonth(prevMonthStartDate);
       
+      // מערך ימים בחודש הקודם
+      const prevMonthDaysRevenueMap = {};
+      for (let day = 1; day <= prevDaysInMonth; day++) {
+        prevMonthDaysRevenueMap[day] = 0;
+      }
+      
+      // חישוב הכנסות בשיטה החדשה, לפי לילות בפועל בחודש הקודם
       prevMonthBookings.forEach(booking => {
-        const bookingStart = new Date(Math.max(booking.checkIn, prevMonthStartDate));
-        const bookingEnd = new Date(Math.min(booking.checkOut, prevMonthEndDate));
-        
-        // הסרת ה-"+1" מתיקון הטעות
-        const daysInPrevMonth = Math.ceil((bookingEnd - bookingStart) / (1000 * 60 * 60 * 24));
-        const dailyRate = booking.price / 
-          Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24));
-        
-        // סך הכנסה מההזמנה בחודש הקודם
-        const totalRevenuePrevMonth = dailyRate * daysInPrevMonth;
-        prevMonthRevenue += totalRevenuePrevMonth;
+        try {
+          const checkInDate = new Date(booking.checkIn);
+          const checkOutDate = new Date(booking.checkOut);
+          
+          // חישוב סך הלילות הכולל של ההזמנה
+          const totalNights = differenceInDays(checkOutDate, checkInDate);
+          
+          if (totalNights <= 0) {
+            console.warn(`אזהרה: הזמנה #${booking.bookingNumber} עם מספר לילות לא תקין (${totalNights}), דילוג...`);
+            return;
+          }
+          
+          // חישוב תעריף לכל לילה
+          const ratePerNight = booking.price / totalNights;
+          
+          // ספירת הלילות בחודש הקודם
+          let nightsInPrevMonth = 0;
+          let nightsInPrevMonthDays = [];
+          
+          // בדיקה עבור כל יום בחודש הקודם
+          for (let day = 1; day <= prevDaysInMonth; day++) {
+            const currentNightDate = new Date(Date.UTC(prevMonthStartDate.getUTCFullYear(), prevMonthStartDate.getUTCMonth(), day));
+            
+            // בדיקה אם היום הזה הוא יום לינה בהזמנה
+            if (checkInDate <= currentNightDate && checkOutDate > currentNightDate) {
+              nightsInPrevMonth++;
+              nightsInPrevMonthDays.push(day);
+              
+              // הוספת הכנסה יומית
+              prevMonthDaysRevenueMap[day] += ratePerNight;
+            }
+          }
+          
+          // הכנסה כוללת מהזמנה זו בחודש הקודם
+          const revenuePrevMonth = ratePerNight * nightsInPrevMonth;
+          console.log(`הזמנה #${booking.bookingNumber || booking._id}: הכנסה בחודש קודם=${revenuePrevMonth}, לילות=${nightsInPrevMonth}`);
+          
+        } catch (error) {
+          console.error(`שגיאה בחישוב הכנסה להזמנה בחודש קודם #${booking.bookingNumber || booking._id}:`, error);
+        }
       });
       
+      // סיכום ההכנסות
+      prevMonthRevenue = Object.values(prevMonthDaysRevenueMap).reduce((sum, rev) => sum + rev, 0);
       prevMonthDailyAvg = prevMonthRevenue / prevDaysInMonth;
     }
     
@@ -302,59 +340,54 @@ exports.getMonthlyRevenue = async (req, res) => {
       daysData.push(dayData);
     }
     
-    // עבור כל חודש, מביאים את נתוני ההכנסות
+    // עבור כל חודש, מביאים את נתוני ההכנסות בשיטה החדשה
     for (const monthInfo of compareMonths) {
-      const monthStartDate = new Date(monthInfo.year, monthInfo.month - 1, 1);
-      const monthEndDate = new Date(monthInfo.year, monthInfo.month, 0);
+      const monthStartDate = new Date(Date.UTC(monthInfo.year, monthInfo.month - 1, 1));
+      const monthEndDate = new Date(Date.UTC(monthInfo.year, monthInfo.month, 0)); // היום האחרון בחודש
       const daysInThisMonth = monthEndDate.getDate();
       
-      // שליפת הזמנות בחודש זה
+      // שליפת הזמנות בחודש זה - בשיטה החדשה
       const monthlyBookings = await Booking.find({
         location: site,
         paymentStatus: { $ne: 'unpaid' }, // רק הזמנות ששולמו
-        $or: [
-          { checkIn: { $gte: monthStartDate, $lte: monthEndDate } },
-          { checkOut: { $gte: monthStartDate, $lte: monthEndDate } },
-          { 
-            checkIn: { $lt: monthStartDate },
-            checkOut: { $gt: monthEndDate }
-          }
+        $and: [
+          { checkIn: { $lt: new Date(Date.UTC(monthInfo.year, monthInfo.month, 1)) } }, // צ'ק-אין לפני תחילת החודש הבא
+          { checkOut: { $gt: monthStartDate } } // צ'ק-אאוט אחרי תחילת החודש
         ]
       });
       
-      // חישוב הכנסה יומית
+      // חישוב הכנסה יומית בשיטה החדשה
       const monthDailyRevenue = {};
       for (let day = 1; day <= daysInThisMonth; day++) {
         monthDailyRevenue[day] = 0;
       }
       
       monthlyBookings.forEach(booking => {
-        const bookingStart = new Date(Math.max(booking.checkIn, monthStartDate));
-        const bookingEnd = new Date(Math.min(booking.checkOut, monthEndDate));
-        
-        const dailyRate = booking.price / 
-          Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24));
-        
-        // סך הכנסה מההזמנה בחודש זה
-        const totalRevenueThisMonth = dailyRate * Math.ceil((bookingEnd - bookingStart) / (1000 * 60 * 60 * 24));
-        // חלוקה שווה של ההכנסה על פני ימי ההזמנה בחודש זה
-        const revenuePerDay = totalRevenueThisMonth / Math.ceil((bookingEnd - bookingStart) / (1000 * 60 * 60 * 24));
-        
-        // נשתמש בלולאה שיוצרת מערך של תאריכים בין תאריך ההתחלה וסיום
-        // זה מבטיח שהימים יתאימו בדיוק לימים שההזמנה בתוקף
-        const dates = [];
-        let currentDate = new Date(bookingStart);
-        
-        while (currentDate <= bookingEnd) {
-          dates.push(new Date(currentDate));
-          currentDate.setDate(currentDate.getDate() + 1);
+        try {
+          const checkInDate = new Date(booking.checkIn);
+          const checkOutDate = new Date(booking.checkOut);
+          
+          // חישוב סך הלילות הכולל של ההזמנה
+          const totalNights = differenceInDays(checkOutDate, checkInDate);
+          
+          if (totalNights <= 0) return; // דילוג על הזמנות לא תקינות
+          
+          // חישוב תעריף לכל לילה
+          const ratePerNight = booking.price / totalNights;
+          
+          // בדיקה עבור כל יום בחודש
+          for (let day = 1; day <= daysInThisMonth; day++) {
+            const currentNightDate = new Date(Date.UTC(monthInfo.year, monthInfo.month - 1, day));
+            
+            // בדיקה אם היום הזה הוא יום לינה בהזמנה
+            if (checkInDate <= currentNightDate && checkOutDate > currentNightDate) {
+              // הוספת הכנסה יומית
+              monthDailyRevenue[day] += ratePerNight;
+            }
+          }
+        } catch (error) {
+          console.error(`שגיאה בחישוב הכנסה להזמנה להשוואה #${booking.bookingNumber || booking._id}:`, error);
         }
-        
-        // עכשיו נעבור על מערך התאריכים ונוסיף את ההכנסה היומית לכל יום
-        dates.forEach(date => {
-          const day = date.getDate();
-          monthDailyRevenue[day] += revenuePerDay;
-        });
       });
       
       // עדכון נתוני היום במערך ההשוואה
@@ -377,32 +410,51 @@ exports.getMonthlyRevenue = async (req, res) => {
       response.trends.currentMonthDay = currentDate.getDate();
     }
     
-    // 4. חישוב פילוח לפי אמצעי תשלום
+    // 4. חישוב פילוח לפי אמצעי תשלום - בשיטה החדשה
     const paymentMethods = {};
     
-    // שימוש בשדה paymentStatus מההזמנות עצמן במקום חשבוניות
-    bookings.forEach(booking => {
-      // דילוג על הזמנות שלא שולמו
-      if (booking.paymentStatus === 'unpaid') return;
-      
-      const method = booking.paymentStatus || 'other';
-      if (!paymentMethods[method]) {
-        paymentMethods[method] = 0;
+    // עבור כל אמצעי תשלום, נחשב את ההכנסות לפי לילות בפועל
+    paidBookings.forEach(booking => {
+      try {
+        const checkInDate = new Date(booking.checkIn);
+        const checkOutDate = new Date(booking.checkOut);
+        const method = booking.paymentStatus || 'other';
+        
+        // אתחול המונה אם לא קיים
+        if (!paymentMethods[method]) {
+          paymentMethods[method] = 0;
+        }
+        
+        // חישוב סך הלילות הכולל של ההזמנה
+        const totalNights = differenceInDays(checkOutDate, checkInDate);
+        
+        if (totalNights <= 0) return; // דילוג על הזמנות לא תקינות
+        
+        // חישוב תעריף לכל לילה
+        const ratePerNight = booking.price / totalNights;
+        
+        // ספירת הלילות בחודש הנוכחי
+        let nightsInMonth = 0;
+        
+        // בדיקה עבור כל יום בחודש
+        for (let day = 1; day <= daysInMonth; day++) {
+          const currentNightDate = new Date(Date.UTC(numericYear, numericMonth - 1, day));
+          
+          // בדיקה אם היום הזה הוא יום לינה בהזמנה
+          if (checkInDate <= currentNightDate && checkOutDate > currentNightDate) {
+            nightsInMonth++;
+          }
+        }
+        
+        // הכנסה כוללת מהזמנה זו בחודש זה
+        const revenueInThisMonth = ratePerNight * nightsInMonth;
+        
+        // הוספת הסכום לאמצעי התשלום
+        paymentMethods[method] += revenueInThisMonth;
+        
+      } catch (error) {
+        console.error(`שגיאה בחישוב הכנסה לאמצעי תשלום #${booking.bookingNumber || booking._id}:`, error);
       }
-      
-      // חישוב הסכום לפי מספר הימים בחודש הזה
-      const bookingStart = new Date(Math.max(booking.checkIn, startDate));
-      const bookingEnd = new Date(Math.min(booking.checkOut, endDate));
-      
-      // הסרת ה-"+1" מתיקון הטעות
-      const daysInThisMonth = Math.ceil((bookingEnd - bookingStart) / (1000 * 60 * 60 * 24));
-      const dailyRate = booking.price / Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24));
-      
-      // הוספת הסכום לאמצעי התשלום - כל ההכנסה בבת אחת
-      const totalAmount = dailyRate * daysInThisMonth;
-      paymentMethods[method] += totalAmount;
-      
-      console.log(`אמצעי תשלום: ${method}, סכום: ${totalAmount}, הזמנה #${booking.bookingNumber}`);
     });
     
     // סכום כל אמצעי התשלום - זהו הסכום האמיתי של הכנסות החודש
@@ -458,85 +510,144 @@ exports.getMonthlyRevenue = async (req, res) => {
       return revenueUntilYesterday + (dailyAverageUntilYesterday * daysRemaining);
     }
     
-    // 5. חישוב הכנסות לפי חדרים
+    // 5. חישוב הכנסות לפי חדרים - בשיטה החדשה
     const roomRevenue = {};
     const typeRevenue = {};
     
-    bookings.forEach(booking => {
-      // דילוג על הזמנות שלא שולמו
-      if (booking.paymentStatus === 'unpaid') return;
-      
-      if (!booking.room) return;
-      
-      const roomNumber = booking.room.roomNumber;
-      const roomType = booking.room.type;
-      
-      // המרת תאריכים
-      const bookingStart = new Date(Math.max(booking.checkIn, startDate));
-      const bookingEnd = new Date(Math.min(booking.checkOut, endDate));
-      
-      // הסרת ה-"+1" מתיקון הטעות
-      const daysInThisMonth = Math.ceil((bookingEnd - bookingStart) / (1000 * 60 * 60 * 24));
-      
-      // תעריף יומי
-      const dailyRate = booking.price / 
-        Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24));
-      
-      // הכנסה בחודש זה - חישוב כולל
-      const totalRevenueInThisMonth = dailyRate * daysInThisMonth;
-      
-      // הוספה לחדר
-      if (!roomRevenue[roomNumber]) {
-        roomRevenue[roomNumber] = {
-          roomNumber,
-          revenue: 0,
-          bookings: 0
-        };
+    paidBookings.forEach(booking => {
+      try {
+        if (!booking.room) return;
+        
+        const roomNumber = booking.room.roomNumber;
+        const roomType = booking.room.category || 'אחר';
+        
+        // המרת תאריכים לאובייקטי Date אחידים
+        const checkInDate = new Date(booking.checkIn);
+        const checkOutDate = new Date(booking.checkOut);
+        
+        // חישוב סך הלילות הכולל של ההזמנה
+        const totalNights = differenceInDays(checkOutDate, checkInDate);
+        
+        if (totalNights <= 0) {
+          console.warn(`אזהרה: הזמנה #${booking.bookingNumber} עם מספר לילות לא תקין (${totalNights}), דילוג...`);
+          return;
+        }
+        
+        // חישוב תעריף לכל לילה
+        const ratePerNight = booking.price / totalNights;
+        
+        // חישוב ימי הלינה בחודש הנוכחי בלבד
+        let nightsInMonth = 0;
+        
+        // בדיקה עבור כל יום בחודש הנוכחי האם יש בו לינה מהזמנה זו
+        for (let day = 1; day <= daysInMonth; day++) {
+          const currentNightDate = new Date(Date.UTC(numericYear, numericMonth - 1, day));
+          
+          // בדיקה אם היום הזה הוא יום לינה בהזמנה
+          if (checkInDate <= currentNightDate && checkOutDate > currentNightDate) {
+            nightsInMonth++;
+          }
+        }
+        
+        // חישוב ההכנסה היחסית לחודש זה
+        const revenueInThisMonth = ratePerNight * nightsInMonth;
+        
+        // אתחול מבנה נתונים אם לא קיים
+        if (!roomRevenue[roomNumber]) {
+          roomRevenue[roomNumber] = {
+            roomNumber,
+            revenue: 0,
+            bookings: 0,
+            nights: 0
+          };
+        }
+        
+        // אתחול נתוני סוג חדר אם לא קיים
+        if (!typeRevenue[roomType]) {
+          typeRevenue[roomType] = {
+            roomType,
+            revenue: 0,
+            bookings: 0,
+            nights: 0
+          };
+        }
+        
+        // הוספת ההכנסה והלילות למונים
+        roomRevenue[roomNumber].revenue += revenueInThisMonth;
+        roomRevenue[roomNumber].nights += nightsInMonth;
+        roomRevenue[roomNumber].bookings += (nightsInMonth > 0 ? 1 : 0); // נוסיף הזמנה רק אם יש לילות
+        
+        typeRevenue[roomType].revenue += revenueInThisMonth;
+        typeRevenue[roomType].nights += nightsInMonth;
+        typeRevenue[roomType].bookings += (nightsInMonth > 0 ? 1 : 0); // נוסיף הזמנה רק אם יש לילות
+        
+      } catch (error) {
+        console.error(`שגיאה בחישוב הכנסה לפי חדרים #${booking.bookingNumber || booking._id}:`, error);
       }
-      roomRevenue[roomNumber].revenue += totalRevenueInThisMonth;
-      roomRevenue[roomNumber].bookings++;
-      
-      // הוספה לסוג חדר
-      if (!typeRevenue[roomType]) {
-        typeRevenue[roomType] = {
-          roomType,
-          revenue: 0,
-          bookings: 0
-        };
-      }
-      typeRevenue[roomType].revenue += totalRevenueInThisMonth;
-      typeRevenue[roomType].bookings++;
     });
     
-    response.roomRevenue.byRoom = Object.values(roomRevenue).map(room => ({
-      roomNumber: room.roomNumber,
-      revenue: Math.round(room.revenue),
-      bookings: room.bookings
-    }));
+    // המרת נתוני חדרים למערך לתצוגה
+    response.roomRevenue.byRoom = Object.values(roomRevenue)
+      .map(room => ({
+        roomNumber: room.roomNumber,
+        revenue: Math.round(room.revenue),
+        bookings: room.bookings,
+        nights: room.nights
+      }))
+      .sort((a, b) => b.revenue - a.revenue); // מיון לפי הכנסה בסדר יורד
     
-    response.roomRevenue.byType = Object.values(typeRevenue).map(type => ({
-      roomType: type.roomType,
-      revenue: Math.round(type.revenue),
-      bookings: type.bookings
-    }));
+    // המרת נתוני סוגי חדרים למערך לתצוגה
+    response.roomRevenue.byType = Object.values(typeRevenue)
+      .map(type => ({
+        roomType: type.roomType,
+        revenue: Math.round(type.revenue),
+        bookings: type.bookings,
+        nights: type.nights
+      }))
+      .sort((a, b) => b.revenue - a.revenue); // מיון לפי הכנסה בסדר יורד
     
     console.log('סיום חישוב הכנסות חודשיות');
     
     // הוספת כל ההזמנות הרלוונטיות לתשובה
-    response.bookings = bookings
-      .filter(booking => booking.paymentStatus !== 'unpaid') // סינון הזמנות שלא שולמו
-      .map(booking => ({
-        _id: booking._id,
-        firstName: booking.firstName,
-        lastName: booking.lastName,
-        checkIn: booking.checkIn,
-        checkOut: booking.checkOut,
-        paymentAmount: booking.paymentAmount || booking.price || 0,
-        paymentStatus: booking.paymentStatus,
-        price: booking.price,
-        roomType: booking.roomType,
-        room: booking.room
-      }));
+    response.bookings = paidBookings
+      .map(booking => {
+        // חישוב הלילות בחודש הנוכחי להזמנה זו
+        const checkInDate = new Date(booking.checkIn);
+        const checkOutDate = new Date(booking.checkOut);
+        
+        let nightsInMonth = 0;
+        for (let day = 1; day <= daysInMonth; day++) {
+          const currentNightDate = new Date(Date.UTC(numericYear, numericMonth - 1, day));
+          if (checkInDate <= currentNightDate && checkOutDate > currentNightDate) {
+            nightsInMonth++;
+          }
+        }
+        
+        // נחזיר רק הזמנות עם לילות בחודש זה
+        if (nightsInMonth === 0) return null;
+        
+        // חישוב תעריף לכל לילה וההכנסה בחודש זה
+        const totalNights = differenceInDays(checkOutDate, checkInDate);
+        const ratePerNight = booking.price / Math.max(1, totalNights);
+        const revenueInMonth = ratePerNight * nightsInMonth;
+        
+        return {
+          _id: booking._id,
+          bookingNumber: booking.bookingNumber,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          paymentAmount: booking.paymentAmount || booking.price || 0,
+          paymentStatus: booking.paymentStatus,
+          price: booking.price,
+          revenueInMonth: Math.round(revenueInMonth),
+          nightsInMonth: nightsInMonth,
+          roomNumber: booking.room?.roomNumber,
+          roomType: booking.room?.category
+        };
+      })
+      .filter(booking => booking !== null); // סינון ערכים ריקים
     
     // שליחת התשובה
     res.status(200).json(response);
