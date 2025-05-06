@@ -22,7 +22,11 @@ import {
   Tooltip,
   alpha,
   useMediaQuery,
-  LinearProgress
+  LinearProgress,
+  Tabs,
+  Tab,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import { format, startOfMonth, getMonth, getYear } from 'date-fns';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -34,6 +38,8 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import MoneyIcon from '@mui/icons-material/Money';
+import PaymentsIcon from '@mui/icons-material/Payments';
 
 // קומפוננטות לתצוגת הדוח
 import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigation';
@@ -42,10 +48,12 @@ import PaymentMethodChart from '../../components/revenue/PaymentMethodChart';
 import RevenueSummaryCards from '../../components/revenue/RevenueSummaryCards';
 import ExpensesList from '../../components/revenue/ExpensesList';
 import ExpenseCategoryChart from '../../components/revenue/ExpenseCategoryChart';
+import ManualIncomesList from '../../components/revenue/ManualIncomesList';
 
 // סרוויס לקבלת נתונים
 import { getMonthlyRevenueData } from '../../services/revenueService';
 import { getExpenses, addExpense, deleteExpense } from '../../services/expenseService';
+import { getManualIncomes, addManualIncome, deleteManualIncome, getIncomeCategories } from '../../services/incomeService';
 
 // פאנל לטעינת נתונים
 const LoadingPanel = () => (
@@ -55,7 +63,7 @@ const LoadingPanel = () => (
 );
 
 // קומפוננטת כרטיסייה מידע
-const InfoCard = ({ title, value, type = 'default', icon }) => {
+const InfoCard = ({ title, value, type = 'default', icon, details }) => {
   const theme = useTheme();
   
   // הגדרת צבעים לפי הסוג
@@ -111,6 +119,21 @@ const InfoCard = ({ title, value, type = 'default', icon }) => {
       <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
         {value}
       </Typography>
+
+      {details && (
+        <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+          {details.map((detail, index) => (
+            <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                {detail.label}
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                {detail.value}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
     </Paper>
   );
 };
@@ -140,11 +163,16 @@ const SectionTitle = ({ title, action }) => (
 const ModernPaymentMethodsDisplay = ({ data }) => {
   const theme = useTheme();
   
-  // מיון הנתונים לפי גודל - מהגדול לקטן
-  const sortedData = [...data].sort((a, b) => b.value - a.value);
+  // סינון נתונים - ללא אשראי אור יהודה ואשראי רוטשילד
+  const filteredData = data.filter(item => 
+    item.name !== 'credit_or_yehuda' && item.name !== 'credit_rothschild'
+  );
   
-  // חישוב סך הכל
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  // מיון הנתונים לפי גודל - מהגדול לקטן
+  const sortedData = [...filteredData].sort((a, b) => b.value - a.value);
+  
+  // חישוב סך הכל (רק על הנתונים המסוננים)
+  const total = filteredData.reduce((sum, item) => sum + item.value, 0);
   
   // צבעים לפי סוג אמצעי תשלום
   const getMethodColor = (method) => {
@@ -375,6 +403,11 @@ const FinancialOverview = () => {
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState(null);
   const [expenses, setExpenses] = useState([]);
+  const [manualIncomes, setManualIncomes] = useState([]);
+  const [selectedTab, setSelectedTab] = useState(0); // 0 = הוצאות, 1 = הכנסות ידניות
+  const [incomeCategories, setIncomeCategories] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showError, setShowError] = useState(false);
   
   // מצבים לדיאלוג הוספת הוצאה
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -386,6 +419,16 @@ const FinancialOverview = () => {
     date: format(new Date(), 'yyyy-MM-dd')
   });
 
+  // מצבים לדיאלוג הוספת הכנסה ידנית
+  const [openAddIncomeDialog, setOpenAddIncomeDialog] = useState(false);
+  const [newIncome, setNewIncome] = useState({
+    amount: '',
+    category: '',
+    description: '',
+    paymentMethod: 'cash',
+    date: format(new Date(), 'yyyy-MM-dd')
+  });
+  
   // שמות המתחמים
   const sites = ['rothschild', 'airport'];
   const siteNames = ['רוטשילד', 'שדה התעופה'];
@@ -420,6 +463,15 @@ const FinancialOverview = () => {
     { value: 'other', label: 'אחר' }
   ];
 
+  // קטגוריות הכנסה
+  const defaultIncomeCategories = [
+    { _id: null, name: 'הזמנות' },
+    { _id: null, name: 'דמי ביטול' },
+    { _id: null, name: 'מכירות נוספות' },
+    { _id: null, name: 'החזרים' },
+    { _id: null, name: 'אחר' }
+  ];
+
   // פונקציה לטעינת נתונים
   const fetchData = async () => {
     setLoading(true);
@@ -438,6 +490,23 @@ const FinancialOverview = () => {
       const expensesData = await getExpenses(site, year, month);
       console.log('הוצאות שהתקבלו מהשרת:', expensesData);
       setExpenses(expensesData || []);
+      
+      // קבלת נתוני הכנסות ידניות מהשרת
+      const manualIncomesData = await getManualIncomes(site, year, month);
+      console.log('הכנסות ידניות שהתקבלו מהשרת:', manualIncomesData);
+      setManualIncomes(manualIncomesData || []);
+      
+      // קבלת קטגוריות הכנסה
+      try {
+        const categories = await getIncomeCategories();
+        if (categories && categories.length > 0) {
+          setIncomeCategories(categories);
+        }
+      } catch (error) {
+        console.error('שגיאה בטעינת קטגוריות הכנסה, משתמש בברירות מחדל:', error);
+        // אם יש שגיאה בטעינת הקטגוריות, נשתמש בברירות מחדל
+      }
+      
     } catch (error) {
       console.error('שגיאה בטעינת נתונים פיננסיים:', error);
       // ניתן להוסיף כאן הודעת שגיאה למשתמש
@@ -540,24 +609,126 @@ const FinancialOverview = () => {
     }
   };
 
+  // טיפול בשינוי טאב בין הוצאות להכנסות ידניות
+  const handleTabChange = (event, newValue) => {
+    setSelectedTab(newValue);
+  };
+
+  // טיפול בפתיחת דיאלוג הוספת הכנסה ידנית
+  const handleOpenAddIncome = () => {
+    setNewIncome({
+      amount: '',
+      category: '',
+      description: '',
+      paymentMethod: 'cash',
+      date: format(selectedDate, 'yyyy-MM-dd')
+    });
+    setOpenAddIncomeDialog(true);
+  };
+  
+  // טיפול בשינוי שדות בטופס הוספת הכנסה ידנית
+  const handleIncomeChange = (e) => {
+    const { name, value } = e.target;
+    setNewIncome(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // טיפול בשמירת הכנסה ידנית חדשה
+  const handleSaveIncome = async () => {
+    try {
+      const month = getMonth(selectedDate) + 1;
+      const year = getYear(selectedDate);
+      const site = sites[selectedSite];
+      
+      // וידוא תקינות הנתונים
+      if (!newIncome.amount || !newIncome.description) {
+        setErrorMessage("יש למלא סכום ותיאור");
+        setShowError(true);
+        return;
+      }
+      
+      const incomeData = {
+        ...newIncome,
+        amount: Number(newIncome.amount),
+        site,
+        year,
+        month
+      };
+      
+      console.log('שולח נתוני הכנסה ידנית חדשה:', incomeData);
+      
+      // שמירת ההכנסה בשרת
+      const result = await addManualIncome(incomeData);
+      
+      console.log('תוצאה מהשרת לאחר הוספת הכנסה ידנית:', result);
+      
+      // עדכון רשימת ההכנסות המקומית
+      setManualIncomes(prev => {
+        const newIncomes = [...prev, result];
+        console.log('רשימת ההכנסות הידניות המעודכנת:', newIncomes);
+        return newIncomes;
+      });
+      
+      // סגירת הדיאלוג
+      setOpenAddIncomeDialog(false);
+    } catch (error) {
+      console.error('שגיאה בשמירת הכנסה ידנית:', error);
+      setErrorMessage("שגיאה בשמירת ההכנסה: " + (error.response?.data?.message || error.message || "שגיאת שרת"));
+      setShowError(true);
+    }
+  };
+  
+  // טיפול במחיקת הכנסה ידנית
+  const handleDeleteIncome = async (incomeId) => {
+    try {
+      // מחיקת ההכנסה בשרת
+      await deleteManualIncome(incomeId);
+      
+      // עדכון רשימת ההכנסות המקומית
+      setManualIncomes(prev => prev.filter(income => income._id !== incomeId));
+    } catch (error) {
+      console.error('שגיאה במחיקת הכנסה ידנית:', error);
+      // כאן אפשר להוסיף התראה למשתמש
+    }
+  };
+
   // מזהה המיקום הנוכחי (rothschild/airport)
   const currentLocation = sites[selectedSite];
   
   // לוג לבדיקת נתוני הכנסות
   console.log('Revenue data paymentMethods:', revenueData?.paymentMethods);
   
-  // חישוב סכום כל ההכנסות מאמצעי התשלום
+  // חישוב סך הכנסות
   let totalRevenueCalc = 0;
+  
   if (revenueData?.paymentMethods) {
     totalRevenueCalc = revenueData.paymentMethods.reduce((sum, method) => {
       console.log('Method:', method, 'Amount:', method.amount || method.value);
+      // לא כולל הכנסות מאשראי אור יהודה ואשראי רוטשילד
+      if (method.name === 'credit_or_yehuda' || method.name === 'credit_rothschild') {
+        return sum;
+      }
       return sum + (method.amount || method.value || 0);
     }, 0);
   }
   console.log('Calculated total revenue:', totalRevenueCalc);
   
-  // חישוב סך הכנסות
-  const totalRevenue = totalRevenueCalc;
+  // חישוב סך הכנסות מהזמנות
+  const totalBookingRevenue = totalRevenueCalc;
+  
+  // חישוב סך הכנסות ידניות
+  const totalManualIncome = manualIncomes.reduce((sum, income) => {
+    // לא כולל הכנסות מאשראי אור יהודה ואשראי רוטשילד
+    if (income.paymentMethod === 'credit_or_yehuda' || income.paymentMethod === 'credit_rothschild') {
+      return sum;
+    }
+    return sum + income.amount;
+  }, 0);
+  
+  // חישוב סך כל ההכנסות
+  const totalRevenue = totalBookingRevenue + totalManualIncome;
   
   // חישוב סך הוצאות
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -651,6 +822,16 @@ const FinancialOverview = () => {
                   value={`₪${totalRevenue.toLocaleString()}`}
                   type="revenue"
                   icon={<CreditCardIcon />}
+                  details={[
+                    { 
+                      label: "הכנסות מהזמנות",
+                      value: `₪${totalBookingRevenue.toLocaleString()}`
+                    },
+                    { 
+                      label: "הכנסות ידניות",
+                      value: `₪${totalManualIncome.toLocaleString()}`
+                    }
+                  ]}
                 />
               </Grid>
               <Grid item xs={12} md={4}>
@@ -728,7 +909,7 @@ const FinancialOverview = () => {
                 </Paper>
               </Grid>
 
-              {/* רשימת הוצאות */}
+              {/* טאבים להחלפה בין הוצאות והכנסות ידניות */}
               <Grid item xs={12}>
                 <Paper 
                   elevation={0} 
@@ -738,15 +919,72 @@ const FinancialOverview = () => {
                     boxShadow: theme.shadows[1]
                   }}
                 >
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium' }}>
-                    פירוט הוצאות
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Tabs 
+                      value={selectedTab} 
+                      onChange={handleTabChange}
+                      sx={{ 
+                        minHeight: '40px',
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        '& .MuiTabs-indicator': {
+                          height: 3,
+                          borderTopLeftRadius: 3,
+                          borderTopRightRadius: 3
+                        }
+                      }}
+                    >
+                      <Tab label="הוצאות" sx={{ minHeight: '40px' }} />
+                      <Tab label="הכנסות ידניות" sx={{ minHeight: '40px' }} />
+                    </Tabs>
+                    
+                    {/* כפתור הוספה דינמי בהתאם לטאב הנבחר */}
+                    {selectedTab === 0 ? (
+                      <Button 
+                        variant="contained" 
+                        size="small" 
+                        startIcon={<AddIcon />}
+                        onClick={handleOpenAddExpense}
+                        sx={{ 
+                          borderRadius: 2,
+                          boxShadow: 'none',
+                          '&:hover': { boxShadow: 'none', bgcolor: theme.palette.primary.dark }
+                        }}
+                      >
+                        הוספת הוצאה
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="contained" 
+                        size="small" 
+                        startIcon={<AddIcon />}
+                        onClick={handleOpenAddIncome}
+                        color="success"
+                        sx={{ 
+                          borderRadius: 2,
+                          boxShadow: 'none',
+                          '&:hover': { boxShadow: 'none' }
+                        }}
+                      >
+                        הוספת הכנסה ידנית
+                      </Button>
+                    )}
+                  </Box>
                   
-                  <ExpensesList 
-                    expenses={expenses} 
-                    onDelete={handleDeleteExpense}
-                    paymentMethods={paymentMethods}
-                  />
+                  {/* תצוגת רשימה דינמית בהתאם לטאב */}
+                  {selectedTab === 0 ? (
+                    <ExpensesList 
+                      expenses={expenses} 
+                      onDelete={handleDeleteExpense}
+                      paymentMethods={paymentMethods}
+                    />
+                  ) : (
+                    <ManualIncomesList 
+                      manualIncomes={manualIncomes} 
+                      onDelete={handleDeleteIncome}
+                      paymentMethods={paymentMethods}
+                    />
+                  )}
                 </Paper>
               </Grid>
             </Grid>
@@ -865,6 +1103,136 @@ const FinancialOverview = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* דיאלוג להוספת הכנסה ידנית */}
+      <Dialog 
+        open={openAddIncomeDialog} 
+        onClose={() => setOpenAddIncomeDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
+          הוספת הכנסה ידנית חדשה
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2, pb: 0 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                autoFocus
+                margin="dense"
+                name="amount"
+                label="סכום"
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={newIncome.amount}
+                onChange={handleIncomeChange}
+                InputProps={{ 
+                  startAdornment: <Box sx={{ mr: 1 }}>₪</Box>,
+                  style: { color: theme.palette.success.main }
+                }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>קטגוריה</InputLabel>
+                <Select
+                  name="category"
+                  value={newIncome.category}
+                  onChange={handleIncomeChange}
+                  label="קטגוריה"
+                >
+                  {(incomeCategories.length > 0 ? incomeCategories : defaultIncomeCategories).map(category => (
+                    <MenuItem key={category._id || category.name} 
+                              value={category._id || ''}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                margin="dense"
+                name="description"
+                label="תיאור"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={newIncome.description}
+                onChange={handleIncomeChange}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>אמצעי תשלום</InputLabel>
+                <Select
+                  name="paymentMethod"
+                  value={newIncome.paymentMethod}
+                  onChange={handleIncomeChange}
+                  label="אמצעי תשלום"
+                >
+                  {paymentMethods.map(method => (
+                    <MenuItem key={method.value} value={method.value}>{method.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                margin="dense"
+                name="date"
+                label="תאריך"
+                type="date"
+                fullWidth
+                variant="outlined"
+                value={newIncome.date}
+                onChange={handleIncomeChange}
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Button onClick={() => setOpenAddIncomeDialog(false)} color="inherit">
+            ביטול
+          </Button>
+          <Button 
+            onClick={handleSaveIncome} 
+            variant="contained"
+            color="success"
+            sx={{ 
+              borderRadius: '8px',
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' }
+            }}
+          >
+            שמירה
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* הודעת שגיאה */}
+      <Snackbar
+        open={showError}
+        autoHideDuration={6000}
+        onClose={() => setShowError(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowError(false)} 
+          severity="error" 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

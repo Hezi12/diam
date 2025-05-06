@@ -264,11 +264,27 @@ const CapitalManagement = () => {
   const getPaymentMethodsData = () => {
     if (!capitalData || !capitalData.paymentMethods) return [];
     
-    return capitalData.paymentMethods.map(item => ({
-      method: item.method,
-      name: getPaymentMethodName(item.method),
-      amount: item.totalAmount
-    }));
+    // סינון אמצעי התשלום - ללא אשראי אור יהודה ואשראי רוטשילד
+    return capitalData.paymentMethods
+      .filter(item => item.method !== 'credit_or_yehuda' && item.method !== 'credit_rothschild')
+      .map(item => ({
+        method: item.method,
+        name: getPaymentMethodName(item.method),
+        amount: item.totalAmount
+      }));
+  };
+
+  // חישוב סך ההון ללא אמצעי תשלום מסוימים
+  const calculateFilteredTotal = () => {
+    if (!capitalData || !capitalData.paymentMethods) return 0;
+    
+    return capitalData.paymentMethods.reduce((sum, item) => {
+      // לא כולל אשראי אור יהודה ואשראי רוטשילד
+      if (item.method === 'credit_or_yehuda' || item.method === 'credit_rothschild') {
+        return sum;
+      }
+      return sum + item.totalAmount;
+    }, 0);
   };
 
   return (
@@ -302,7 +318,7 @@ const CapitalManagement = () => {
       ) : capitalData ? (
         <Box>
           {/* כרטיסיית סך הון */}
-          <TotalCapitalCard total={capitalData.total} />
+          <TotalCapitalCard total={calculateFilteredTotal()} />
           
           {/* רשימת אמצעי תשלום */}
           <Typography variant="h6" sx={{ mb: 2 }}>

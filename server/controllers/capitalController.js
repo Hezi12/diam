@@ -310,10 +310,6 @@ exports.syncFullCapital = async (req, res) => {
     await capitalData.save();
     console.log('נתוני הון עודכנו בהצלחה');
     
-    // חישוב הסכום הכולל
-    const total = capitalData.calculateTotal();
-    console.log('סך הכל הון:', total);
-    
     // תחשיב נתוני הכנסות והוצאות לכל אמצעי תשלום עבור התצוגה
     const paymentTypes = [
       'cash', 'credit_rothschild', 'credit_or_yehuda', 
@@ -336,13 +332,21 @@ exports.syncFullCapital = async (req, res) => {
       };
     });
     
+    // חישוב סך הכל ללא אמצעי תשלום מסוימים
+    const filteredTotal = paymentMethodsData.reduce((sum, item) => {
+      if (item.method === 'credit_or_yehuda' || item.method === 'credit_rothschild') {
+        return sum;
+      }
+      return sum + item.totalAmount;
+    }, 0);
+    
     res.status(200).json({
       success: true,
       initialAmounts: capitalData.initialAmounts,
       currentAmounts: capitalData.currentAmounts,
       lastUpdated: capitalData.lastUpdated,
       paymentMethods: paymentMethodsData,
-      total
+      total: filteredTotal  // שימוש בסכום המסונן במקום הכולל
     });
   } catch (error) {
     console.error('שגיאה בסנכרון מלא של נתוני הון:', error);
@@ -391,13 +395,21 @@ exports.getFullFinancialData = async (req, res) => {
       };
     });
     
+    // חישוב סך הכל ללא אמצעי תשלום מסוימים
+    const filteredTotal = paymentMethodsData.reduce((sum, item) => {
+      if (item.method === 'credit_or_yehuda' || item.method === 'credit_rothschild') {
+        return sum;
+      }
+      return sum + item.totalAmount;
+    }, 0);
+    
     res.status(200).json({
       success: true,
       initialAmounts: capitalData.initialAmounts,
       currentAmounts: capitalData.currentAmounts,
       lastUpdated: capitalData.lastUpdated,
       paymentMethods: paymentMethodsData,
-      total
+      total: filteredTotal  // שימוש בסכום המסונן במקום הכולל
     });
   } catch (error) {
     console.error('שגיאה בטעינת נתונים פיננסיים מלאים:', error);

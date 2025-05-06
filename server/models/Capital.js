@@ -88,13 +88,18 @@ const CapitalSchema = new mongoose.Schema(
 
 /**
  * חישוב סך ההון הכולל
- * מחשב את סכום כל אמצעי התשלום
+ * מחשב את סכום כל אמצעי התשלום (ללא אמצעי תשלום מסוימים)
  */
 CapitalSchema.methods.calculateTotal = function() {
   let total = 0;
   
   // סכימת הסכומים ההתחלתיים
   for (const [method, amount] of Object.entries(this.initialAmounts)) {
+    // דילוג על אמצעי תשלום שלא רוצים לכלול
+    if (method === 'credit_or_yehuda' || method === 'credit_rothschild') {
+      continue;
+    }
+    
     if (typeof amount === 'number') {
       total += amount;
     }
@@ -102,6 +107,11 @@ CapitalSchema.methods.calculateTotal = function() {
   
   // סכימת הסכומים הנוכחיים (מהכנסות והוצאות)
   for (const [method, amount] of Object.entries(this.currentAmounts)) {
+    // דילוג על אמצעי תשלום שלא רוצים לכלול
+    if (method === 'credit_or_yehuda' || method === 'credit_rothschild') {
+      continue;
+    }
+    
     if (typeof amount === 'number') {
       total += amount;
     }
