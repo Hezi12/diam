@@ -28,7 +28,8 @@ import {
   ArrowBack as ArrowBackIcon,
   Receipt as ReceiptIcon,
   BarChart as RevenueIcon,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  AttachMoney as AttachMoneyIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -313,6 +314,13 @@ const Sidebar = () => {
             icon={<RevenueIcon />}
             to="/revenue"
             title="דוחות הכנסות"
+            iconColor={iconColors.revenue}
+            onClick={isMobile ? toggleDrawer(false) : undefined}
+          />
+          <SidebarItem
+            icon={<AttachMoneyIcon />}
+            to="/financial-overview"
+            title="הכנסות והוצאות"
             iconColor={iconColors.revenue}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />

@@ -20,6 +20,7 @@ import RothschildSite from './pages/sites/RothschildSite';
 import Cleaning from './pages/Cleaning';
 import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
+import FinancialOverview from './pages/revenue/FinancialOverview';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -159,6 +160,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <MonthlyRevenue />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/financial-overview"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <FinancialOverview />
                     </Layout>
                   </ProtectedRoute>
                 }
