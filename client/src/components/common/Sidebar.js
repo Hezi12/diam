@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Box, 
@@ -29,7 +29,8 @@ import {
   Receipt as ReceiptIcon,
   BarChart as RevenueIcon,
   Menu as MenuIcon,
-  AttachMoney as AttachMoneyIcon
+  AttachMoney as AttachMoneyIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -205,6 +206,8 @@ const Sidebar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showBookingSubMenu, setShowBookingSubMenu] = useState(false);
+  const [showRevenueSubMenu, setShowRevenueSubMenu] = useState(false);
 
   // לוגיקת התנתקות
   const handleLogout = () => {
@@ -244,6 +247,49 @@ const Sidebar = () => {
     airport: '#0059b3', // צבע אייפורט מקורי 
     settings: '#F5B400', // צהוב/כתום
     logout: '#EA4335' // אדום
+  };
+
+  // פונקציה לקביעת האם תתי-תפריטים צריכים להיות פתוחים
+  useEffect(() => {
+    // קובע האם להציג את תת-התפריט של ההזמנות
+    setShowBookingSubMenu(location.pathname.includes('/bookings'));
+    
+    // קובע האם להציג את תת-התפריט של ההכנסות
+    setShowRevenueSubMenu(
+      location.pathname.includes('/revenue') || 
+      location.pathname.includes('/invoices') ||
+      location.pathname.includes('/capital') // הוספנו את ניהול ההון כתת-תפריט של הכנסות
+    );
+  }, [location]);
+
+  // תת-תפריט הכנסות
+  const renderRevenueSubmenu = () => {
+    if (!showRevenueSubMenu) return null;
+    
+    return (
+      <>
+        <SidebarItem
+          to="/revenue/monthly"
+          icon={<AttachMoneyIcon />}
+          title="הכנסות חודשיות"
+        />
+        <SidebarItem
+          to="/revenue/overview"
+          icon={<RevenueIcon />}
+          title="סקירה פיננסית"
+        />
+        <SidebarItem
+          to="/invoices"
+          icon={<ReceiptIcon />}
+          title="חשבוניות"
+        />
+        <SidebarItem
+          to="/capital"
+          icon={<AccountBalanceWalletIcon />}
+          title="ניהול הון"
+        />
+      </>
+    );
   };
 
   // תוכן המגירה (משותף בין דסקטופ למובייל)
@@ -358,6 +404,36 @@ const Sidebar = () => {
       </Box>
     </>
   );
+
+  // תת-תפריט הכנסות
+  const renderRevenueSubmenu = () => {
+    if (!showRevenueSubMenu) return null;
+    
+    return (
+      <>
+        <SidebarItem
+          to="/revenue/monthly"
+          icon={<AttachMoneyIcon />}
+          title="הכנסות חודשיות"
+        />
+        <SidebarItem
+          to="/revenue/overview"
+          icon={<RevenueIcon />}
+          title="סקירה פיננסית"
+        />
+        <SidebarItem
+          to="/invoices"
+          icon={<ReceiptIcon />}
+          title="חשבוניות"
+        />
+        <SidebarItem
+          to="/capital"
+          icon={<AccountBalanceWalletIcon />}
+          title="ניהול הון"
+        />
+      </>
+    );
+  };
 
   // במובייל
   if (isMobile) {

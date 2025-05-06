@@ -21,6 +21,7 @@ import Cleaning from './pages/Cleaning';
 import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
+import CapitalManagement from './pages/revenue/CapitalManagement';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -170,6 +171,36 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <FinancialOverview />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/revenue/monthly"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <MonthlyRevenue />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/revenue/overview"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <FinancialOverview />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/capital"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <CapitalManagement />
                     </Layout>
                   </ProtectedRoute>
                 }
