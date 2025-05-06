@@ -69,10 +69,6 @@ const StyledNavLink = styled(NavLink)(({ theme }) => ({
     color: STYLE_CONSTANTS.colors.airport.main,
     backgroundColor: STYLE_CONSTANTS.colors.airport.bgLight,
   },
-  '&.submenu-active': {
-    color: STYLE_CONSTANTS.colors.airport.main,
-    backgroundColor: STYLE_CONSTANTS.colors.airport.bgLight,
-  },
 
   // מדיה-קוורי לשינוי הפדינג במובייל
   [theme.breakpoints.down('md')]: {
@@ -81,7 +77,7 @@ const StyledNavLink = styled(NavLink)(({ theme }) => ({
 }));
 
 // הרכיב של פריט בתפריט צד
-const SidebarItem = ({ icon, to, title, iconColor, onClick, isActive }) => {
+const SidebarItem = ({ icon, to, title, iconColor, onClick }) => {
   const isMobile = useMediaQuery(useTheme().breakpoints.down('md'));
   
   return (
@@ -91,7 +87,7 @@ const SidebarItem = ({ icon, to, title, iconColor, onClick, isActive }) => {
       justifyContent: 'center' 
     }}>
       <Tooltip title={title} placement="left">
-        <StyledNavLink to={to} onClick={onClick} className={isActive ? 'submenu-active' : ''}>
+        <StyledNavLink to={to} onClick={onClick}>
           <ListItemIcon sx={{ 
             minWidth: 'auto', 
             justifyContent: 'center', 
@@ -212,8 +208,6 @@ const Sidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBookingSubMenu, setShowBookingSubMenu] = useState(false);
   const [showRevenueSubMenu, setShowRevenueSubMenu] = useState(false);
-  // משתנה חדש לשליטה בפתיחה/סגירה של תת-תפריט הכנסות בלחיצה
-  const [isRevenueMenuOpen, setIsRevenueMenuOpen] = useState(false);
 
   // לוגיקת התנתקות
   const handleLogout = () => {
@@ -237,11 +231,6 @@ const Sidebar = () => {
     setMobileOpen(open);
   };
   
-  // פתיחה/סגירה של תת-תפריט ההכנסות
-  const toggleRevenueSubmenu = () => {
-    setIsRevenueMenuOpen(!isRevenueMenuOpen);
-  };
-  
   // בדיקה האם אנחנו בדף שצריך להציג בו כפתור חזרה
   const shouldShowBackButton = () => {
     // בדף של ניהול חדרים (airport או rothschild), נרצה להציג כפתור חזרה לדף הגדרות
@@ -260,46 +249,44 @@ const Sidebar = () => {
     logout: '#EA4335' // אדום
   };
 
+  // פונקציה לקביעת האם תתי-תפריטים צריכים להיות פתוחים
   useEffect(() => {
     // קובע האם להציג את תת-התפריט של ההזמנות
     setShowBookingSubMenu(location.pathname.includes('/bookings'));
     
-    // קובע האם אנחנו נמצאים בדף פיננסי
-    const isInFinancialSection = 
+    // קובע האם להציג את תת-התפריט של ההכנסות
+    setShowRevenueSubMenu(
       location.pathname.includes('/revenue') || 
-      location.pathname.includes('/capital') ||
-      location.pathname.includes('/financial-overview');
-    
-    setShowRevenueSubMenu(isInFinancialSection);
-    
-    // סגירת תת-התפריט כשעוברים לדף שאינו פיננסי
-    if (!isInFinancialSection) {
-      setIsRevenueMenuOpen(false);
-    }
-    
-    // כאשר עוברים לדף אחר, תת-התפריט נסגר במובייל
-    if (isMobile) {
-      setMobileOpen(false);
-    }
-  }, [location, isMobile]);
+      location.pathname.includes('/invoices') ||
+      location.pathname.includes('/capital') // הוספנו את ניהול ההון כתת-תפריט של הכנסות
+    );
+  }, [location]);
 
-  // תת-תפריט הכנסות - יוצג רק אם הוא פתוח (בלחיצה)
+  // תת-תפריט הכנסות
   const renderRevenueSubmenu = () => {
-    if (!isRevenueMenuOpen) return null;
+    if (!showRevenueSubMenu) return null;
     
     return (
       <>
         <SidebarItem
-          to="/financial-overview"
+          to="/revenue/monthly"
+          icon={<AttachMoneyIcon />}
+          title="הכנסות חודשיות"
+        />
+        <SidebarItem
+          to="/revenue/overview"
           icon={<RevenueIcon />}
           title="סקירה פיננסית"
-          onClick={isMobile ? toggleDrawer(false) : undefined}
+        />
+        <SidebarItem
+          to="/invoices"
+          icon={<ReceiptIcon />}
+          title="חשבוניות"
         />
         <SidebarItem
           to="/capital"
           icon={<AccountBalanceWalletIcon />}
           title="ניהול הון"
-          onClick={isMobile ? toggleDrawer(false) : undefined}
         />
       </>
     );
@@ -369,35 +356,20 @@ const Sidebar = () => {
             iconColor={iconColors.invoices}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
-          
-          {/* קבוצת הכנסות ופיננסים */}
           <SidebarItem
             icon={<RevenueIcon />}
-            to="/revenue/monthly"
-            title="דוחות פיננסיים"
+            to="/revenue"
+            title="דוחות הכנסות"
             iconColor={iconColors.revenue}
-            onClick={(e) => {
-              // הפעלת פונקציית פתיחה/סגירה של תת-התפריט
-              toggleRevenueSubmenu();
-              
-              // אם תת-התפריט לא פתוח, אז נאפשר ניווט לדף הראשון
-              // אחרת, נמנע ניווט כי אנחנו רק סוגרים את התת-תפריט
-              if (isRevenueMenuOpen) {
-                e.preventDefault();
-              }
-              
-              // סגירת התפריט במובייל אם פתוח
-              if (isMobile) {
-                toggleDrawer(false)(e);
-              }
-            }}
-            // הדגשת הפריט אם תת-התפריט פתוח
-            isActive={isRevenueMenuOpen}
+            onClick={isMobile ? toggleDrawer(false) : undefined}
           />
-          {/* הצגת תת-תפריט הכנסות אם הוא מוצג */}
-          {renderRevenueSubmenu()}
-          
-          {/* קבוצת אתרים */}
+          <SidebarItem
+            icon={<AttachMoneyIcon />}
+            to="/financial-overview"
+            title="הכנסות והוצאות"
+            iconColor={iconColors.revenue}
+            onClick={isMobile ? toggleDrawer(false) : undefined}
+          />
           <SidebarItem
             icon={<RothschildIcon />}
             to="/rothschild-site"

@@ -2,6 +2,14 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
 /**
+ * פונקציה להשגת טוקן ההרשאה מה-localStorage
+ * @returns {string|null} טוקן ההרשאה או null אם אין טוקן
+ */
+export const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+/**
  * שירות המספק פונקציות לטיפול באימות והרשאות
  */
 const authService = {
