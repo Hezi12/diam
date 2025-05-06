@@ -115,6 +115,8 @@ const invoicesRoutes = require('./routes/invoices');
 const cleaningRoutes = require('./routes/cleaning');
 const roomMappingsRoutes = require('./routes/roomMappings');
 const revenueRoutes = require('./routes/revenue');
+const capitalRoutes = require('./routes/capital');
+const financialRoutes = require('./routes/financial');
 
 // הגדרת נתיבים
 app.use('/api/bookings', bookingsRoutes);
@@ -124,6 +126,8 @@ app.use('/api/invoices', cors(corsOptions), invoicesRoutes);
 app.use('/api/cleaning', cleaningRoutes);
 app.use('/api/room-mappings', roomMappingsRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api/capital', capitalRoutes);
+app.use('/api/financial', financialRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {

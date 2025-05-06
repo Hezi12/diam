@@ -7,6 +7,7 @@ const Booking = require('../models/Booking');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const capitalController = require('./capitalController');
 
 /**
  * Controller לניהול מידע פיננסי במערכת
@@ -79,6 +80,67 @@ const financialController = {
     } catch (error) {
       console.error('Error updating expense category:', error);
       res.status(500).json({ message: 'שגיאה בעדכון קטגוריית הוצאה', error: error.message });
+    }
+  },
+
+  /**
+   * מחיקת קטגוריית הוצאה
+   */
+  deleteExpenseCategory: async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // בדיקה האם יש הוצאות המשויכות לקטגוריה זו
+      const expensesWithCategory = await Expense.countDocuments({ category: id });
+      
+      if (expensesWithCategory > 0) {
+        // במקום למחוק, מסמנים את הקטגוריה כלא פעילה
+        const updatedCategory = await ExpenseCategory.findByIdAndUpdate(
+          id, 
+          { isActive: false },
+          { new: true }
+        );
+        
+        if (!updatedCategory) {
+          return res.status(404).json({ message: 'קטגוריה לא נמצאה' });
+        }
+        
+        return res.status(200).json({ 
+          message: 'הקטגוריה סומנה כלא פעילה כי יש הוצאות משויכות אליה',
+          category: updatedCategory 
+        });
+      }
+      
+      // אם אין הוצאות משויכות, ניתן למחוק את הקטגוריה
+      const deletedCategory = await ExpenseCategory.findByIdAndDelete(id);
+      
+      if (!deletedCategory) {
+        return res.status(404).json({ message: 'קטגוריה לא נמצאה' });
+      }
+      
+      res.status(200).json({ message: 'קטגוריית ההוצאה נמחקה בהצלחה' });
+    } catch (error) {
+      console.error('Error deleting expense category:', error);
+      res.status(500).json({ message: 'שגיאה במחיקת קטגוריית הוצאה', error: error.message });
+    }
+  },
+
+  /**
+   * קבלת קטגוריית הוצאה לפי מזהה
+   */
+  getExpenseCategoryById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const category = await ExpenseCategory.findById(id);
+      
+      if (!category) {
+        return res.status(404).json({ message: 'קטגוריה לא נמצאה' });
+      }
+      
+      res.status(200).json(category);
+    } catch (error) {
+      console.error('Error fetching expense category:', error);
+      res.status(500).json({ message: 'שגיאה בטעינת קטגוריית הוצאה', error: error.message });
     }
   },
 
@@ -220,6 +282,9 @@ const financialController = {
       // עדכון יתרה בסיכום הפיננסי
       await updateFinancialSummary(paymentMethod, -amount);
       
+      // עדכון נתוני הון אוטומטי
+      await capitalController.updateCapitalOnNewExpense(paymentMethod, amount);
+      
       res.status(201).json(newExpense);
     } catch (error) {
       console.error('Error creating expense:', error);
@@ -234,6 +299,12 @@ const financialController = {
     try {
       const { id } = req.params;
       const { amount, description, date, category, location, paymentMethod, isRecurring, notes } = req.body;
+      
+      // קבלת ההוצאה הקודמת לפני העדכון
+      const oldExpense = await Expense.findById(id);
+      if (!oldExpense) {
+        return res.status(404).json({ message: 'הוצאה לא נמצאה' });
+      }
       
       // טיפול בקובץ קבלה אם יש
       let updateData = {
@@ -250,35 +321,36 @@ const financialController = {
       if (req.file) {
         updateData.receipt = `/uploads/expenses/${req.file.filename}`;
         
-        // מחיקת הקובץ הקודם אם קיים
-        const oldExpense = await Expense.findById(id);
-        if (oldExpense && oldExpense.receipt) {
-          const oldFilePath = path.join(__dirname, '..', oldExpense.receipt);
-          if (fs.existsSync(oldFilePath)) {
-            fs.unlinkSync(oldFilePath);
+        // מחיקת קובץ הקבלה הישן אם קיים
+        if (oldExpense.receipt) {
+          const oldReceiptPath = path.join(__dirname, '..', oldExpense.receipt);
+          try {
+            if (fs.existsSync(oldReceiptPath)) {
+              fs.unlinkSync(oldReceiptPath);
+            }
+          } catch (err) {
+            console.error('שגיאה במחיקת קובץ קבלה ישן:', err);
           }
         }
       }
       
-      // עדכון השפעה כספית במקרה של שינוי בסכום או אמצעי תשלום
-      const oldExpense = await Expense.findById(id);
-      if (oldExpense) {
-        // ביטול ההוצאה הקודמת (הוספת הסכום חזרה)
+      // עדכון יתרה בסיכום הפיננסי - ביטול ההוצאה הישנה
+      if (oldExpense.paymentMethod && oldExpense.amount) {
         await updateFinancialSummary(oldExpense.paymentMethod, oldExpense.amount);
-        
-        // ניכוי ההוצאה החדשה
-        await updateFinancialSummary(paymentMethod, -amount);
       }
       
+      // עדכון ההוצאה במסד הנתונים
       const updatedExpense = await Expense.findByIdAndUpdate(
         id,
         updateData,
         { new: true, runValidators: true }
       ).populate('category', 'name');
       
-      if (!updatedExpense) {
-        return res.status(404).json({ message: 'הוצאה לא נמצאה' });
-      }
+      // עדכון יתרה בסיכום הפיננסי - הוספת ההוצאה החדשה
+      await updateFinancialSummary(paymentMethod, -amount);
+      
+      // עדכון נתוני הון עם ההוצאה החדשה
+      await capitalController.updateCapitalOnNewExpense(paymentMethod, amount);
       
       res.status(200).json(updatedExpense);
     } catch (error) {
@@ -294,23 +366,35 @@ const financialController = {
     try {
       const { id } = req.params;
       
+      // קבלת ההוצאה לפני המחיקה
       const expense = await Expense.findById(id);
+      
       if (!expense) {
         return res.status(404).json({ message: 'הוצאה לא נמצאה' });
       }
       
       // מחיקת קובץ הקבלה אם קיים
       if (expense.receipt) {
-        const filePath = path.join(__dirname, '..', expense.receipt);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        const receiptPath = path.join(__dirname, '..', expense.receipt);
+        try {
+          if (fs.existsSync(receiptPath)) {
+            fs.unlinkSync(receiptPath);
+          }
+        } catch (err) {
+          console.error('שגיאה במחיקת קובץ קבלה:', err);
         }
       }
       
-      // החזרת הסכום לסיכום הפיננסי
-      await updateFinancialSummary(expense.paymentMethod, expense.amount);
-      
+      // מחיקת ההוצאה
       await Expense.findByIdAndDelete(id);
+      
+      // עדכון יתרה בסיכום הפיננסי
+      if (expense.paymentMethod && expense.amount) {
+        await updateFinancialSummary(expense.paymentMethod, expense.amount);
+      }
+      
+      // עדכון נתוני הון
+      await capitalController.revertCapitalOnExpenseDelete(expense.paymentMethod, expense.amount);
       
       res.status(200).json({ message: 'הוצאה נמחקה בהצלחה' });
     } catch (error) {
@@ -715,6 +799,279 @@ const financialController = {
     } catch (error) {
       console.error('Error generating monthly summary:', error);
       res.status(500).json({ message: 'שגיאה בהכנת סיכום חודשי', error: error.message });
+    }
+  },
+
+  /**
+   * קבלת הוצאה לפי מזהה
+   */
+  getExpenseById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const expense = await Expense.findById(id);
+      
+      if (!expense) {
+        return res.status(404).json({ message: 'הוצאה לא נמצאה' });
+      }
+      
+      res.status(200).json(expense);
+    } catch (error) {
+      console.error('Error fetching expense by ID:', error);
+      res.status(500).json({ message: 'שגיאה בטעינת הוצאה', error: error.message });
+    }
+  },
+
+  /**
+   * קבלת הכנסות ידניות לפי חודש
+   */
+  getManualIncomes: async (req, res) => {
+    try {
+      const { year, month, location } = req.query;
+      
+      if (!year || !month) {
+        return res.status(400).json({ message: 'חובה לציין שנה וחודש' });
+      }
+      
+      // יצירת טווח תאריכים לחודש המבוקש
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0); // היום האחרון של החודש
+      
+      // בניית query לפי פרמטרים
+      const query = {
+        date: { $gte: startDate, $lte: endDate }
+      };
+      
+      // הוספת סינון לפי מיקום אם צוין
+      if (location) {
+        query.location = location;
+      }
+      
+      const manualIncomes = await ManualIncome.find(query)
+        .populate('category', 'name')
+        .sort({ date: -1 });
+      
+      res.status(200).json(manualIncomes);
+    } catch (error) {
+      console.error('Error fetching manual incomes:', error);
+      res.status(500).json({ message: 'שגיאה בטעינת הכנסות ידניות', error: error.message });
+    }
+  },
+
+  /**
+   * סיכום פיננסי חודשי מפורט
+   */
+  getMonthlyFinancialSummary: async (req, res) => {
+    try {
+      const { year, month } = req.params;
+      const { location } = req.query;
+      
+      if (!year || !month) {
+        return res.status(400).json({ message: 'חובה לציין שנה וחודש' });
+      }
+      
+      // יצירת טווח תאריכים לחודש המבוקש
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0); // היום האחרון של החודש
+      
+      // בניית query בסיסי
+      const timeQuery = {
+        date: { $gte: startDate, $lte: endDate }
+      };
+      
+      const bookingTimeQuery = {
+        checkIn: { $gte: startDate, $lte: endDate }
+      };
+      
+      // הוספת סינון לפי מיקום אם צוין
+      if (location) {
+        timeQuery.location = location;
+        bookingTimeQuery.location = location;
+      }
+      
+      // קבלת נתוני הוצאות
+      const expenses = await Expense.find(timeQuery);
+      
+      // קבלת נתוני הכנסות ידניות
+      const manualIncomes = await ManualIncome.find(timeQuery);
+      
+      // קבלת נתוני הכנסות מהזמנות
+      const bookingIncomes = await Booking.find({
+        ...bookingTimeQuery,
+        paymentStatus: { 
+          $nin: ['unpaid', 'credit_or_yehuda', 'credit_rothschild'] 
+        }
+      });
+      
+      // חישוב סיכומים
+      let totalExpenses = 0;
+      let totalManualIncomes = 0;
+      let totalBookingIncomes = 0;
+      let expensesByCategory = {};
+      let expensesByPaymentMethod = {};
+      let incomesByPaymentMethod = {};
+      
+      // סיכום הוצאות
+      expenses.forEach(expense => {
+        totalExpenses += expense.amount;
+        
+        // הוצאות לפי קטגוריה
+        const categoryName = expense.category ? expense.category.toString() : 'אחר';
+        expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + expense.amount;
+        
+        // הוצאות לפי אמצעי תשלום
+        expensesByPaymentMethod[expense.paymentMethod] = 
+          (expensesByPaymentMethod[expense.paymentMethod] || 0) + expense.amount;
+      });
+      
+      // סיכום הכנסות ידניות
+      manualIncomes.forEach(income => {
+        totalManualIncomes += income.amount;
+        
+        // הכנסות לפי אמצעי תשלום
+        incomesByPaymentMethod[income.paymentMethod] = 
+          (incomesByPaymentMethod[income.paymentMethod] || 0) + income.amount;
+      });
+      
+      // סיכום הכנסות מהזמנות
+      bookingIncomes.forEach(booking => {
+        const amount = booking.paymentAmount || 0;
+        totalBookingIncomes += amount;
+        
+        // הכנסות לפי אמצעי תשלום
+        const paymentMethod = booking.paymentStatus;
+        incomesByPaymentMethod[paymentMethod] = 
+          (incomesByPaymentMethod[paymentMethod] || 0) + amount;
+      });
+      
+      // חישוב סך הכנסות ורווח נקי
+      const totalIncomes = totalManualIncomes + totalBookingIncomes;
+      const netProfit = totalIncomes - totalExpenses;
+      
+      res.status(200).json({
+        month,
+        year,
+        location: location || 'all',
+        summary: {
+          totalExpenses,
+          totalIncomes,
+          totalManualIncomes,
+          totalBookingIncomes,
+          netProfit
+        },
+        expensesByCategory,
+        expensesByPaymentMethod,
+        incomesByPaymentMethod
+      });
+    } catch (error) {
+      console.error('Error generating monthly financial summary:', error);
+      res.status(500).json({ message: 'שגיאה בהכנת סיכום פיננסי חודשי', error: error.message });
+    }
+  },
+  
+  /**
+   * סיכום פיננסי שנתי
+   */
+  getYearlyFinancialSummary: async (req, res) => {
+    try {
+      const { year } = req.params;
+      const { location } = req.query;
+      
+      if (!year) {
+        return res.status(400).json({ message: 'חובה לציין שנה' });
+      }
+      
+      // יצירת טווח תאריכים לשנה המבוקשת
+      const startDate = new Date(parseInt(year), 0, 1); // 1 בינואר
+      const endDate = new Date(parseInt(year), 11, 31); // 31 בדצמבר
+      
+      // בניית query בסיסי
+      const timeQuery = {
+        date: { $gte: startDate, $lte: endDate }
+      };
+      
+      const bookingTimeQuery = {
+        checkIn: { $gte: startDate, $lte: endDate }
+      };
+      
+      // הוספת סינון לפי מיקום אם צוין
+      if (location) {
+        timeQuery.location = location;
+        bookingTimeQuery.location = location;
+      }
+      
+      // קבלת נתוני הוצאות
+      const expenses = await Expense.find(timeQuery);
+      
+      // קבלת נתוני הכנסות ידניות
+      const manualIncomes = await ManualIncome.find(timeQuery);
+      
+      // קבלת נתוני הכנסות מהזמנות
+      const bookingIncomes = await Booking.find({
+        ...bookingTimeQuery,
+        paymentStatus: { 
+          $nin: ['unpaid', 'credit_or_yehuda', 'credit_rothschild'] 
+        }
+      });
+      
+      // חישוב סיכומים לפי חודשים
+      const months = Array(12).fill(0).map((_, i) => i + 1);
+      const monthlySummary = {};
+      
+      months.forEach(month => {
+        monthlySummary[month] = {
+          expenses: 0,
+          manualIncomes: 0,
+          bookingIncomes: 0,
+          totalIncomes: 0,
+          netProfit: 0
+        };
+      });
+      
+      // סיכום הוצאות לפי חודשים
+      expenses.forEach(expense => {
+        const month = expense.date.getMonth() + 1;
+        monthlySummary[month].expenses += expense.amount;
+      });
+      
+      // סיכום הכנסות ידניות לפי חודשים
+      manualIncomes.forEach(income => {
+        const month = income.date.getMonth() + 1;
+        monthlySummary[month].manualIncomes += income.amount;
+      });
+      
+      // סיכום הכנסות מהזמנות לפי חודשים
+      bookingIncomes.forEach(booking => {
+        const month = booking.checkIn.getMonth() + 1;
+        const amount = booking.paymentAmount || 0;
+        monthlySummary[month].bookingIncomes += amount;
+      });
+      
+      // חישוב סיכומים סופיים לכל חודש
+      let totalYearlyExpenses = 0;
+      let totalYearlyIncomes = 0;
+      
+      months.forEach(month => {
+        const summary = monthlySummary[month];
+        summary.totalIncomes = summary.manualIncomes + summary.bookingIncomes;
+        summary.netProfit = summary.totalIncomes - summary.expenses;
+        
+        totalYearlyExpenses += summary.expenses;
+        totalYearlyIncomes += summary.totalIncomes;
+      });
+      
+      const yearlyNetProfit = totalYearlyIncomes - totalYearlyExpenses;
+      
+      res.status(200).json({
+        year,
+        location: location || 'all',
+        totalYearlyExpenses,
+        totalYearlyIncomes,
+        yearlyNetProfit,
+        monthlySummary
+      });
+    } catch (error) {
+      console.error('Error generating yearly financial summary:', error);
+      res.status(500).json({ message: 'שגיאה בהכנת סיכום פיננסי שנתי', error: error.message });
     }
   }
 };

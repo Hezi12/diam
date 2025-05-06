@@ -4,7 +4,7 @@ const User = require('../models/User');
 /**
  * מידלוור לבדיקת אימות JWT
  */
-module.exports = async (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   try {
     // קבלת הטוקן מכותרות HTTP
     const token = req.headers.authorization?.split(' ')[1];
@@ -30,4 +30,8 @@ module.exports = async (req, res, next) => {
     console.error(`Auth Middleware Error: ${error}`);
     res.status(401).json({ message: 'אין הרשאה, דרושה התחברות' });
   }
+};
+
+module.exports = {
+  verifyToken
 }; 

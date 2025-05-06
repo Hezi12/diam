@@ -17,6 +17,7 @@
 - [מדריך פיתוח](development/README.md)
 - [מבנה בסיס הנתונים](database/README.md)
 - [מדריך למשתמש](user-guides/README.md)
+- [פתרון תקלות נפוצות](troubleshooting.md) - **חדש!** מדריך למניעת תקלות ידועות
 
 ## הוספת תיעוד חדש
 

@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Room = require('../models/Room');
+const capitalController = require('./capitalController');
 
 // קבלת כל ההזמנות
 exports.getAllBookings = async (req, res) => {
@@ -248,6 +249,11 @@ exports.createBooking = async (req, res) => {
     
     await newBooking.save();
     
+    // אם ההזמנה כוללת תשלום, נעדכן את נתוני ההון
+    if (newBooking.paymentStatus && newBooking.paymentStatus !== 'unpaid' && newBooking.price > 0) {
+      await capitalController.updateCapitalOnNewIncome(newBooking.paymentStatus, newBooking.price);
+    }
+    
     // החזרת ההזמנה המלאה עם נתוני חדר
     const savedBooking = await Booking.findById(newBooking._id)
       .populate('room', 'roomNumber category basePrice vatPrice');
@@ -379,6 +385,25 @@ exports.updateBooking = async (req, res) => {
       nights: updatedBooking.nights
     });
     
+    // אם שינוי בסטטוס התשלום או בסכום, נעדכן את נתוני ההון
+    const oldPaymentStatus = booking.paymentStatus;
+    const oldPrice = booking.price;
+    const newPaymentStatus = updateData.paymentStatus || oldPaymentStatus;
+    const newPrice = updateData.price !== undefined ? updateData.price : oldPrice;
+    
+    // עדכון נתוני הון אם יש שינוי בתשלום
+    if (oldPaymentStatus !== newPaymentStatus || oldPrice !== newPrice) {
+      // ביטול ההכנסה הקודמת אם הייתה בתשלום
+      if (oldPaymentStatus && oldPaymentStatus !== 'unpaid' && oldPrice > 0) {
+        await capitalController.revertCapitalOnExpenseDelete(oldPaymentStatus, oldPrice);
+      }
+      
+      // הוספת ההכנסה החדשה אם היא בתשלום
+      if (newPaymentStatus && newPaymentStatus !== 'unpaid' && newPrice > 0) {
+        await capitalController.updateCapitalOnNewIncome(newPaymentStatus, newPrice);
+      }
+    }
+    
     res.json({
       success: true,
       data: updatedBooking,
@@ -398,13 +423,22 @@ exports.deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const deletedBooking = await Booking.findByIdAndDelete(id);
+    // קבלת ההזמנה לפני המחיקה
+    const booking = await Booking.findById(id);
     
-    if (!deletedBooking) {
+    if (!booking) {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
     
-    res.json({ message: 'ההזמנה נמחקה בהצלחה' });
+    // ביטול הכנסה בנתוני הון אם הייתה בתשלום
+    if (booking.paymentStatus && booking.paymentStatus !== 'unpaid' && booking.price > 0) {
+      await capitalController.revertCapitalOnExpenseDelete(booking.paymentStatus, booking.price);
+    }
+    
+    // מחיקת ההזמנה
+    await Booking.findByIdAndDelete(id);
+    
+    res.status(200).json({ message: 'הזמנה נמחקה בהצלחה' });
   } catch (error) {
     console.error('Error deleting booking:', error);
     res.status(500).json({ message: 'שגיאה במחיקת ההזמנה' });

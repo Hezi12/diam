@@ -33,6 +33,7 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PieChartIcon from '@mui/icons-material/PieChart';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 // קומפוננטות לתצוגת הדוח
 import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigation';
@@ -419,30 +420,35 @@ const FinancialOverview = () => {
     { value: 'other', label: 'אחר' }
   ];
 
-  // טוען נתונים בעת שינוי תאריך או מתחם
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const month = getMonth(selectedDate) + 1; // date-fns מחזיר חודשים מ-0 עד 11
-        const year = getYear(selectedDate);
-        const site = sites[selectedSite];
-        
-        // קבלת נתוני הכנסות מהשרת
-        const data = await getMonthlyRevenueData(site, year, month);
-        setRevenueData(data);
-        
-        // קבלת נתוני הוצאות מהשרת
-        const expensesData = await getExpenses(site, year, month);
-        setExpenses(expensesData || []);
-      } catch (error) {
-        console.error('שגיאה בטעינת נתונים פיננסיים:', error);
-        // ניתן להוסיף כאן הודעת שגיאה למשתמש
-      } finally {
-        setLoading(false);
-      }
-    };
+  // פונקציה לטעינת נתונים
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const month = getMonth(selectedDate) + 1; // date-fns מחזיר חודשים מ-0 עד 11
+      const year = getYear(selectedDate);
+      const site = sites[selectedSite];
+      
+      console.log(`טוען נתונים עבור מתחם ${site}, חודש ${month}, שנה ${year}`);
+      
+      // קבלת נתוני הכנסות מהשרת
+      const data = await getMonthlyRevenueData(site, year, month);
+      setRevenueData(data);
+      
+      // קבלת נתוני הוצאות מהשרת
+      const expensesData = await getExpenses(site, year, month);
+      console.log('הוצאות שהתקבלו מהשרת:', expensesData);
+      setExpenses(expensesData || []);
+    } catch (error) {
+      console.error('שגיאה בטעינת נתונים פיננסיים:', error);
+      // ניתן להוסיף כאן הודעת שגיאה למשתמש
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // טוען נתונים בעת שינוי תאריך או מתחם
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
     fetchData();
   }, [selectedDate, selectedSite]);
 
@@ -498,11 +504,19 @@ const FinancialOverview = () => {
         month
       };
       
+      console.log('שולח נתוני הוצאה חדשה:', expenseData);
+      
       // שמירת ההוצאה בשרת
       const result = await addExpense(expenseData);
       
+      console.log('תוצאה מהשרת לאחר הוספת הוצאה:', result);
+      
       // עדכון רשימת ההוצאות המקומית
-      setExpenses(prev => [...prev, result]);
+      setExpenses(prev => {
+        const newExpenses = [...prev, result];
+        console.log('רשימת ההוצאות המעודכנת:', newExpenses);
+        return newExpenses;
+      });
       
       // סגירת הדיאלוג
       setOpenAddDialog(false);
@@ -593,6 +607,18 @@ const FinancialOverview = () => {
         
         {/* מרווח אוטומטי */}
         <Box sx={{ flexGrow: 1 }} />
+        
+        {/* כפתור רענון נתונים */}
+        <Tooltip title="רענון נתונים">
+          <IconButton 
+            color="primary" 
+            onClick={fetchData}
+            sx={{ mr: 1 }}
+            disabled={loading}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
         
         {/* ניווט בין חודשים */}
         <RevenueDateNavigation 

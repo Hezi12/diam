@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { format } from 'date-fns';
+import { getToken } from './authService';
 
 /**
  * שירות לניהול הוצאות
@@ -27,7 +28,7 @@ const mockExpenses = {
 };
 
 // קבוע שקובע אם להשתמש בנתוני בדיקה או נתונים אמיתיים
-const USE_MOCK_DATA = true; // שינוי ל-false כשיש API אמיתי
+const USE_MOCK_DATA = false; // שימוש ב-API אמיתי במקום נתוני מוק
 
 /**
  * קבלת הוצאות לחודש ואתר מסוימים
@@ -45,7 +46,16 @@ export const getExpenses = async (site, year, month) => {
   
   // אחרת, פונים ל-API האמיתי
   try {
-    const response = await axios.get(`${API_URL}/expenses/${site}/${year}/${month}`);
+    const token = getToken();
+    const response = await axios.get(`${API_URL}/financial/expenses`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        year,
+        month,
+        location: site // התאמת שם הפרמטר לפי הדרישה בשרת
+      }
+    });
+    console.log('תגובת שרת להוצאות:', response.data);
     return response.data;
   } catch (error) {
     console.error('שגיאה בקבלת נתוני הוצאות:', error);
@@ -84,7 +94,25 @@ export const addExpense = async (expense) => {
   
   // אחרת, פונים ל-API האמיתי
   try {
-    const response = await axios.post(`${API_URL}/expenses`, expense);
+    // התאמת נתוני ההוצאה לפורמט שהשרת מצפה לו
+    const expenseData = {
+      amount: Number(expense.amount),
+      description: expense.description,
+      date: expense.date,
+      category: expense.category,
+      location: expense.site, // התאמת שם השדה
+      paymentMethod: expense.paymentMethod,
+      isRecurring: expense.isRecurring || false
+    };
+    
+    console.log('שולח נתוני הוצאה לשרת:', expenseData);
+    
+    const token = getToken();
+    const response = await axios.post(`${API_URL}/financial/expenses`, expenseData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    console.log('תגובה מהשרת:', response.data);
     return response.data;
   } catch (error) {
     console.error('שגיאה בהוספת הוצאה:', error);
@@ -121,7 +149,20 @@ export const updateExpense = async (id, expense) => {
   
   // אחרת, פונים ל-API האמיתי
   try {
-    const response = await axios.put(`${API_URL}/expenses/${id}`, expense);
+    // התאמת נתוני ההוצאה לפורמט שהשרת מצפה לו
+    const expenseData = {};
+    
+    if (expense.amount) expenseData.amount = Number(expense.amount);
+    if (expense.description) expenseData.description = expense.description;
+    if (expense.date) expenseData.date = expense.date;
+    if (expense.category) expenseData.category = expense.category;
+    if (expense.site) expenseData.location = expense.site;
+    if (expense.paymentMethod) expenseData.paymentMethod = expense.paymentMethod;
+    
+    const token = getToken();
+    const response = await axios.put(`${API_URL}/financial/expenses/${id}`, expenseData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data;
   } catch (error) {
     console.error('שגיאה בעדכון הוצאה:', error);
@@ -154,7 +195,10 @@ export const deleteExpense = async (id) => {
   
   // אחרת, פונים ל-API האמיתי
   try {
-    const response = await axios.delete(`${API_URL}/expenses/${id}`);
+    const token = getToken();
+    const response = await axios.delete(`${API_URL}/financial/expenses/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data;
   } catch (error) {
     console.error('שגיאה במחיקת הוצאה:', error);

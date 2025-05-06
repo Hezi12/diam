@@ -16,15 +16,24 @@ import {
   DialogActions,
   MenuItem,
   Divider,
-  useMediaQuery
+  useMediaQuery,
+  Tooltip
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import SyncIcon from '@mui/icons-material/Sync';
+import { alpha } from '@mui/material/styles';
 
-// שירותי נתונים
-import { getCapitalData, updateInitialAmount } from '../../services/capitalService';
+// שירותים
+import { 
+  getFullCapitalData, 
+  updateInitialAmount, 
+  syncFullCapital,
+  getPaymentMethodName
+} from '../../services/capitalService';
+import { useSnackbar } from 'notistack';
 
 // פאנל לטעינת נתונים
 const LoadingPanel = () => (
@@ -129,7 +138,7 @@ const PaymentMethodCard = ({ method, name, amount, onEdit }) => {
       <Box sx={{ mb: 2, mt: 1, display: 'flex', alignItems: 'center' }}>
         <Avatar 
           sx={{ 
-            bgcolor: alpha => `${color}20`, 
+            bgcolor: alpha(color, 0.2), 
             color: color,
             width: 40, 
             height: 40,
@@ -159,7 +168,9 @@ const CapitalManagement = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [loading, setLoading] = useState(true);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [capitalData, setCapitalData] = useState(null);
+  const { enqueueSnackbar } = useSnackbar();
   
   // מצבים לדיאלוג עדכון סכום התחלתי
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -169,47 +180,30 @@ const CapitalManagement = () => {
     amount: 0
   });
 
-  // שמות אמצעי תשלום בעברית
-  const getMethodName = (method) => {
-    const names = {
-      transfer_poalim: 'העברה פועלים',
-      credit_rothschild: 'אשראי רוטשילד',
-      bit_poalim: 'ביט פועלים',
-      cash: 'מזומן',
-      bit_mizrahi: 'ביט מזרחי',
-      paybox_poalim: 'פייבוקס פועלים',
-      transfer_mizrahi: 'העברה מזרחי',
-      paybox_mizrahi: 'פייבוקס מזרחי',
-      credit_or_yehuda: 'אשראי אור יהודה',
-      other: 'אחר'
-    };
-    
-    return names[method] || method;
-  };
-
   // טעינת נתוני הון בעת טעינת הדף
   useEffect(() => {
-    const fetchCapitalData = async () => {
-      setLoading(true);
-      try {
-        const data = await getCapitalData();
-        setCapitalData(data);
-      } catch (error) {
-        console.error('שגיאה בטעינת נתוני הון:', error);
-        // כאן ניתן להוסיף חיווי שגיאה למשתמש
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCapitalData();
   }, []);
+
+  // פונקציה לטעינת נתוני הון
+  const fetchCapitalData = async () => {
+    try {
+      setLoading(true);
+      const data = await getFullCapitalData();
+      setCapitalData(data);
+    } catch (error) {
+      console.error('שגיאה בטעינת נתוני הון:', error);
+      enqueueSnackbar('שגיאה בטעינת נתוני הון', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // פתיחת דיאלוג עדכון סכום
   const handleOpenEditDialog = (methodId, currentAmount) => {
     setCurrentMethod({
       id: methodId,
-      name: getMethodName(methodId),
+      name: getPaymentMethodName(methodId),
       amount: currentAmount || 0
     });
     setEditDialogOpen(true);
@@ -218,21 +212,20 @@ const CapitalManagement = () => {
   // שמירת סכום התחלתי חדש
   const handleSaveInitialAmount = async () => {
     try {
-      await updateInitialAmount(currentMethod.id, Number(currentMethod.amount));
+      const result = await updateInitialAmount(currentMethod.id, Number(currentMethod.amount));
       
       // עדכון נתוני ההון המקומיים
       setCapitalData(prevData => ({
         ...prevData,
-        initialAmounts: {
-          ...prevData.initialAmounts,
-          [currentMethod.id]: Number(currentMethod.amount)
-        }
+        initialAmounts: result.initialAmounts,
+        total: result.total
       }));
       
+      enqueueSnackbar('הסכום עודכן בהצלחה', { variant: 'success' });
       setEditDialogOpen(false);
     } catch (error) {
       console.error('שגיאה בעדכון סכום התחלתי:', error);
-      // כאן ניתן להוסיף חיווי שגיאה למשתמש
+      enqueueSnackbar('שגיאה בעדכון הסכום', { variant: 'error' });
     }
   };
   
@@ -244,133 +237,141 @@ const CapitalManagement = () => {
     }));
   };
 
+  // סנכרון נתוני הון
+  const handleSyncCapital = async () => {
+    try {
+      setSyncLoading(true);
+      const result = await syncFullCapital();
+      console.log('תוצאות הסנכרון:', result);
+      
+      // עדכון הממשק עם הנתונים החדשים
+      if (result && result.success) {
+        // טעינת הנתונים במלואם מחדש במקום רק להחליף
+        await fetchCapitalData();
+        enqueueSnackbar('סנכרון נתוני הון הושלם בהצלחה', { variant: 'success' });
+      } else {
+        throw new Error('לא התקבלו נתונים תקינים מהשרת');
+      }
+    } catch (error) {
+      console.error('שגיאה בסנכרון נתוני הון:', error);
+      enqueueSnackbar('שגיאה בסנכרון נתוני הון', { variant: 'error' });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   // רשימת אמצעי התשלום והסכומים שלהם
   const getPaymentMethodsData = () => {
     if (!capitalData || !capitalData.paymentMethods) return [];
     
-    // המרה לפורמט לתצוגה
-    return Object.entries(capitalData.paymentMethods).map(([method, amount]) => ({
-      id: method,
-      name: getMethodName(method),
-      amount
+    return capitalData.paymentMethods.map(item => ({
+      method: item.method,
+      name: getPaymentMethodName(item.method),
+      amount: item.totalAmount
     }));
   };
 
   return (
-    <Box 
-      sx={{ 
-        py: 3, 
-        px: 2
-      }}
-    >
-      {/* כותרת ראשית */}
+    <Box sx={{ py: 3, px: 2 }}>
+      {/* כותרת הדף */}
       <Box sx={{ 
         display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        bgcolor: 'background.paper',
-        borderRadius: '10px',
-        p: 1, 
-        mb: 3,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        mb: 3
       }}>
-        <Avatar 
-          sx={{ 
-            bgcolor: theme.palette.primary.main, 
-            width: 36, 
-            height: 36,
-            mr: 1
-          }}
-        >
-          <AccountBalanceWalletIcon fontSize="small" />
-        </Avatar>
-        
-        <Typography 
-          variant="h6" 
-          component="h1" 
-          sx={{ 
-            fontWeight: 'medium',
-            fontSize: '1.1rem'
-          }}
-        >
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
           ניהול הון
         </Typography>
+        
+        <Tooltip title="סנכרון נתוני הון">
+          <Button
+            variant="outlined"
+            startIcon={<SyncIcon />}
+            onClick={handleSyncCapital}
+            disabled={syncLoading}
+          >
+            {syncLoading ? 'מסנכרן...' : 'סנכרון נתונים'}
+          </Button>
+        </Tooltip>
       </Box>
-
+      
       {/* תוכן הדף */}
       {loading ? (
         <LoadingPanel />
       ) : capitalData ? (
         <Box>
-          {/* כרטיסייה לסך ההון */}
+          {/* כרטיסיית סך הון */}
           <TotalCapitalCard total={capitalData.total} />
           
           {/* רשימת אמצעי תשלום */}
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'medium' }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
             חלוקה לפי אמצעי תשלום
           </Typography>
           
           <Grid container spacing={2}>
-            {getPaymentMethodsData().map(method => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={method.id}>
-                <PaymentMethodCard 
-                  method={method.id}
-                  name={method.name}
-                  amount={method.amount}
+            {getPaymentMethodsData().map(item => (
+              <Grid item xs={12} sm={6} md={4} key={item.method}>
+                <PaymentMethodCard
+                  method={item.method}
+                  name={item.name}
+                  amount={item.amount}
                   onEdit={handleOpenEditDialog}
                 />
               </Grid>
             ))}
           </Grid>
+          
+          {/* מידע נוסף */}
+          <Box sx={{ mt: 4, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              * הסכומים המוצגים מחושבים משילוב של סכום התחלתי שהוזן ידנית עם הכנסות והוצאות מכל המתחמים.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              * עדכון ידני של סכום יעדכן את הסכום ההתחלתי בלבד ולא ישנה את נתוני ההכנסות וההוצאות.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              עדכון אחרון: {capitalData.lastUpdated ? new Date(capitalData.lastUpdated).toLocaleString('he-IL') : 'לא ידוע'}
+            </Typography>
+          </Box>
         </Box>
       ) : (
-        <Box sx={{ textAlign: 'center', py: 5 }}>
-          <Typography>לא נמצאו נתוני הון</Typography>
-        </Box>
+        <Typography>לא נמצאו נתוני הון</Typography>
       )}
       
-      {/* דיאלוג עדכון סכום התחלתי */}
+      {/* דיאלוג עדכון סכום */}
       <Dialog 
         open={editDialogOpen} 
         onClose={() => setEditDialogOpen(false)}
-        maxWidth="xs"
         fullWidth
+        maxWidth="xs"
       >
-        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
-          עדכון יתרה: {currentMethod.name}
+        <DialogTitle>
+          עדכון סכום: {currentMethod.name}
         </DialogTitle>
-        
-        <DialogContent sx={{ mt: 2 }}>
+        <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             label="סכום"
             type="number"
             fullWidth
-            variant="outlined"
             value={currentMethod.amount}
             onChange={handleAmountChange}
-            InputProps={{ 
-              startAdornment: <Box sx={{ mr: 1 }}>₪</Box>
+            InputProps={{
+              startAdornment: <Typography sx={{ mr: 1 }}>₪</Typography>,
             }}
-            sx={{ mb: 2 }}
           />
-          <Typography variant="body2" color="text.secondary">
-            הערה: עדכון זה משנה את היתרה הבסיסית של אמצעי התשלום.
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            הערה: עדכון זה ישנה את הסכום ההתחלתי של אמצעי התשלום,
+            ולא ישפיע על נתוני ההכנסות וההוצאות.
           </Typography>
         </DialogContent>
-        
-        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Button onClick={() => setEditDialogOpen(false)} color="inherit">
-            ביטול
-          </Button>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>ביטול</Button>
           <Button 
-            onClick={handleSaveInitialAmount} 
-            variant="contained"
-            sx={{ 
-              borderRadius: '8px',
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' }
-            }}
+            variant="contained" 
+            onClick={handleSaveInitialAmount}
           >
             שמירה
           </Button>

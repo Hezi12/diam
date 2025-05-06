@@ -60,6 +60,62 @@ export const getCapitalHistory = async () => {
 };
 
 /**
+ * סנכרון נתוני הון עם הכנסות והוצאות לחודש מסוים
+ * @param {number} year - שנה
+ * @param {number} month - חודש (1-12)
+ */
+export const syncMonthlyCapital = async (year, month) => {
+  try {
+    const token = getToken();
+    const response = await axios.post(`${CAPITAL_ENDPOINT}/sync/monthly/${year}/${month}`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('שגיאה בסנכרון נתוני הון חודשיים:', error);
+    throw error;
+  }
+};
+
+/**
+ * סנכרון מלא של נתוני הון עם כל ההכנסות וההוצאות
+ */
+export const syncFullCapital = async () => {
+  try {
+    const token = getToken();
+    const response = await axios.post(`${CAPITAL_ENDPOINT}/sync/full`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('שגיאה בסנכרון מלא של נתוני הון:', error);
+    throw error;
+  }
+};
+
+/**
+ * המרת קודי אמצעי תשלום לשמות בעברית
+ * @param {string} method - קוד אמצעי תשלום
+ * @returns {string} שם בעברית
+ */
+export const getPaymentMethodName = (method) => {
+  const names = {
+    transfer_poalim: 'העברה פועלים',
+    credit_rothschild: 'אשראי רוטשילד',
+    bit_poalim: 'ביט פועלים',
+    cash: 'מזומן',
+    bit_mizrahi: 'ביט מזרחי',
+    paybox_poalim: 'פייבוקס פועלים',
+    transfer_mizrahi: 'העברה מזרחי',
+    paybox_mizrahi: 'פייבוקס מזרחי',
+    credit_or_yehuda: 'אשראי אור יהודה',
+    other: 'אחר'
+  };
+  
+  return names[method] || method;
+};
+
+/**
  * חישוב נתוני הון כוללים מהכנסות והוצאות
  * משלב נתונים מכל המתחמים ומחשב את היתרה הנוכחית לפי אמצעי תשלום
  * @param {object} initialAmounts - סכומים התחלתיים
@@ -101,24 +157,16 @@ export const calculateTotalCapital = (initialAmounts, revenues, expenses) => {
 };
 
 /**
- * קבלת נתוני הון מלאים
+ * קבלת נתוני הון מלאים עם פירוט לפי אמצעי תשלום
  * משלב את הנתונים ההתחלתיים עם כל ההכנסות וההוצאות מכל המתחמים
  */
 export const getFullCapitalData = async () => {
   try {
-    // קבלת נתוני הון בסיסיים (סכומים התחלתיים)
-    const capitalData = await getCapitalData();
-    
-    // קבלת כל ההכנסות וההוצאות מכל המתחמים
-    // כאן נדרש לבצע קריאות לשירותי הכנסות והוצאות
-    // לקבלת הנתונים המלאים
-    
-    // חישוב הנתונים המלאים
-    return calculateTotalCapital(
-      capitalData.initialAmounts,
-      capitalData.revenues || [],
-      capitalData.expenses || []
-    );
+    const token = getToken();
+    const response = await axios.get(`${CAPITAL_ENDPOINT}/full`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   } catch (error) {
     console.error('שגיאה בחישוב נתוני הון מלאים:', error);
     throw error;
