@@ -201,10 +201,13 @@ const CapitalManagement = () => {
 
   // פתיחת דיאלוג עדכון סכום
   const handleOpenEditDialog = (methodId, currentAmount) => {
+    // מציאת הסכום ההתחלתי מתוך נתוני ההון
+    const initialAmount = capitalData?.initialAmounts?.[methodId] || 0;
+    
     setCurrentMethod({
       id: methodId,
       name: getPaymentMethodName(methodId),
-      amount: currentAmount || 0
+      amount: initialAmount
     });
     setEditDialogOpen(true);
   };

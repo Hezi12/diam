@@ -16,22 +16,27 @@ import {
   Button,
   Typography,
   Box,
-  Tooltip
+  Tooltip,
+  useTheme
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import { format } from 'date-fns';
+import { he } from 'date-fns/locale';
 
 /**
  * רכיב להצגת רשימת הוצאות בטבלה
  * @param {Array} expenses - מערך של הוצאות להצגה
  * @param {Function} onDelete - פונקציה למחיקת הוצאה
+ * @param {Function} onEdit - פונקציה לעריכת הוצאה
  * @param {Array} paymentMethods - אובייקט המכיל מיפוי בין ערכי אמצעי תשלום לתוויות
  */
-const ExpensesList = ({ expenses, onDelete, paymentMethods }) => {
+const ExpensesList = ({ expenses, onDelete, onEdit, paymentMethods }) => {
   const [confirmDialog, setConfirmDialog] = useState({ open: false, id: null });
+  const theme = useTheme();
 
   // מיפוי של ערכי אמצעי תשלום לשמות תצוגה
-  const getPaymentMethodLabel = (method) => {
+  const getPaymentMethodName = (method) => {
     const found = paymentMethods.find(m => m.value === method);
     return found ? found.label : method;
   };
@@ -85,24 +90,45 @@ const ExpensesList = ({ expenses, onDelete, paymentMethods }) => {
             {expenses.map((expense) => (
               <TableRow key={expense._id} sx={{ '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.03)' } }}>
                 <TableCell>
-                  {expense.date ? format(new Date(expense.date), 'dd/MM/yyyy') : '-'}
+                  {expense.date ? format(new Date(expense.date), 'dd/MM/yyyy', { locale: he }) : '-'}
                 </TableCell>
                 <TableCell sx={{ fontWeight: 'medium' }}>
                   ₪{expense.amount.toLocaleString()}
                 </TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell>{expense.description || '-'}</TableCell>
-                <TableCell>{getPaymentMethodLabel(expense.paymentMethod)}</TableCell>
+                <TableCell>{getPaymentMethodName(expense.paymentMethod)}</TableCell>
                 <TableCell align="center">
-                  <Tooltip title="מחיקה" arrow>
-                    <IconButton 
-                      onClick={() => handleOpenConfirmDialog(expense._id)} 
-                      size="small"
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                    <Tooltip title="עריכה">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => onEdit(expense)}
+                        sx={{ 
+                          color: theme.palette.primary.main,
+                          '&:hover': { 
+                            bgcolor: theme.palette.primary.main
+                          }
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="מחיקה">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleOpenConfirmDialog(expense._id)}
+                        sx={{ 
+                          color: theme.palette.error.main,
+                          '&:hover': { 
+                            bgcolor: theme.palette.error.main
+                          }
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

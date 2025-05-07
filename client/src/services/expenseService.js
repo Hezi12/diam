@@ -71,7 +71,7 @@ export const getExpenses = async (site, year, month) => {
 export const addExpense = async (expense) => {
   // במצב מוק, מדמים הוספת הוצאה
   if (USE_MOCK_DATA) {
-    const key = `${expense.site}-${expense.year}-${expense.month}`;
+    const key = `${expense.location}-${expense.year}-${expense.month}`;
     
     // יצירת מזהה ייחודי להוצאה החדשה
     const newId = Math.random().toString(36).substr(2, 9);
@@ -81,6 +81,29 @@ export const addExpense = async (expense) => {
       _id: newId,
       ...expense
     };
+    
+    // אם ההוצאה מחולקת בין המתחמים
+    if (expense.splitBetweenLocations) {
+      const splitAmount = expense.amount / 2;
+      
+      // הוספת ההוצאה לשני המתחמים
+      ['rothschild', 'airport'].forEach(location => {
+        const locationKey = `${location}-${expense.year}-${expense.month}`;
+        if (!mockExpenses[locationKey]) {
+          mockExpenses[locationKey] = [];
+        }
+        
+        mockExpenses[locationKey].push({
+          ...newExpense,
+          _id: `${newId}-${location}`,
+          amount: splitAmount,
+          location,
+          description: `${expense.description} (חלק מ-${expense.amount}₪)`
+        });
+      });
+      
+      return newExpense;
+    }
     
     // הוספה למערך ההוצאות המוק
     if (!mockExpenses[key]) {
@@ -94,13 +117,42 @@ export const addExpense = async (expense) => {
   
   // אחרת, פונים ל-API האמיתי
   try {
+    // אם ההוצאה מחולקת בין המתחמים
+    if (expense.splitBetweenLocations) {
+      const splitAmount = expense.amount / 2;
+      const promises = [];
+      
+      // יצירת שתי הוצאות נפרדות
+      ['rothschild', 'airport'].forEach(location => {
+        const expenseData = {
+          amount: splitAmount,
+          description: `${expense.description} (חלק מ-${expense.amount}₪)`,
+          date: expense.date,
+          category: expense.category,
+          location: location,
+          paymentMethod: expense.paymentMethod,
+          isRecurring: expense.isRecurring || false
+        };
+        
+        promises.push(
+          axios.post(`${API_URL}/financial/expenses`, expenseData, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+          })
+        );
+      });
+      
+      // שליחת שתי ההוצאות במקביל
+      const results = await Promise.all(promises);
+      return results.map(r => r.data);
+    }
+    
     // התאמת נתוני ההוצאה לפורמט שהשרת מצפה לו
     const expenseData = {
       amount: Number(expense.amount),
       description: expense.description,
       date: expense.date,
       category: expense.category,
-      location: expense.site, // התאמת שם השדה
+      location: expense.location,
       paymentMethod: expense.paymentMethod,
       isRecurring: expense.isRecurring || false
     };

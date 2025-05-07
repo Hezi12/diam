@@ -26,7 +26,8 @@ import {
   Tabs,
   Tab,
   Alert,
-  Snackbar
+  Snackbar,
+  Switch
 } from '@mui/material';
 import { format, startOfMonth, getMonth, getYear } from 'date-fns';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -40,6 +41,7 @@ import PieChartIcon from '@mui/icons-material/PieChart';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MoneyIcon from '@mui/icons-material/Money';
 import PaymentsIcon from '@mui/icons-material/Payments';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 // קומפוננטות לתצוגת הדוח
 import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigation';
@@ -52,7 +54,7 @@ import ManualIncomesList from '../../components/revenue/ManualIncomesList';
 
 // סרוויס לקבלת נתונים
 import { getMonthlyRevenueData } from '../../services/revenueService';
-import { getExpenses, addExpense, deleteExpense } from '../../services/expenseService';
+import { getExpenses, addExpense, deleteExpense, updateExpense } from '../../services/expenseService';
 import { getManualIncomes, addManualIncome, deleteManualIncome, getIncomeCategories } from '../../services/incomeService';
 
 // פאנל לטעינת נתונים
@@ -79,6 +81,10 @@ const InfoCard = ({ title, value, type = 'default', icon, details }) => {
     profit: {
       color: theme.palette.success.main,
       iconColor: 'success'
+    },
+    withdrawal: {
+      color: theme.palette.warning.main,
+      iconColor: 'warning'
     },
     default: {
       color: theme.palette.info.main,
@@ -314,6 +320,7 @@ const ModernExpenseCategoryDisplay = ({ data }) => {
       'משכורות': '#f06292',
       'פרסום': '#9c27b0',
       'ביטוח': '#795548',
+      'משיכה': '#ff5722',
       'אחר': theme.palette.grey[500]
     };
     
@@ -398,6 +405,11 @@ const ModernExpenseCategoryDisplay = ({ data }) => {
 const FinancialOverview = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // שמות המתחמים - העברתי לכאן מלמעלה
+  const sites = ['rothschild', 'airport'];
+  const siteNames = ['רוטשילד', 'שדה התעופה'];
+  
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSite, setSelectedSite] = useState(0); // 0 = רוטשילד, 1 = שדה התעופה
   const [loading, setLoading] = useState(true);
@@ -416,7 +428,9 @@ const FinancialOverview = () => {
     category: '',
     description: '',
     paymentMethod: 'cash',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    location: sites[selectedSite],
+    splitBetweenLocations: false
   });
 
   // מצבים לדיאלוג הוספת הכנסה ידנית
@@ -429,9 +443,9 @@ const FinancialOverview = () => {
     date: format(new Date(), 'yyyy-MM-dd')
   });
   
-  // שמות המתחמים
-  const sites = ['rothschild', 'airport'];
-  const siteNames = ['רוטשילד', 'שדה התעופה'];
+  // מצבים לדיאלוג עריכת הוצאה
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   
   // קטגוריות הוצאות
   const expenseCategories = [
@@ -446,6 +460,7 @@ const FinancialOverview = () => {
     'משכורות',
     'פרסום',
     'ביטוח',
+    'משיכה',
     'אחר'
   ];
   
@@ -538,7 +553,9 @@ const FinancialOverview = () => {
       category: '',
       description: '',
       paymentMethod: 'cash',
-      date: format(selectedDate, 'yyyy-MM-dd')
+      date: format(selectedDate, 'yyyy-MM-dd'),
+      location: sites[selectedSite],
+      splitBetweenLocations: false
     });
     setOpenAddDialog(true);
   };
@@ -582,7 +599,8 @@ const FinancialOverview = () => {
       
       // עדכון רשימת ההוצאות המקומית
       setExpenses(prev => {
-        const newExpenses = [...prev, result];
+        // אם התוצאה היא מערך (הוצאה מחולקת), נוסיף את כל ההוצאות
+        const newExpenses = Array.isArray(result) ? [...prev, ...result] : [...prev, result];
         console.log('רשימת ההוצאות המעודכנת:', newExpenses);
         return newExpenses;
       });
@@ -733,8 +751,52 @@ const FinancialOverview = () => {
   // חישוב סך הוצאות
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   
+  // חישוב סך הוצאות מקטגוריית משיכה
+  const totalWithdrawals = expenses
+    .filter(expense => expense.category === 'משיכה')
+    .reduce((sum, expense) => sum + expense.amount, 0);
+  
   // חישוב רווח נקי
   const netProfit = totalRevenue - totalExpenses;
+
+  // טיפול בפתיחת דיאלוג עריכת הוצאה
+  const handleOpenEditExpense = (expense) => {
+    setEditingExpense({
+      ...expense,
+      date: format(new Date(expense.date), 'yyyy-MM-dd')
+    });
+    setOpenEditDialog(true);
+  };
+
+  // טיפול בשינוי שדות בטופס עריכת הוצאה
+  const handleEditExpenseChange = (e) => {
+    const { name, value } = e.target;
+    setEditingExpense(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // טיפול בשמירת הוצאה שעודכנה
+  const handleSaveEditedExpense = async () => {
+    try {
+      if (!editingExpense.amount || !editingExpense.category) {
+        return;
+      }
+
+      const result = await updateExpense(editingExpense._id, editingExpense);
+      
+      // עדכון רשימת ההוצאות המקומית
+      setExpenses(prev => prev.map(expense => 
+        expense._id === editingExpense._id ? result : expense
+      ));
+      
+      // סגירת הדיאלוג
+      setOpenEditDialog(false);
+    } catch (error) {
+      console.error('שגיאה בעדכון הוצאה:', error);
+    }
+  };
 
   return (
     <Box 
@@ -816,7 +878,7 @@ const FinancialOverview = () => {
           <Box>
             {/* כרטיסיות סיכום פיננסי */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <InfoCard 
                   title="סה״כ הכנסות"
                   value={`₪${totalRevenue.toLocaleString()}`}
@@ -834,7 +896,7 @@ const FinancialOverview = () => {
                   ]}
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <InfoCard 
                   title="סה״כ הוצאות"
                   value={`₪${totalExpenses.toLocaleString()}`}
@@ -842,12 +904,20 @@ const FinancialOverview = () => {
                   icon={<ReceiptLongIcon />}
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <InfoCard 
                   title="רווח נקי"
                   value={`₪${netProfit.toLocaleString()}`}
                   type="profit"
                   icon={<AccountBalanceIcon />}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <InfoCard 
+                  title="סה״כ משיכות"
+                  value={`₪${totalWithdrawals.toLocaleString()}`}
+                  type="withdrawal"
+                  icon={<AccountBalanceWalletIcon />}
                 />
               </Grid>
             </Grid>
@@ -976,6 +1046,7 @@ const FinancialOverview = () => {
                     <ExpensesList 
                       expenses={expenses} 
                       onDelete={handleDeleteExpense}
+                      onEdit={handleOpenEditExpense}
                       paymentMethods={paymentMethods}
                     />
                   ) : (
@@ -1070,6 +1141,22 @@ const FinancialOverview = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>מתחם אירוח</InputLabel>
+                <Select
+                  name="location"
+                  value={newExpense.location}
+                  onChange={handleExpenseChange}
+                  label="מתחם אירוח"
+                  disabled={newExpense.splitBetweenLocations}
+                >
+                  {sites.map((site, index) => (
+                    <MenuItem key={site} value={site}>{siteNames[index]}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <TextField
                 margin="dense"
                 name="date"
@@ -1082,6 +1169,31 @@ const FinancialOverview = () => {
                 sx={{ mb: 2 }}
                 InputLabelProps={{ shrink: true }}
               />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth margin="dense">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    חלוקת ההוצאה בין שני המתחמים
+                  </Typography>
+                  <Switch
+                    checked={newExpense.splitBetweenLocations}
+                    onChange={(e) => {
+                      setNewExpense(prev => ({
+                        ...prev,
+                        splitBetweenLocations: e.target.checked,
+                        location: e.target.checked ? 'both' : sites[selectedSite]
+                      }));
+                    }}
+                    color="primary"
+                  />
+                </Box>
+                {newExpense.splitBetweenLocations && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    הסכום יחולק שווה בשווה בין שני המתחמים (₪{newExpense.amount ? (Number(newExpense.amount) / 2).toFixed(2) : '0'} לכל מתחם)
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
           </Grid>
         </DialogContent>
@@ -1206,6 +1318,129 @@ const FinancialOverview = () => {
             onClick={handleSaveIncome} 
             variant="contained"
             color="success"
+            sx={{ 
+              borderRadius: '8px',
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' }
+            }}
+          >
+            שמירה
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* דיאלוג לעריכת הוצאה */}
+      <Dialog 
+        open={openEditDialog} 
+        onClose={() => setOpenEditDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
+          עריכת הוצאה
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2, pb: 0 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                autoFocus
+                margin="dense"
+                name="amount"
+                label="סכום"
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={editingExpense?.amount || ''}
+                onChange={handleEditExpenseChange}
+                InputProps={{ 
+                  startAdornment: <Box sx={{ mr: 1 }}>₪</Box>
+                }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>קטגוריה</InputLabel>
+                <Select
+                  name="category"
+                  value={editingExpense?.category || ''}
+                  onChange={handleEditExpenseChange}
+                  label="קטגוריה"
+                >
+                  {expenseCategories.map(category => (
+                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                margin="dense"
+                name="description"
+                label="תיאור"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={editingExpense?.description || ''}
+                onChange={handleEditExpenseChange}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>אמצעי תשלום</InputLabel>
+                <Select
+                  name="paymentMethod"
+                  value={editingExpense?.paymentMethod || ''}
+                  onChange={handleEditExpenseChange}
+                  label="אמצעי תשלום"
+                >
+                  {paymentMethods.map(method => (
+                    <MenuItem key={method.value} value={method.value}>{method.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="dense">
+                <InputLabel>מתחם אירוח</InputLabel>
+                <Select
+                  name="location"
+                  value={editingExpense?.location || ''}
+                  onChange={handleEditExpenseChange}
+                  label="מתחם אירוח"
+                >
+                  {sites.map((site, index) => (
+                    <MenuItem key={site} value={site}>{siteNames[index]}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                margin="dense"
+                name="date"
+                label="תאריך"
+                type="date"
+                fullWidth
+                variant="outlined"
+                value={editingExpense?.date || ''}
+                onChange={handleEditExpenseChange}
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Button onClick={() => setOpenEditDialog(false)} color="inherit">
+            ביטול
+          </Button>
+          <Button 
+            onClick={handleSaveEditedExpense} 
+            variant="contained"
             sx={{ 
               borderRadius: '8px',
               boxShadow: 'none',
