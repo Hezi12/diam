@@ -4,24 +4,21 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// נתיבים פומביים ללא אימות
+// נתיבים פומביים שאינם דורשים אימות
 router.get('/payment-info/:id', bookingsController.getBookingPaymentInfo);
 router.post('/submit-payment', bookingsController.submitPaymentDetails);
 
-// הגנה על כל הנתיבים - נדרש אימות
-router.use(auth);
+// נתיבים מוגנים - דורשים אימות
+router.get('/', auth, bookingsController.getAllBookings);
+router.get('/location/:location', auth, bookingsController.getBookingsByLocation);
+router.get('/date-range', auth, bookingsController.getBookingsByDateRange);
+router.get('/single/:id', auth, bookingsController.getBookingById);
+router.post('/', auth, bookingsController.createBooking);
+router.put('/:id', auth, bookingsController.updateBooking);
+router.delete('/:id', auth, bookingsController.deleteBooking);
 
-// נתיבים להזמנות
-router.get('/', bookingsController.getAllBookings);
-router.get('/location/:location', bookingsController.getBookingsByLocation);
-router.get('/date-range', bookingsController.getBookingsByDateRange);
-router.get('/single/:id', bookingsController.getBookingById);
-router.post('/', bookingsController.createBooking);
-router.put('/:id', bookingsController.updateBooking);
-router.delete('/:id', bookingsController.deleteBooking);
-
-// נתיבים נוספים
-router.get('/check-availability', bookingsController.checkRoomAvailability);
-router.get('/search', bookingsController.searchBookings);
+// נתיבים נוספים - גם הם מוגנים
+router.get('/check-availability', auth, bookingsController.checkRoomAvailability);
+router.get('/search', auth, bookingsController.searchBookings);
 
 module.exports = router; 
