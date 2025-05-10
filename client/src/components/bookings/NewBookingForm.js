@@ -36,7 +36,9 @@ import {
   Email as EmailIcon,
   WhatsApp as WhatsAppIcon,
   Delete as DeleteIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  Link as LinkIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -952,6 +954,82 @@ const NewBookingForm = ({
   const handleInvoiceClick = () => {
     setInvoiceDialogOpen(true);
   };
+  
+  // הוספת מצב לדיאלוג הקישור ולפרטיו
+  const [shareLinkDialogOpen, setShareLinkDialogOpen] = useState(false);
+  const [linkDetails, setLinkDetails] = useState({
+    amount: '',
+    language: 'he', // ברירת מחדל עברית
+  });
+  
+  // פונקציית טיפול בלחיצה על לינק
+  const handleLinkClick = () => {
+    // מוודא שיש את כל הנתונים הנדרשים
+    if (!formData.firstName || !formData.room) {
+      setError(linkDetails.language === 'en' ? 'Please fill in first name and select a room before creating a link' : 'יש למלא שם פרטי ולבחור חדר לפני יצירת קישור');
+      return;
+    }
+    
+    // פותח את חלון הקישור
+    setShareLinkDialogOpen(true);
+  };
+  
+  // פונקציה לטיפול בשינוי פרטי הקישור
+  const handleLinkDetailsChange = (e) => {
+    const { name, value } = e.target;
+    setLinkDetails(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // פונקציה ליצירת הקישור
+  const generatePaymentLink = () => {
+    // האם זו הזמנה קיימת או חדשה
+    const bookingId = editBooking?._id || 'new';
+    
+    // יצירת קישור עם פרמטרים מוצפנים
+    const params = {
+      b: bookingId,  // מזהה הזמנה
+      n: formData.firstName, // שם האורח
+      a: linkDetails.amount || formData.price, // סכום לתשלום
+      l: linkDetails.language, // שפה
+      r: typeof formData.room === 'object' ? formData.room._id : formData.room, // מזהה חדר
+      i: formData.checkIn?.toISOString().split('T')[0], // תאריך כניסה
+      o: formData.checkOut?.toISOString().split('T')[0], // תאריך יציאה
+      t: Date.now(), // חותמת זמן לאבטחה
+      // מקום האירוח והמספר של החדר לא נכללים בקישור
+    };
+    
+    // המרה ל-Base64 לקישור נקי יותר - עם תמיכה בתווי UTF-8
+    const jsonString = JSON.stringify(params);
+    // שימוש ב-encodeURIComponent לפני btoa כדי לתמוך בתווי UTF-8
+    const encodedParams = btoa(encodeURIComponent(jsonString));
+    
+    // יצירת הקישור המלא
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/payment/${encodedParams}`;
+  };
+  
+  // הוספת מצב להודעות
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  
+  // פונקציה להעתקת הקישור ללוח
+  const copyLinkToClipboard = () => {
+    const link = generatePaymentLink();
+    navigator.clipboard.writeText(link).then(() => {
+      // להציג הודעת הצלחה
+      setError('');
+      setNotificationMessage(linkDetails.language === 'en' ? 'Link copied to clipboard' : 'הקישור הועתק ללוח');
+      setShowNotification(true);
+      
+      // להסתיר את ההודעה אחרי 3 שניות
+      setTimeout(() => {
+        setShowNotification(false);
+      }, 3000);
+    });
+  };
 
   // טיפול בסגירת החלון
   const handleClose = () => {
@@ -1005,6 +1083,16 @@ const NewBookingForm = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* אייקון לינק חדש */}
+          <IconButton 
+            onClick={handleLinkClick} 
+            size="small" 
+            sx={{ color: currentColors.main, mr: 1 }}
+            title="קישור"
+          >
+            <LinkIcon />
+          </IconButton>
+          
           <IconButton 
             onClick={handleInvoiceClick} 
             size="small" 
@@ -1330,8 +1418,8 @@ const NewBookingForm = ({
                         ...formData, 
                         creditCard: {...(formData.creditCard || {}), expiryDate: e.target.value}
                       })}
-                      placeholder="MM/YY"
-                      inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
+                      placeholder="MMYY"
+                      inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
                       size="small"
                       sx={{
                         '& .MuiOutlinedInput-root': {
@@ -1737,6 +1825,165 @@ const NewBookingForm = ({
         onClose={() => setInvoiceDialogOpen(false)}
         bookingData={formData}
       />
+
+      {/* דיאלוג שיתוף קישור לתשלום */}
+      <Dialog 
+        open={shareLinkDialogOpen} 
+        onClose={() => setShareLinkDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: style.dialog.borderRadius,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            bgcolor: currentColors.bgLight, 
+            color: currentColors.main,
+            fontWeight: 500,
+            borderBottom: `1px solid ${currentColors.main}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <LinkIcon sx={{ marginRight: '10px' }} />
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              שיתוף קישור לתשלום
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setShareLinkDialogOpen(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 2, mt: 2 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                צור קישור שתוכל לשלוח לאורח כדי שימלא את פרטי האשראי שלו.
+              </Typography>
+              
+              <Alert severity="info" sx={{ mb: 3 }}>
+                הקישור יציג לאורח את שמו, תאריכי השהייה והסכום לתשלום, ויאפשר לו להזין את פרטי האשראי שלו.
+              </Alert>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="סכום לתשלום"
+                name="amount"
+                value={linkDetails.amount}
+                onChange={handleLinkDetailsChange}
+                fullWidth
+                placeholder={formData.price.toString()}
+                type="number"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₪</InputAdornment>,
+                }}
+                helperText="השאר ריק לשימוש במחיר ההזמנה הנוכחי"
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: style.button.borderRadius,
+                  }
+                }}
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth size="small" sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: style.button.borderRadius,
+                }
+              }}>
+                <InputLabel>שפה</InputLabel>
+                <Select
+                  name="language"
+                  value={linkDetails.language}
+                  onChange={handleLinkDetailsChange}
+                  label="שפה"
+                >
+                  <MenuItem value="he">עברית</MenuItem>
+                  <MenuItem value="en">English</MenuItem>
+                </Select>
+                <FormHelperText>שפת הדף שיוצג לאורח</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Paper 
+                variant="outlined" 
+                sx={{ 
+                  p: 2, 
+                  bgcolor: 'rgba(0,0,0,0.02)', 
+                  borderRadius: style.card.borderRadius,
+                  direction: 'ltr',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <Box sx={{ 
+                  position: 'absolute', 
+                  top: 0, 
+                  right: 0, 
+                  p: 0.5, 
+                  bgcolor: 'background.paper', 
+                  borderBottomLeftRadius: '8px',
+                  borderLeft: '1px solid rgba(0,0,0,0.12)',
+                  borderBottom: '1px solid rgba(0,0,0,0.12)'
+                }}>
+                  <Tooltip title="העתק קישור">
+                    <IconButton size="small" onClick={copyLinkToClipboard}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontFamily: 'monospace', 
+                    wordBreak: 'break-all', 
+                    fontSize: '0.8rem',
+                    opacity: 0.7 
+                  }}
+                >
+                  {generatePaymentLink()}
+                </Typography>
+              </Paper>
+              
+              {showNotification && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  {notificationMessage}
+                </Alert>
+              )}
+            </Grid>
+          </Grid>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 2, pt: 1, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+          <Button 
+            onClick={() => setShareLinkDialogOpen(false)}
+            sx={{ mx: 1 }}
+          >
+            סגור
+          </Button>
+          
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={copyLinkToClipboard}
+            startIcon={<ContentCopyIcon />}
+          >
+            העתק קישור
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
