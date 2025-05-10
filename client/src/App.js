@@ -22,6 +22,7 @@ import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
+import PaymentPage from './pages/payment/PaymentPage';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -53,6 +54,9 @@ function App() {
               
               {/* דף ניקיון - ללא אבטחה */}
               <Route path="/cleaning" element={<Cleaning />} />
+              
+              {/* דף תשלום לאורחים - ללא אבטחה */}
+              <Route path="/payment/:paymentCode" element={<PaymentPage />} />
               
               {/* ניתובים לעמודים מוגנים */}
               <Route
@@ -201,6 +205,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <CapitalManagement />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payment"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <PaymentPage />
                     </Layout>
                   </ProtectedRoute>
                 }

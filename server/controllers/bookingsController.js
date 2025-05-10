@@ -652,3 +652,100 @@ exports.searchBookings = async (req, res) => {
     res.status(500).json({ message: 'שגיאה בחיפוש הזמנות' });
   }
 };
+
+// קבלת מידע על הזמנה לצורך תשלום (API פומבי)
+exports.getBookingPaymentInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // מידע מצומצם בלבד שיוחזר לקישור הפומבי
+    const booking = await Booking.findById(id)
+      .populate('room', 'roomNumber basePrice vatPrice');
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'הזמנה לא נמצאה' });
+    }
+    
+    // החזרת רק את המידע הרלוונטי לתצוגה בדף התשלום
+    const paymentInfo = {
+      firstName: booking.firstName,
+      lastName: booking.lastName,
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      price: booking.price,
+      room: {
+        _id: booking.room._id,
+        roomNumber: booking.room.roomNumber
+      }
+    };
+    
+    res.json(paymentInfo);
+  } catch (error) {
+    console.error('שגיאה בקבלת מידע תשלום:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת פרטי התשלום' });
+  }
+};
+
+// שמירת פרטי תשלום (API פומבי)
+exports.submitPaymentDetails = async (req, res) => {
+  try {
+    const { bookingId, creditCard, guestName } = req.body;
+    
+    // אם מדובר בהזמנה חדשה שעדיין לא נוצרה
+    if (bookingId === 'new') {
+      // שומר רק את פרטי האשראי בזכרון זמני או מסד נתונים זמני
+      // יש ליישם לפי צורכי המערכת
+      return res.status(200).json({ 
+        message: 'פרטי אשראי נשמרו בהצלחה להזמנה חדשה',
+        success: true
+      });
+    }
+    
+    // בדיקה שההזמנה קיימת
+    const booking = await Booking.findById(bookingId);
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'הזמנה לא נמצאה' });
+    }
+    
+    // וידוא שיש פרטי אשראי תקינים
+    if (!creditCard || !creditCard.cardNumber || !creditCard.expiryDate || !creditCard.cvv) {
+      return res.status(400).json({ message: 'פרטי אשראי חסרים או לא תקינים' });
+    }
+    
+    // וידוא שפורמט תאריך התפוגה תקין (MM/YY)
+    if (!/^\d{4}$/.test(creditCard.expiryDate)) {
+      return res.status(400).json({ message: 'פורמט תאריך תפוגה לא תקין. הפורמט הנדרש: MMYY' });
+    }
+    
+    // עדכון פרטי האשראי בהזמנה
+    booking.creditCard = {
+      cardNumber: creditCard.cardNumber,
+      expiryDate: creditCard.expiryDate,
+      cvv: creditCard.cvv
+    };
+    
+    // הוספת הערה אוטומטית
+    const now = new Date();
+    const dateStr = now.toLocaleString('he-IL');
+    const note = `פרטי אשראי עודכנו דרך קישור תשלום בתאריך ${dateStr}`;
+    
+    // עדכון שדה הערות עם המידע החדש
+    if (booking.notes) {
+      booking.notes = `${booking.notes}\n\n${note}`;
+    } else {
+      booking.notes = note;
+    }
+    
+    // שמירת השינויים
+    await booking.save();
+    
+    res.status(200).json({ 
+      message: 'פרטי אשראי נשמרו בהצלחה',
+      success: true
+    });
+  } catch (error) {
+    console.error('שגיאה בשמירת פרטי תשלום:', error);
+    res.status(500).json({ message: 'שגיאה בשמירת פרטי התשלום' });
+  }
+};

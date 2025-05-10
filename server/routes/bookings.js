@@ -4,6 +4,10 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+// נתיבים פומביים ללא אימות
+router.get('/payment-info/:id', bookingsController.getBookingPaymentInfo);
+router.post('/submit-payment', bookingsController.submitPaymentDetails);
+
 // הגנה על כל הנתיבים - נדרש אימות
 router.use(auth);
 
