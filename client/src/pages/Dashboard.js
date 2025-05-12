@@ -281,8 +281,8 @@ const Dashboard = () => {
       px: { xs: 1, sm: 2, md: 3 }
     }}>
       <Box sx={{ 
-        pb: isMobile ? 0 : 2,
-        pt: isMobile ? 2.5 : 1,
+        pb: isMobile ? 0 : 1,
+        pt: isMobile ? 2 : 0.5,
         position: isMobile ? 'relative' : 'sticky',
         top: isMobile ? 'auto' : 0,
         width: '100%',
@@ -297,7 +297,7 @@ const Dashboard = () => {
         />
       </Box>
     
-      <Grid container spacing={isMobile ? 2 : 3} sx={{ mt: isMobile ? 1 : 2 }}>
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mt: isMobile ? 0 : 0.5 }}>
         {/* מודול rothschild */}
         <Grid item xs={12} md={6}>
           <Box sx={{ 

@@ -64,8 +64,8 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      py: 1.5,
-      my: 1,
+      py: 1,
+      my: 0.5,
       width: '100%',
     }}>
       {/* תצוגת תאריך וחיצים - בצד ימין */}
@@ -159,7 +159,7 @@ export const DashboardDateNav = ({ currentDate, onDateChange }) => {
             justifyContent: 'center',
             width: '100%',
             transition: 'all 0.2s ease',
-            mt: 1.5,
+            mt: 0.75,
             pr: 0,
             ml: 0,
           }}>

@@ -759,6 +759,9 @@ const FinancialOverview = () => {
   
   // חישוב רווח נקי
   const netProfit = totalRevenue - totalExpenses;
+  
+  // חישוב רווח נקי + משיכות
+  const netProfitWithWithdrawals = netProfit + totalWithdrawals;
 
   // טיפול בפתיחת דיאלוג עריכת הוצאה
   const handleOpenEditExpense = (expense) => {
@@ -911,6 +914,12 @@ const FinancialOverview = () => {
                   value={`₪${netProfit.toLocaleString()}`}
                   type="profit"
                   icon={<AccountBalanceIcon />}
+                  details={[
+                    { 
+                      label: "רווח נקי + משיכות",
+                      value: `₪${netProfitWithWithdrawals.toLocaleString()}`
+                    }
+                  ]}
                 />
               </Grid>
               <Grid item xs={12} md={3}>

@@ -356,13 +356,13 @@ const BookingsCalendar = ({
       
       // בדיקה האם ההזמנה לא שולמה ותאריך הצ'ק-אין עבר או שהוא היום
       const isPastOrTodayAndNotPaid = (booking.paymentStatus === 'לא שולם' || booking.paymentStatus === 'unpaid') && 
-        (isSameDay(checkInDate, today) || checkInDate < today);
+        (checkInDate <= today);
       
       console.log('בדיקת תשלום:', {
         bookingId: booking._id,
         paymentStatus: booking.paymentStatus,
         checkInDate: checkInDateStr,
-        isPastOrToday: isSameDay(checkInDate, today) || checkInDate < today,
+        isPastOrToday: checkInDate <= today,
         isPastOrTodayAndNotPaid
       });
       
@@ -406,83 +406,52 @@ const BookingsCalendar = ({
               {booking.firstName ? `${booking.firstName} ${booking.lastName || ''}` : 'ללא שם'}
             </Typography>
             
-            {/* אייקונים - יוצגו רק אם תאריך הצ'ק-אין הוא אתמול, היום או מחר */}
-            {isRelevantDate && (
-              <Box sx={{ 
-                display: 'flex', 
-                gap: '6px', 
-                mt: 'auto', 
-                alignSelf: 'flex-end',
-                pt: '4px'
-              }}>
-                {/* אייקון תשלום חסר */}
-                {isPastOrTodayAndNotPaid && (
-                  <Tooltip title="ההזמנה לא שולמה" arrow placement="top">
-                    <Box 
-                      component="span"
-                      sx={{ 
-                        display: 'inline-block',
-                        width: '20px',
-                        height: '20px',
-                        position: 'relative',
-                        cursor: 'pointer',
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          color: '#e74c3c',
-                          fontWeight: 'bold',
-                          fontSize: '16px',
-                          lineHeight: 1,
-                        }}
-                      >
-                        ₪
-                      </Typography>
-                    </Box>
-                  </Tooltip>
-                )}
-                
-                {/* אייקון הערה */}
-                {hasNotes && (
-                  <Tooltip title={booking.notes} arrow placement="top">
-                    <IconButton 
-                      size="small" 
-                      sx={{ 
-                        p: 0,
-                        width: '20px',
-                        height: '20px',
-                        minWidth: '20px',
-                        bgcolor: 'transparent',
-                        '&:hover': { bgcolor: 'transparent' }
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
+            {/* אייקונים - שינוי: אייקון תשלום יוצג תמיד אם התנאי מתקיים, לא רק להזמנות רלוונטיות */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: '6px', 
+              mt: 'auto', 
+              alignSelf: 'flex-end',
+              pt: '4px'
+            }}>
+              {/* אייקון תשלום חסר */}
+              {isPastOrTodayAndNotPaid && (
+                <Tooltip title="ההזמנה לא שולמה" arrow placement="top">
+                  <Box 
+                    component="span"
+                    sx={{ 
+                      display: 'inline-block',
+                      width: '20px',
+                      height: '20px',
+                      position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: '#e74c3c',
+                        fontWeight: 'bold',
+                        fontSize: '16px',
+                        lineHeight: 1,
                       }}
                     >
-                      <InfoIcon 
-                        sx={{ 
-                          color: '#f39c12',
-                          fontSize: '20px'
-                        }}
-                      />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                
-                {/* אייקון וואטסאפ */}
-                {booking.phone && (
+                      ₪
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              )}
+              
+              {/* אייקון הערה - יוצג רק להזמנות רלוונטיות */}
+              {isRelevantDate && hasNotes && (
+                <Tooltip title={booking.notes} arrow placement="top">
                   <IconButton 
-                    component="a"
-                    href={createWhatsAppLink(booking.phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     size="small" 
                     sx={{ 
                       p: 0,
@@ -496,16 +465,45 @@ const BookingsCalendar = ({
                       e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
                     }}
                   >
-                    <WhatsAppIcon 
+                    <InfoIcon 
                       sx={{ 
-                        color: '#25D366',
+                        color: '#f39c12',
                         fontSize: '20px'
                       }}
                     />
                   </IconButton>
-                )}
-              </Box>
-            )}
+                </Tooltip>
+              )}
+              
+              {/* אייקון וואטסאפ - יוצג רק להזמנות רלוונטיות */}
+              {isRelevantDate && booking.phone && (
+                <IconButton 
+                  component="a"
+                  href={createWhatsAppLink(booking.phone)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  size="small" 
+                  sx={{ 
+                    p: 0,
+                    width: '20px',
+                    height: '20px',
+                    minWidth: '20px',
+                    bgcolor: 'transparent',
+                    '&:hover': { bgcolor: 'transparent' }
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
+                  }}
+                >
+                  <WhatsAppIcon 
+                    sx={{ 
+                      color: '#25D366',
+                      fontSize: '20px'
+                    }}
+                  />
+                </IconButton>
+              )}
+            </Box>
           </Box>
         </GanttBar>
       );
