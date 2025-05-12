@@ -752,6 +752,7 @@ const FinancialOverview = () => {
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   
   // חישוב סך הוצאות מקטגוריית משיכה
+  // הוספת הערת תיעוד: קטגוריית משיכה מתייחסת להוצאות כספים פרטיות
   const totalWithdrawals = expenses
     .filter(expense => expense.category === 'משיכה')
     .reduce((sum, expense) => sum + expense.amount, 0);
