@@ -22,6 +22,15 @@ import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
+import ICountMigration from './pages/ICountMigration';
+
+// עמודי אתר ציבורי
+import HomePage from './pages/public-site/HomePage';
+import SearchResultsPage from './pages/public-site/SearchResultsPage';
+import BookingFormPage from './pages/public-site/BookingFormPage';
+import ConfirmationPage from './pages/public-site/ConfirmationPage';
+import GalleryPage from './pages/public-site/GalleryPage';
+import AboutContactPage from './pages/public-site/AboutContactPage';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -53,6 +62,14 @@ function App() {
               
               {/* דף ניקיון - ללא אבטחה */}
               <Route path="/cleaning" element={<Cleaning />} />
+              
+              {/* נתיבי האתר הציבורי - ללא אבטחה */}
+              <Route path="/airport-booking" element={<HomePage />} />
+              <Route path="/airport-booking/search-results" element={<SearchResultsPage />} />
+              <Route path="/airport-booking/book" element={<BookingFormPage />} />
+              <Route path="/airport-booking/confirmation" element={<ConfirmationPage />} />
+              <Route path="/airport-booking/gallery" element={<GalleryPage />} />
+              <Route path="/airport-booking/about-contact" element={<AboutContactPage />} />
               
               {/* ניתובים לעמודים מוגנים */}
               <Route
@@ -101,6 +118,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <Invoices />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/icount-migration"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ICountMigration />
                     </Layout>
                   </ProtectedRoute>
                 }

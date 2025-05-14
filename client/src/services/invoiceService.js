@@ -2,9 +2,11 @@ import axios from 'axios';
 import { API_ENDPOINTS } from '../config/apiConfig';
 import errorService from './errorService';
 import logService from './logService';
+import icountInvoiceService from './icountInvoiceService';
 
 /**
  * שירות לניהול חשבוניות ותשלומים
+ * גרסת מעבר - כעת משתמש ב-iCount במקום במערכת הישנה
  */
 
 // קאש עבור מספרי חשבוניות - מאחסן את המספר האחרון שהתקבל לכל מיקום
@@ -56,7 +58,7 @@ const invoiceService = {
   },
 
   /**
-   * יצירת חשבונית חדשה
+   * יצירת חשבונית חדשה (כעת דרך iCount)
    * @param {Object} invoiceData - פרטי החשבונית
    * @param {string|null} bookingId - מזהה ההזמנה (אופציונלי)
    * @returns {Promise<Object>} פרטי החשבונית שנוצרה
@@ -78,33 +80,14 @@ const invoiceService = {
         throw new Error('החשבונית חייבת לכלול לפחות פריט אחד');
       }
 
-      const url = API_ENDPOINTS.invoices.base;
+      // קבלת פרטי המיקום
+      const location = invoiceData.location || 'rothschild';
       
-      // הכנת פרטי החשבונית לפי המבנה הנדרש בשרת
-      const requestData = {
-        invoiceData: {
-          ...invoiceData,
-          status: 'active' // שימוש בסטטוס תקין מתוך ה-enum של המודל
-        }
-      };
+      // שימוש בשירות iCount ליצירת החשבונית
+      const result = await icountInvoiceService.createInvoice(invoiceData, location, bookingId);
       
-      // הוספת מזהה ההזמנה אם קיים
-      if (bookingId) {
-        requestData.bookingId = bookingId;
-      }
-      
-      // תיעוד הבקשה לצורך ניפוי באגים
-      logService.info(`שולח בקשה ליצירת חשבונית:`, JSON.stringify(requestData, null, 2));
-      
-      const response = await axios.post(url, requestData);
-      
-      // בדיקה שהתקבלה תשובה תקינה
-      if (!response.data || !response.data.success) {
-        throw new Error(response.data?.error || 'שגיאה לא ידועה בשרת');
-      }
-      
-      logService.info('חשבונית נוצרה בהצלחה:', response.data);
-      return response.data.invoice || response.data;
+      logService.info('חשבונית נוצרה בהצלחה באמצעות iCount:', result);
+      return result.invoice || result;
     } catch (error) {
       logService.error('שגיאה ביצירת חשבונית:', error.response?.data || error.message);
       
@@ -225,6 +208,19 @@ const invoiceService = {
   cancelInvoice: async (invoiceId, reason = '') => {
     try {
       logService.info(`מבקש לבטל חשבונית ${invoiceId}`);
+      
+      // קבלת פרטי החשבונית
+      const invoiceDetails = await invoiceService.getInvoiceById(invoiceId);
+      
+      // בדיקה אם החשבונית קשורה ל-iCount
+      if (invoiceDetails.invoice && 
+          invoiceDetails.invoice.externalSystem && 
+          invoiceDetails.invoice.externalSystem.name === 'iCount') {
+        // ביטול דרך שירות iCount
+        return await icountInvoiceService.cancelInvoice(invoiceId, reason);
+      }
+
+      // טיפול בחשבוניות של המערכת הישנה
       const response = await axios.patch(API_ENDPOINTS.invoices.cancel(invoiceId), { reason });
       logService.info('החשבונית בוטלה בהצלחה');
       return response.data;
@@ -291,6 +287,84 @@ const invoiceService = {
       logService.error('שגיאה בקבלת מספר חשבונית הבא:', error);
       const errorInfo = errorService.handleApiError(error, 'fetch next invoice number');
       throw errorInfo;
+    }
+  },
+
+  /**
+   * העברת חשבונית מהמערכת הישנה ל-iCount
+   * @param {string} invoiceId - מזהה החשבונית 
+   * @param {string} location - מיקום (airport או rothschild)
+   * @returns {Promise<Object>} - תוצאת המיגרציה
+   */
+  migrateInvoiceToICount: async (invoiceId, location = 'rothschild') => {
+    try {
+      logService.info(`מעביר חשבונית ${invoiceId} למערכת iCount`);
+      const response = await axios.post(`${API_ENDPOINTS.icount.base}/migrate-invoice/${invoiceId}`, { location });
+      
+      if (!response.data || !response.data.success) {
+        throw new Error(response.data?.error || 'שגיאה לא ידועה בהעברת החשבונית');
+      }
+      
+      return response.data;
+    } catch (error) {
+      logService.error('שגיאה בהעברת חשבונית ל-iCount:', error);
+      const errorInfo = errorService.handleApiError(error, 'migrate invoice to iCount');
+      throw errorInfo;
+    }
+  },
+
+  /**
+   * ביצוע מיגרציה המונית של חשבוניות ל-iCount
+   * @param {string} location - מיקום (airport או rothschild)
+   * @param {Date} dateFrom - תאריך התחלה (אופציונלי) 
+   * @param {Date} dateTo - תאריך סיום (אופציונלי)
+   * @returns {Promise<Object>} - תוצאות המיגרציה
+   */
+  bulkMigrateToICount: async (location = 'rothschild', dateFrom = null, dateTo = null) => {
+    try {
+      logService.info(`מבצע מיגרציה המונית של חשבוניות למערכת iCount (${location})`);
+      
+      const requestData = { location };
+      
+      if (dateFrom) {
+        requestData.dateFrom = dateFrom;
+      }
+      
+      if (dateTo) {
+        requestData.dateTo = dateTo;
+      }
+      
+      const response = await axios.post(`${API_ENDPOINTS.icount.base}/bulk-migrate`, requestData);
+      
+      if (!response.data || !response.data.success) {
+        throw new Error(response.data?.error || 'שגיאה לא ידועה במיגרציה המונית');
+      }
+      
+      return response.data;
+    } catch (error) {
+      logService.error('שגיאה במיגרציה המונית ל-iCount:', error);
+      const errorInfo = errorService.handleApiError(error, 'bulk migrate to iCount');
+      throw errorInfo;
+    }
+  },
+
+  /**
+   * בדיקה האם חשבונית קיימת להזמנה נתונה
+   * @param {string} bookingId - מזהה ההזמנה
+   * @returns {Promise<Object>} - תשובה מהשרת
+   */
+  checkBookingInvoice: async (bookingId) => {
+    try {
+      if (!bookingId) {
+        throw new Error('מזהה הזמנה חסר');
+      }
+      
+      const response = await axios.get(`${API_ENDPOINTS.invoices.base}/check-booking/${bookingId}`);
+      
+      return response.data;
+    } catch (error) {
+      logService.error('שגיאה בבדיקת קיום חשבונית:', error);
+      throw error;
     }
   }
 };

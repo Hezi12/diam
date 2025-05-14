@@ -30,7 +30,8 @@ import {
   BarChart as RevenueIcon,
   Menu as MenuIcon,
   AttachMoney as AttachMoneyIcon,
-  AccountBalanceWallet as AccountBalanceWalletIcon
+  AccountBalanceWallet as AccountBalanceWalletIcon,
+  SwapHoriz as MigrationIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -257,7 +258,8 @@ const Sidebar = () => {
     rothschild: '#304dbd', // צבע רוטשילד מקורי
     airport: '#0059b3', // צבע אייפורט מקורי 
     settings: '#F5B400', // צהוב/כתום
-    logout: '#EA4335' // אדום
+    logout: '#EA4335', // אדום
+    icount: '#00C853' // ירוק-iCount
   };
 
   useEffect(() => {
@@ -367,6 +369,15 @@ const Sidebar = () => {
             to="/invoices"
             title="חשבוניות"
             iconColor={iconColors.invoices}
+            onClick={isMobile ? toggleDrawer(false) : undefined}
+          />
+          
+          {/* קישור למיגרציה של iCount */}
+          <SidebarItem
+            icon={<MigrationIcon />}
+            to="/icount-migration"
+            title="מיגרציה ל-iCount"
+            iconColor={iconColors.icount}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
           

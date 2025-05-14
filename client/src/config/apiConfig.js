@@ -31,6 +31,11 @@ const API_ENDPOINTS = {
     byId: (id) => `/api/bookings/${id}`,
     dateRange: '/api/bookings/date-range',
     search: '/api/bookings/search',
+    // נתיבים ציבוריים ללא אימות
+    public: {
+      checkAvailability: '/api/bookings/public/check-availability',
+      create: '/api/bookings/public/create'
+    }
   },
   
   // נתיבי חדרים
@@ -38,6 +43,11 @@ const API_ENDPOINTS = {
     byLocation: (location) => `/api/rooms/location/${location}`,
     checkAvailability: '/api/rooms/check-availability',
     gallery: (location) => `/api/rooms/gallery/${location}`,
+    // נתיבים ציבוריים ללא אימות
+    public: {
+      byLocation: (location) => `/api/rooms/public/location/${location}`,
+      byId: (id) => `/api/rooms/public/single/${id}`,
+    }
   },
   
   // נתיבי חשבוניות
@@ -52,6 +62,19 @@ const API_ENDPOINTS = {
     sendEmail: (id) => `/api/invoices/${id}/send-email`,
     paymentHistory: (id) => `/api/invoices/${id}/payment-history`,
     processPayment: (id) => `/api/invoices/${id}/process-payment`,
+  },
+  
+  // נתיבי iCount
+  icount: {
+    base: '/api/icount',
+    login: '/api/icount/login',
+    invoice: '/api/icount/invoice',
+    charge: '/api/icount/charge',
+    chargeAndInvoice: '/api/icount/charge-and-invoice',
+    createInternalInvoice: '/api/icount/create-internal-invoice',
+    cancelInvoice: (id) => `/api/icount/cancel-invoice/${id}`,
+    migrateInvoice: (id) => `/api/icount/migrate-invoice/${id}`,
+    bulkMigrate: '/api/icount/bulk-migrate'
   }
 };
 

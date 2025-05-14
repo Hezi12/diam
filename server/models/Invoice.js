@@ -152,6 +152,21 @@ const InvoiceSchema = new Schema({
   // קישור לקובץ PDF מקורי שנשמר
   pdfUrl: String,
   
+  // מידע על מערכת חיצונית (iCount)
+  externalSystem: {
+    name: {
+      type: String,
+      enum: ['internal', 'iCount'],
+      default: 'internal'
+    },
+    invoiceId: String,       // מזהה החשבונית במערכת החיצונית
+    data: Schema.Types.Mixed, // מידע נוסף שהתקבל מהמערכת החיצונית
+    syncDate: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  
   // מידע נוסף
   additionalData: Schema.Types.Mixed,
   
@@ -167,5 +182,7 @@ InvoiceSchema.index({ issueDate: -1 });
 InvoiceSchema.index({ 'customer.name': 'text' });
 InvoiceSchema.index({ booking: 1 });
 InvoiceSchema.index({ status: 1 });
+InvoiceSchema.index({ 'externalSystem.invoiceId': 1 });
+InvoiceSchema.index({ 'externalSystem.name': 1 });
 
 module.exports = mongoose.model('Invoice', InvoiceSchema); 

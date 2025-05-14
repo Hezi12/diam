@@ -3,6 +3,9 @@ const Booking = require('../models/Booking');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const icountService = require('../services/icountService');
+const icountInvoiceController = require('./icountInvoiceController');
+const invoiceMigrationService = require('../services/invoiceMigrationService');
 
 /**
  * יצירת חשבונית חדשה
@@ -33,60 +36,21 @@ exports.createInvoice = async (req, res) => {
     // קבלת המיקום מהחשבונית או ברירת מחדל 'rothschild'
     const location = invoiceData.location || 'rothschild';
     
-    // קבלת מספר חשבונית - אם נשלח מהלקוח נשתמש בו, אחרת ניצור חדש
-    const invoiceNumber = invoiceData.invoiceNumber || await getNextInvoiceNumber(location);
-    
-    // יצירת אובייקט חשבונית עם מספר חשבונית ייחודי
-    const invoice = new Invoice({
-      ...invoiceData,
-      invoiceNumber,
-      status: invoiceData.status || 'active', // שימוש בסטטוס ברירת מחדל אם לא סופק
-      bookingNumber: invoiceData.bookingNumber || null // שמירת מספר ההזמנה אם יש
-    });
-
-    // קישור להזמנה אם נשלח מזהה הזמנה
-    if (bookingId) {
-      try {
-        const booking = await Booking.findById(bookingId);
-        if (!booking) {
-          return res.status(404).json({ 
-            success: false, 
-            error: `הזמנה עם מזהה ${bookingId} לא נמצאה` 
-          });
-        }
-        
-        // קישור בין החשבונית להזמנה
-        invoice.booking = booking._id;
-        
-        // שמירת מספר ההזמנה בחשבונית
-        invoice.bookingNumber = booking.bookingNumber;
-        
-        // אם אין פרטי לקוח בחשבונית, השתמש בפרטי הלקוח מההזמנה
-        if (!invoice.customer || Object.keys(invoice.customer).length === 0) {
-          invoice.customer = booking.customer;
-        }
-        
-        // עדכון ההזמנה עם מזהה החשבונית
-        booking.invoice = invoice._id;
-        await booking.save();
-      } catch (bookingError) {
-        console.error('שגיאה בטיפול בהזמנה:', bookingError);
-        return res.status(500).json({
-          success: false,
-          error: 'שגיאה בקישור החשבונית להזמנה',
-          details: bookingError.message
-        });
+    // הכנת הנתונים לiCount
+    const icountReqBody = {
+      invoiceData: {
+        ...invoiceData,
+        location
       }
-    }
-
-    // שמירת החשבונית החדשה
-    await invoice.save();
+    };
     
-    res.status(201).json({
-      success: true,
-      message: 'חשבונית נוצרה בהצלחה',
-      invoice
-    });
+    if (bookingId) {
+      icountReqBody.bookingId = bookingId;
+    }
+    
+    // העברת הבקשה לבקר של iCount
+    req.body = icountReqBody;
+    return icountInvoiceController.createICountInvoice(req, res);
   } catch (error) {
     console.error('שגיאה ביצירת חשבונית:', error);
     
@@ -269,11 +233,18 @@ exports.cancelInvoice = async (req, res) => {
       });
     }
     
-    // בדיקה אם החשבונית כבר בוטלה
-    if (invoice.status === 'canceled') {
+    // בדיקה אם החשבונית כבר ב-iCount
+    if (invoice.externalSystem && invoice.externalSystem.name === 'iCount') {
+      // העברת הבקשה לבקר של iCount
+      req.params.id = req.params.id;
+      return icountInvoiceController.cancelICountInvoice(req, res);
+    }
+    
+    // המשך הטיפול בחשבוניות מהמערכת הישנה
+    if (invoice.status !== 'active') {
       return res.status(400).json({
         success: false,
-        message: 'החשבונית כבר בוטלה'
+        message: `לא ניתן לבטל חשבונית במצב ${invoice.status}`
       });
     }
     
@@ -282,6 +253,19 @@ exports.cancelInvoice = async (req, res) => {
     invoice.notes = `${invoice.notes ? invoice.notes + '\n' : ''}בוטל ב-${new Date().toLocaleDateString('he-IL')} - ${req.body.reason || 'ללא סיבה שצוינה'}`;
     
     await invoice.save();
+    
+    // שחרור ההזמנה הקשורה אם יש
+    if (invoice.booking) {
+      try {
+        const booking = await Booking.findById(invoice.booking);
+        if (booking) {
+          booking.invoice = null;
+          await booking.save();
+        }
+      } catch (err) {
+        console.error('שגיאה בשחרור ההזמנה:', err);
+      }
+    }
     
     res.status(200).json({
       success: true,
