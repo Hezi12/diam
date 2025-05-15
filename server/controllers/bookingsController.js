@@ -652,3 +652,171 @@ exports.searchBookings = async (req, res) => {
     res.status(500).json({ message: 'שגיאה בחיפוש הזמנות' });
   }
 };
+
+// יצירת הזמנה מהאתר הציבורי
+exports.createPublicBooking = async (req, res) => {
+  try {
+    console.log('התקבלה בקשה ליצירת הזמנה מהאתר הציבורי:', JSON.stringify(req.body, null, 2));
+    
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      guests,
+      room,
+      checkIn,
+      checkOut,
+      notes,
+      creditCard
+    } = req.body;
+    
+    // בדיקת שדות חובה
+    if (!firstName || !lastName || !email || !phone || !room || !checkIn || !checkOut) {
+      console.log('שגיאה: חסרים שדות חובה', { firstName, lastName, email, phone, room, checkIn, checkOut });
+      return res.status(400).json({ message: 'חסרים שדות חובה' });
+    }
+    
+    console.log('בדיקת זמינות חדר:', { room, checkIn, checkOut });
+    
+    // המרת תאריכים לפורמט אחיד ללא שעות
+    const checkInParts = new Date(checkIn).toISOString().split('T')[0].split('-');
+    const checkOutParts = new Date(checkOut).toISOString().split('T')[0].split('-');
+    
+    // יצירת תאריכים חדשים עם הגדרת השעה ל-00:00:00 UTC
+    const checkInDate = new Date(Date.UTC(
+      parseInt(checkInParts[0]),
+      parseInt(checkInParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+      parseInt(checkInParts[2])
+    ));
+    
+    const checkOutDate = new Date(Date.UTC(
+      parseInt(checkOutParts[0]),
+      parseInt(checkOutParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
+      parseInt(checkOutParts[2])
+    ));
+    
+    console.log('תאריכים לאחר המרה:', { 
+      checkInDate: checkInDate.toISOString(), 
+      checkOutDate: checkOutDate.toISOString() 
+    });
+    
+    try {
+      // בדיקה אם החדר זמין
+      const existingBooking = await Booking.checkRoomAvailability(room, checkInDate, checkOutDate);
+      
+      if (existingBooking) {
+        console.log('החדר אינו זמין, נמצאה הזמנה קיימת:', existingBooking);
+        return res.status(409).json({
+          message: 'החדר אינו זמין בתאריכים שנבחרו',
+          conflict: {
+            bookingId: existingBooking._id,
+            guestName: existingBooking.firstName + ' ' + existingBooking.lastName,
+            checkIn: existingBooking.checkIn,
+            checkOut: existingBooking.checkOut
+          }
+        });
+      }
+    } catch (availabilityError) {
+      console.error('שגיאה בבדיקת זמינות החדר:', availabilityError);
+      return res.status(500).json({ message: 'שגיאה בבדיקת זמינות החדר' });
+    }
+    
+    console.log('מחפש את החדר במסד הנתונים:', room);
+    
+    // קבלת נתוני החדר לחישוב המחיר
+    try {
+      const roomData = await Room.findById(room);
+      if (!roomData) {
+        console.log('החדר לא נמצא:', room);
+        return res.status(404).json({ message: 'החדר שנבחר לא נמצא' });
+      }
+      
+      console.log('נמצא חדר:', { 
+        id: roomData._id, 
+        roomNumber: roomData.roomNumber, 
+        location: roomData.location,
+        vatPrice: roomData.vatPrice,
+        basePrice: roomData.basePrice
+      });
+      
+      // חישוב מספר הלילות ומחיר סופי
+      const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      const price = nights * roomData.vatPrice;
+      
+      console.log('חישוב תמחור:', { nights, price });
+      
+      // יצירת מספר הזמנה רץ
+      const lastBooking = await Booking.findOne({ location: roomData.location })
+        .sort({ bookingNumber: -1 })
+        .limit(1);
+      
+      const bookingNumber = lastBooking ? lastBooking.bookingNumber + 1 : 1000;
+      console.log('מספר הזמנה חדש:', bookingNumber);
+      
+      // יצירת ההזמנה החדשה
+      const newBookingData = {
+        firstName,
+        lastName,
+        email,
+        phone,
+        guests: parseInt(guests, 10) || 1,
+        room,
+        roomNumber: roomData.roomNumber,
+        location: roomData.location,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
+        nights,
+        price,
+        pricePerNight: roomData.vatPrice,
+        pricePerNightNoVat: roomData.basePrice,
+        notes,
+        bookingNumber,
+        source: 'website',
+        paymentMethod: creditCard ? 'credit-card' : 'cash',
+        paymentStatus: 'unpaid',
+        status: 'pending',
+        // שמירת נתוני כרטיס האשראי בצורה מאובטחת
+        creditCard: creditCard ? {
+          lastDigits: creditCard.cardNumber.slice(-4),
+          expiryDate: creditCard.expiryDate
+        } : undefined
+      };
+      
+      console.log('יוצר הזמנה חדשה עם הנתונים:', {
+        bookingNumber: newBookingData.bookingNumber,
+        roomNumber: newBookingData.roomNumber,
+        guest: `${newBookingData.firstName} ${newBookingData.lastName}`,
+        dates: `${newBookingData.checkIn} - ${newBookingData.checkOut}`,
+        price: newBookingData.price
+      });
+      
+      const newBooking = new Booking(newBookingData);
+      
+      await newBooking.save();
+      
+      console.log('הזמנה נשמרה בהצלחה:', newBooking._id);
+      
+      // החזרת אישור יצירת ההזמנה
+      res.status(201).json({
+        success: true,
+        message: 'ההזמנה נוצרה בהצלחה',
+        data: {
+          bookingNumber,
+          checkIn: newBooking.checkIn,
+          checkOut: newBooking.checkOut,
+          nights: newBooking.nights,
+          price: newBooking.price,
+          roomType: roomData.category,
+          roomNumber: roomData.roomNumber
+        }
+      });
+    } catch (roomError) {
+      console.error('שגיאה בעיבוד נתוני החדר או שמירת ההזמנה:', roomError);
+      return res.status(500).json({ message: 'שגיאה בעיבוד נתוני החדר או שמירת ההזמנה', error: roomError.message });
+    }
+  } catch (error) {
+    console.error('שגיאה כללית ביצירת הזמנה:', error);
+    res.status(500).json({ message: 'שגיאה ביצירת ההזמנה', error: error.message });
+  }
+};

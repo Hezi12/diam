@@ -10,7 +10,6 @@ import theme from './theme';
 // קומפוננטים לעמודים
 import Dashboard from './pages/Dashboard';
 import Bookings from './pages/Bookings';
-import Invoices from './pages/Invoices';
 import Login from './pages/Login';
 import Settings from './pages/settings/Settings';
 import AirportRooms from './pages/settings/rooms/AirportRooms';
@@ -22,7 +21,6 @@ import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
-import ICountMigration from './pages/ICountMigration';
 
 // עמודי אתר ציבורי
 import HomePage from './pages/public-site/HomePage';
@@ -108,26 +106,6 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <QuickBooking />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/invoices"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Invoices />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/icount-migration"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <ICountMigration />
                     </Layout>
                   </ProtectedRoute>
                 }

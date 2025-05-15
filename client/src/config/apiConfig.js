@@ -50,31 +50,12 @@ const API_ENDPOINTS = {
     }
   },
   
-  // נתיבי חשבוניות
-  invoices: {
-    base: '/api/invoices',
-    list: '/api/invoices',
-    byId: (id) => `/api/invoices/${id}`,
-    nextNumber: '/api/invoices/next-number',
-    pdf: (id) => `/api/invoices/${id}/pdf`,
-    cancel: (id) => `/api/invoices/${id}/cancel`,
-    credit: (id) => `/api/invoices/${id}/credit`,
-    sendEmail: (id) => `/api/invoices/${id}/send-email`,
-    paymentHistory: (id) => `/api/invoices/${id}/payment-history`,
-    processPayment: (id) => `/api/invoices/${id}/process-payment`,
-  },
-  
-  // נתיבי iCount
-  icount: {
-    base: '/api/icount',
-    login: '/api/icount/login',
-    invoice: '/api/icount/invoice',
-    charge: '/api/icount/charge',
-    chargeAndInvoice: '/api/icount/charge-and-invoice',
-    createInternalInvoice: '/api/icount/create-internal-invoice',
-    cancelInvoice: (id) => `/api/icount/cancel-invoice/${id}`,
-    migrateInvoice: (id) => `/api/icount/migrate-invoice/${id}`,
-    bulkMigrate: '/api/icount/bulk-migrate'
+  // נתיבי מסמכים (חשבוניות וקבלות)
+  documents: {
+    base: '/api/documents',
+    byId: (id) => `/api/documents/${id}`,
+    pdf: (id) => `/api/documents/pdf/${id}`,
+    checkConnection: '/api/documents/check-connection'
   }
 };
 

@@ -3,6 +3,9 @@ import { TextField, Button, Paper, Grid, Typography, Box, MenuItem, Select, Form
 import FlightIcon from '@mui/icons-material/Flight';
 import HomeIcon from '@mui/icons-material/Home';
 import icountService from '../../services/icountService';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 const ICountIntegration = () => {
   // בחירת מתחם
@@ -159,6 +162,27 @@ const ICountIntegration = () => {
     }
   };
   
+  // בדיקת מצב התחברות
+  const handleCheckConnection = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await icountService.checkConnection(location);
+      
+      if (response.status === 'success') {
+        setIsLoggedIn(true);
+        setSuccess(`החיבור למתחם ${getLocationName()} תקין. מזהה סשן: ${response.sessionId}`);
+      } else {
+        setError(`שגיאה בחיבור: ${response.message}`);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'שגיאה בבדיקת מצב התחברות');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // פונקציה מעזר - שם המתחם המוצג למשתמש
   const getLocationName = () => {
     return location === 'airport' ? 'Airport Guest House' : 'רוטשילד';
@@ -240,7 +264,7 @@ const ICountIntegration = () => {
               placeholder="Hezil3225"
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <Button
               variant="contained"
               color="primary"
@@ -249,6 +273,39 @@ const ICountIntegration = () => {
               fullWidth
             >
               {isLoggedIn ? `מחובר למתחם ${getLocationName()}` : 'התחבר'}
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleCheckConnection}
+              disabled={loading}
+              fullWidth
+            >
+              בדיקת מצב התחברות
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Button
+              variant="outlined"
+              color="info"
+              onClick={async () => {
+                setLoading(true);
+                setError('');
+                try {
+                  const response = await axios.get(`${API_URL}/api/icount/test-connection/${location}`);
+                  setSuccess(`בוצעו ${response.data.tests.length} בדיקות. תוצאות: ${JSON.stringify(response.data)}`);
+                } catch (err) {
+                  setError(err.response?.data?.error || 'שגיאה בבדיקת אפשרויות התחברות');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              fullWidth
+            >
+              בדיקת כל אפשרויות ההתחברות
             </Button>
           </Grid>
         </Grid>

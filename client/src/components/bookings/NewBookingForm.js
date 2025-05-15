@@ -53,7 +53,7 @@ import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import PriceCalculator from './PriceCalculator';
 
 // רכיב דיאלוג יצירת חשבונית
-import CreateInvoiceDialog from '../invoices/CreateInvoiceDialog';
+import CreateDocumentDialog from '../documents/CreateDocumentDialog';
 
 // פונקציה לסינון חדרים מקטגוריית "Not for Sale"
 const filterNotForSaleRooms = (rooms) => {
@@ -238,7 +238,7 @@ const NewBookingForm = ({
     
     try {
       // שליחת בקשה לשרת לבדוק אם קיימת חשבונית להזמנה
-      const response = await axios.get(`/api/invoices/check-booking/${bookingId}`);
+      const response = await axios.get(`/api/documents/check-booking/${bookingId}`);
       setHasInvoice(response.data.exists);
     } catch (error) {
       console.error('שגיאה בבדיקת קיום חשבונית:', error);
@@ -1732,10 +1732,10 @@ const NewBookingForm = ({
       </Dialog>
 
       {/* דיאלוג יצירת חשבונית */}
-      <CreateInvoiceDialog
+      <CreateDocumentDialog
         open={invoiceDialogOpen}
         onClose={() => setInvoiceDialogOpen(false)}
-        bookingData={formData}
+        booking={formData}
       />
     </Dialog>
   );

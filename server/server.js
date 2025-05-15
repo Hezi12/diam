@@ -111,23 +111,23 @@ mongoose.connect(process.env.MONGODB_URI)
 const bookingsRoutes = require('./routes/bookings');
 const roomsRoutes = require('./routes/rooms');
 const authRoutes = require('./routes/auth');
-const invoicesRoutes = require('./routes/invoices');
 const cleaningRoutes = require('./routes/cleaning');
 const roomMappingsRoutes = require('./routes/roomMappings');
 const revenueRoutes = require('./routes/revenue');
 const capitalRoutes = require('./routes/capital');
 const financialRoutes = require('./routes/financial');
+const documentsRoutes = require('./routes/documents');
 
 // הגדרת נתיבים
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/invoices', cors(corsOptions), invoicesRoutes);
 app.use('/api/cleaning', cleaningRoutes);
 app.use('/api/room-mappings', roomMappingsRoutes);
 app.use('/api/revenue', revenueRoutes);
 app.use('/api/capital', capitalRoutes);
 app.use('/api/financial', financialRoutes);
+app.use('/api/documents', documentsRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {

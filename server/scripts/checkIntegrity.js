@@ -14,7 +14,7 @@ const requiredModels = [
 
 const requiredControllers = [
   'bookingsController.js', 'roomsController.js', 'authController.js',
-  'invoicesController.js', 'capitalController.js', 'financialController.js'
+  'documentController.js', 'capitalController.js', 'financialController.js'
 ];
 
 const requiredMiddleware = [
@@ -22,7 +22,7 @@ const requiredMiddleware = [
 ];
 
 const requiredRoutes = [
-  'bookings.js', 'rooms.js', 'auth.js', 'invoices.js', 
+  'bookings.js', 'rooms.js', 'auth.js', 'documents.js', 
   'capital.js', 'financial.js', 'cleaning.js', 'roomMappings.js', 'revenue.js'
 ];
 

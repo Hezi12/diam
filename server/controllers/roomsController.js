@@ -396,4 +396,82 @@ exports.getGalleryImagesDetails = async (req, res) => {
     console.error('Error getting gallery images details:', error);
     res.status(500).json({ message: 'שגיאה בקבלת פרטי תמונות הגלריה' });
   }
+};
+
+// קבלת כל החדרים הציבוריים לפי מיקום
+exports.getPublicRoomsByLocation = async (req, res) => {
+  try {
+    const { location } = req.params;
+    
+    // וידוא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    console.log(`מחפש חדרים ציבוריים במיקום: ${location}`);
+    
+    // מחזיר חדרים במיקום המבוקש, ללא סינון לפי סטטוס
+    const rooms = await Room.find({ 
+      location
+    }).select({
+      roomNumber: 1,
+      category: 1,
+      basePrice: 1,
+      vatPrice: 1,
+      fridayPrice: 1,
+      fridayVatPrice: 1,
+      description: 1,
+      amenities: 1,
+      images: 1,
+      baseOccupancy: 1,
+      maxOccupancy: 1,
+      location: 1,
+      status: 1
+    }).sort({ roomNumber: 1 });
+
+    console.log(`מחזיר ${rooms.length} חדרים ציבוריים למיקום ${location}`);
+    
+    res.json(rooms);
+  } catch (error) {
+    console.error('Error getting public rooms by location:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת רשימת החדרים הציבוריים' });
+  }
+};
+
+// קבלת חדר ציבורי בודד לפי מזהה
+exports.getPublicRoomById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`מתקבלת בקשה לחדר ציבורי עם מזהה: ${id}`);
+
+    // מחפש את החדר ומחזיר רק שדות רלוונטיים לתצוגה הציבורית
+    const room = await Room.findOne({
+      _id: id
+    }).select({
+      roomNumber: 1,
+      category: 1,
+      basePrice: 1,
+      vatPrice: 1,
+      fridayPrice: 1,
+      fridayVatPrice: 1,
+      description: 1,
+      amenities: 1,
+      images: 1,
+      baseOccupancy: 1,
+      maxOccupancy: 1,
+      location: 1,
+      status: 1
+    });
+    
+    if (!room) {
+      console.log(`חדר עם מזהה ${id} לא נמצא`);
+      return res.status(404).json({ message: 'חדר לא נמצא' });
+    }
+    
+    console.log(`מחזיר חדר ציבורי: ${room.roomNumber} במיקום ${room.location}`);
+    res.json(room);
+  } catch (error) {
+    console.error('Error getting public room by id:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת פרטי החדר הציבורי' });
+  }
 }; 

@@ -185,7 +185,7 @@ const BookingSchema = new mongoose.Schema(
     // מקור ההזמנה
     source: {
       type: String,
-      enum: ['direct', 'booking', 'expedia', 'airbnb', 'agoda', 'home_website', 'diam', 'airport_stay', 'rothschild_stay', 'other'],
+      enum: ['direct', 'booking', 'expedia', 'airbnb', 'agoda', 'home_website', 'website', 'diam', 'airport_stay', 'rothschild_stay', 'other'],
       default: 'direct'
     },
     externalBookingNumber: {
@@ -205,24 +205,40 @@ BookingSchema.statics.checkRoomAvailability = async function(
   checkOut,
   bookingId = null
 ) {
+  console.log('Checking room availability:', {
+    roomId,
+    checkIn: checkIn instanceof Date ? checkIn.toISOString() : checkIn,
+    checkOut: checkOut instanceof Date ? checkOut.toISOString() : checkOut,
+    bookingId
+  });
+
+  // נוודא שהתאריכים הם אובייקטי Date
+  const checkInDate = checkIn instanceof Date ? checkIn : new Date(checkIn);
+  const checkOutDate = checkOut instanceof Date ? checkOut : new Date(checkOut);
+
+  console.log('Converted dates:', {
+    checkInDate: checkInDate.toISOString(),
+    checkOutDate: checkOutDate.toISOString()
+  });
+
   const query = {
     room: roomId,
     status: { $ne: 'cancelled' },
     $or: [
       // מקרה 1: תאריך צ'ק-אין נופל בין תאריכי הזמנה קיימת
       {
-        checkIn: { $lte: checkIn },
-        checkOut: { $gt: checkIn }
+        checkIn: { $lte: checkInDate },
+        checkOut: { $gt: checkInDate }
       },
       // מקרה 2: תאריך צ'ק-אאוט נופל בין תאריכי הזמנה קיימת
       {
-        checkIn: { $lt: checkOut },
-        checkOut: { $gte: checkOut }
+        checkIn: { $lt: checkOutDate },
+        checkOut: { $gte: checkOutDate }
       },
       // מקרה 3: ההזמנה מכילה לגמרי הזמנה קיימת
       {
-        checkIn: { $gte: checkIn },
-        checkOut: { $lte: checkOut }
+        checkIn: { $gte: checkInDate },
+        checkOut: { $lte: checkOutDate }
       }
     ]
   };
@@ -232,9 +248,27 @@ BookingSchema.statics.checkRoomAvailability = async function(
     query._id = { $ne: bookingId };
   }
 
-  const existingBooking = await this.findOne(query).populate('room', 'roomNumber');
+  console.log('Room availability query:', JSON.stringify(query, null, 2));
 
-  return existingBooking;
+  try {
+    const existingBooking = await this.findOne(query).populate('room', 'roomNumber');
+    
+    if (existingBooking) {
+      console.log('Found conflicting booking:', {
+        bookingId: existingBooking._id,
+        room: existingBooking.room ? existingBooking.room.roomNumber : 'unknown',
+        checkIn: existingBooking.checkIn,
+        checkOut: existingBooking.checkOut
+      });
+    } else {
+      console.log('No conflicting bookings found, room is available');
+    }
+    
+    return existingBooking;
+  } catch (error) {
+    console.error('Error checking room availability:', error);
+    throw error;
+  }
 };
 
 // חישוב שדות נגזרים לפני שמירה

@@ -5,7 +5,14 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
-// הגנה על כל הנתיבים - נדרש אימות
+// נתיבים ציבוריים - לא דורשים אימות
+// אלה משמשים את האתר הציבורי
+router.get('/public/location/:location', roomsController.getPublicRoomsByLocation);
+router.get('/public/single/:id', roomsController.getPublicRoomById);
+router.get('/gallery/:location', roomsController.getGalleryImages);
+router.get('/gallery/:location/details', roomsController.getGalleryImagesDetails);
+
+// הגנה על שאר הנתיבים - נדרש אימות
 router.use(auth);
 
 // נתיבים לחדרים
@@ -19,8 +26,6 @@ router.delete('/:id', roomsController.deleteRoom);
 // נתיבים לניהול תמונות
 router.post('/upload-image/:roomId', upload.single('image'), roomsController.uploadImage);
 router.post('/gallery/:location', upload.single('image'), roomsController.uploadGalleryImage);
-router.get('/gallery/:location', roomsController.getGalleryImages);
-router.get('/gallery/:location/details', roomsController.getGalleryImagesDetails);
 router.delete('/gallery/:id', roomsController.deleteGalleryImage);
 
 module.exports = router; 

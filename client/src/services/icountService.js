@@ -31,6 +31,21 @@ class ICountService {
   }
 
   /**
+   * בדיקת מצב התחברות ל-iCount
+   * @param {string} location - מזהה המתחם ('airport' או 'rothschild')
+   * @returns {Promise<Object>} - מידע על מצב ההתחברות
+   */
+  async checkConnection(location) {
+    try {
+      const response = await axios.get(`${API_URL}/api/icount/check-connection/${location}`);
+      return response.data;
+    } catch (error) {
+      console.error('שגיאה בבדיקת מצב התחברות ל-iCount:', error);
+      throw error;
+    }
+  }
+
+  /**
    * יצירת חשבונית במערכת iCount
    * @param {string} location - מזהה המתחם ('airport' או 'rothschild')
    * @param {Object} invoiceData - נתוני החשבונית

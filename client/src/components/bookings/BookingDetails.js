@@ -29,10 +29,12 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ArticleIcon from '@mui/icons-material/Article';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import axios from 'axios';
 import BookingConfirmation from './BookingConfirmation';
+import CreateDocumentDialog from '../documents/CreateDocumentDialog';
 
 /**
  * רכיב להצגת פרטי הזמנה מלאים
@@ -44,6 +46,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
 
   // הגדרות צבעים לפי סטטוס הזמנה
   const bookingStatusColors = {
@@ -216,39 +219,50 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
           }
         }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center' }}>
-              פרטי הזמנה {booking.bookingNumber ? `${booking.bookingNumber}` : ''} - {booking.firstName} {booking.lastName}
-            </Typography>
-            <Chip 
-              label={bookingStatusText[booking.status]}
-              icon={statusColors.icon}
+            <Box 
               sx={{ 
-                ml: 2, 
-                bgcolor: statusColors.bgColor,
-                color: statusColors.textColor,
-                borderColor: statusColors.borderColor,
-                '& .MuiChip-icon': {
-                  color: statusColors.textColor
-                }
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                width: 32, 
+                height: 32, 
+                borderRadius: '50%', 
+                mr: 1.5,
+                bgcolor: statusColors.bgColor
               }}
-              variant="outlined"
-              size="small"
-            />
-          </Box>
-          <Box>
-            <IconButton 
-              onClick={() => setConfirmationOpen(true)} 
-              sx={{ mr: 1 }}
-              title="אישור הזמנה"
             >
-              <ArticleIcon />
-            </IconButton>
-            <IconButton onClick={handleEditToggle} sx={{ mr: 1 }}>
-              {isEditing ? <CheckCircleIcon /> : <EditIcon />}
-            </IconButton>
-            <IconButton onClick={onClose}>
+              {statusColors.icon}
+            </Box>
+            <Typography variant="h6" fontWeight={500}>
+              הזמנה מס׳ {booking?.bookingNumber}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* כפתור יצירת מסמך/חשבונית */}
+            {!isEditing && (
+              <Button
+                onClick={() => setDocumentDialogOpen(true)}
+                startIcon={<ReceiptIcon />}
+                variant="outlined"
+                color="primary"
+                sx={{ mr: 1 }}
+              >
+                יצירת מסמך
+              </Button>
+            )}
+            <Button
+              startIcon={isEditing ? null : <EditIcon />}
+              variant={isEditing ? "contained" : "outlined"}
+              color="primary"
+              onClick={handleEditToggle}
+              sx={{ mr: 1 }}
+            >
+              {isEditing ? 'שמירה' : 'עריכה'}
+            </Button>
+            <IconButton onClick={onClose} edge="end">
               <CloseIcon />
             </IconButton>
           </Box>
@@ -490,6 +504,13 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
         open={confirmationOpen}
         onClose={() => setConfirmationOpen(false)}
         bookingData={booking}
+      />
+      
+      {/* דיאלוג יצירת מסמך */}
+      <CreateDocumentDialog
+        open={documentDialogOpen}
+        onClose={() => setDocumentDialogOpen(false)}
+        booking={booking}
       />
     </>
   );
