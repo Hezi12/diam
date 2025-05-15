@@ -1,5 +1,6 @@
 const Room = require('../models/Room');
 const Gallery = require('../models/Gallery');
+const Booking = require('../models/Booking');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -46,6 +47,77 @@ exports.getRoomById = async (req, res) => {
   } catch (error) {
     console.error('Error getting room by id:', error);
     res.status(500).json({ message: 'שגיאה בקבלת פרטי החדר' });
+  }
+};
+
+// קבלת חדרים זמינים לפי תאריכים ומיקום
+exports.getAvailableRooms = async (req, res) => {
+  try {
+    const { location, checkIn, checkOut, excludeRoomId } = req.query;
+    
+    // וידוא שכל הפרמטרים הנדרשים נשלחו
+    if (!location || !checkIn || !checkOut) {
+      return res.status(400).json({ 
+        message: 'נדרש לספק מיקום, תאריך צ׳ק-אין ותאריך צ׳ק-אאוט' 
+      });
+    }
+    
+    // וידוא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    // המרת תאריכים לפורמט אחיד
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    
+    // ודא שהמיקום תקין
+    if (!['airport', 'rothschild'].includes(location)) {
+      return res.status(400).json({ message: 'מיקום לא תקין' });
+    }
+    
+    // קריאה לכל החדרים במיקום הנבחר
+    const rooms = await Room.find({ 
+      location,
+      status: true // רק חדרים פעילים
+    }).sort({ roomNumber: 1 });
+    
+    // מציאת כל ההזמנות בטווח התאריכים
+    const bookings = await Booking.find({
+      location,
+      $or: [
+        // הזמנות שמתחילות בטווח
+        { checkIn: { $gte: checkInDate, $lt: checkOutDate } },
+        // הזמנות שמסתיימות בטווח
+        { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
+        // הזמנות שמקיפות את הטווח
+        { 
+          checkIn: { $lte: checkInDate },
+          checkOut: { $gte: checkOutDate }
+        }
+      ]
+    }).populate('room');
+    
+    // יצירת מערך של חדרים תפוסים
+    const bookedRoomIds = bookings.map(booking => 
+      booking.room._id ? booking.room._id.toString() : booking.room.toString()
+    );
+    
+    // סינון חדרים זמינים
+    const availableRooms = rooms.filter(room => {
+      // אם צריך לדלג על חדר מסוים (החדר שכבר נבחר)
+      if (excludeRoomId && room._id.toString() === excludeRoomId) {
+        return false;
+      }
+      
+      // בדיקה אם החדר לא תפוס
+      return !bookedRoomIds.includes(room._id.toString());
+    });
+    
+    res.json(availableRooms);
+  } catch (error) {
+    console.error('Error getting available rooms:', error);
+    res.status(500).json({ message: 'שגיאה בקבלת רשימת החדרים הזמינים' });
   }
 };
 

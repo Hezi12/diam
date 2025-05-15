@@ -19,6 +19,7 @@ router.use(auth);
 router.get('/', roomsController.getAllRooms);
 router.get('/location/:location', roomsController.getRoomsByLocation);
 router.get('/single/:id', roomsController.getRoomById);
+router.get('/available', roomsController.getAvailableRooms);
 router.post('/', roomsController.createRoom);
 router.put('/:id', roomsController.updateRoom);
 router.delete('/:id', roomsController.deleteRoom);

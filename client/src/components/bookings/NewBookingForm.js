@@ -23,6 +23,13 @@ import {
   Alert,
   DialogContentText,
   Tooltip,
+  Checkbox,
+  TableContainer,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -36,7 +43,10 @@ import {
   Email as EmailIcon,
   WhatsApp as WhatsAppIcon,
   Delete as DeleteIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  ViewQuilt as ViewQuiltIcon,
+  CheckBox as CheckBoxIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -48,6 +58,7 @@ import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
+import { useSnackbar } from 'notistack';
 
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
@@ -90,6 +101,7 @@ const NewBookingForm = ({
   initialData = null, // אופציונלי - נתונים התחלתיים
   onDelete = null // פונקציה למחיקת הזמנה
 }) => {
+  const { enqueueSnackbar } = useSnackbar();
   const style = STYLE_CONSTANTS.style;
   const accentColors = STYLE_CONSTANTS.accentColors;
   const locationColors = STYLE_CONSTANTS.colors;
@@ -231,6 +243,12 @@ const NewBookingForm = ({
     guests: 2,
     baseOccupancy: 2
   });
+
+  // מצב חלון דיאלוג להוספת חדרים נוספים
+  const [addRoomsDialogOpen, setAddRoomsDialogOpen] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [selectedRooms, setSelectedRooms] = useState([]);
+  const [additionalRoomsLoading, setAdditionalRoomsLoading] = useState(false);
 
   // בדיקה אם קיימת חשבונית להזמנה
   const checkIfInvoiceExists = async (bookingId) => {
@@ -789,6 +807,11 @@ const NewBookingForm = ({
     });
   };
 
+  // פונקציה להצגת הודעות
+  const showNotification = (message, severity = 'success') => {
+    enqueueSnackbar(message, { variant: severity });
+  };
+
   // טיפול בשמירת הטופס
   const handleSubmit = async () => {
     if (validateForm()) {
@@ -963,6 +986,235 @@ const NewBookingForm = ({
     
     // סגירת החלון
     onClose();
+  };
+
+  // פונקציה לפתיחת הדיאלוג והבאת החדרים הזמינים
+  const handleOpenAddRoomsDialog = async () => {
+    // בדיקת תקינות התאריכים
+    const dateValidationError = validateDates();
+    if (dateValidationError) {
+      setError(dateValidationError);
+      return;
+    }
+
+    setAdditionalRoomsLoading(true);
+    try {
+      // המרת תאריכים למחרוזות
+      const checkInStr = formData.checkIn instanceof Date
+        ? format(formData.checkIn, 'yyyy-MM-dd')
+        : formData.checkIn;
+      
+      const checkOutStr = formData.checkOut instanceof Date
+        ? format(formData.checkOut, 'yyyy-MM-dd')
+        : formData.checkOut;
+      
+      // בקשה לקבלת חדרים זמינים בתאריכים אלו
+      const response = await axios.get('/api/rooms/available', {
+        params: {
+          location,
+          checkIn: checkInStr,
+          checkOut: checkOutStr,
+          excludeRoomId: formData.room // לא להציג את החדר שכבר נבחר
+        }
+      });
+      
+      // סינון ומיון החדרים
+      const filteredRooms = sortRoomsByNumber(filterNotForSaleRooms(response.data));
+      setAvailableRooms(filteredRooms);
+      setSelectedRooms([]);
+      setAddRoomsDialogOpen(true);
+    } catch (error) {
+      console.error('שגיאה בטעינת חדרים זמינים:', error);
+      setError('לא ניתן לטעון חדרים זמינים. אנא נסו שנית.');
+    } finally {
+      setAdditionalRoomsLoading(false);
+    }
+  };
+
+  // פונקציה לוולידציה של התאריכים
+  const validateDates = () => {
+    if (!formData.checkIn || !formData.checkOut) {
+      return 'יש להזין תאריכי צ׳ק-אין וצ׳ק-אאוט';
+    }
+    
+    if (!formData.room) {
+      return 'יש לבחור חדר תחילה';
+    }
+    
+    return null;
+  };
+
+  // פונקציה לבחירת חדר מהרשימה
+  const handleRoomSelection = (roomId) => {
+    setSelectedRooms(prev => {
+      // אם החדר כבר נבחר, מסיר אותו מהרשימה
+      if (prev.some(item => item.roomId === roomId)) {
+        return prev.filter(item => item.roomId !== roomId);
+      }
+      
+      // אחרת, מוסיף אותו לרשימה
+      return [...prev, { 
+        roomId,
+        guests: formData.guests,
+        price: formData.price
+      }];
+    });
+  };
+
+  // פונקציה לעדכון מספר האורחים בחדר נוסף
+  const handleAdditionalRoomGuestsChange = (roomId, guests) => {
+    setSelectedRooms(prev => 
+      prev.map(room => 
+        room.roomId === roomId 
+          ? { ...room, guests: parseInt(guests, 10) || 1 } 
+          : room
+      )
+    );
+  };
+
+  // פונקציה לעדכון מחיר בחדר נוסף
+  const handleAdditionalRoomPriceChange = (roomId, price) => {
+    const parsedPrice = parseFloat(price) || 0;
+    const nights = formData.nights || 1;
+    
+    // חישוב מחירים ליחידה
+    const pricePerNight = parsedPrice / nights;
+    // חישוב מחיר ללא מע"מ - אם תייר, זהה למחיר ליחידה, אחרת מחולק ב-1.17 (מע"מ)
+    const pricePerNightNoVat = formData.isTourist ? pricePerNight : (pricePerNight / 1.17);
+    
+    setSelectedRooms(prev => 
+      prev.map(room => 
+        room.roomId === roomId 
+          ? { 
+              ...room, 
+              price: parsedPrice,
+              pricePerNight: pricePerNight,
+              pricePerNightNoVat: pricePerNightNoVat
+            } 
+          : room
+      )
+    );
+  };
+
+  // פונקציה לשמירת החדרים הנוספים
+  const handleSaveAdditionalRooms = async () => {
+    if (selectedRooms.length === 0) {
+      return;
+    }
+
+    setAdditionalRoomsLoading(true);
+    
+    try {
+      // יצירת הזמנות נפרדות לכל חדר נוסף - נעשה אחד אחד בסדרה ולא במקביל
+      for (const selectedRoom of selectedRooms) {
+        try {
+          // המרת תאריכים לאובייקטים מסוג Date
+          const checkInOriginal = new Date(formData.checkIn);
+          const checkOutOriginal = new Date(formData.checkOut);
+          
+          // יצירת תאריכים בפורמט UTC ללא שעות
+          const checkInDate = new Date(Date.UTC(
+            checkInOriginal.getFullYear(),
+            checkInOriginal.getMonth(),
+            checkInOriginal.getDate()
+          ));
+          
+          const checkOutDate = new Date(Date.UTC(
+            checkOutOriginal.getFullYear(),
+            checkOutOriginal.getMonth(),
+            checkOutOriginal.getDate()
+          ));
+          
+          // חישוב מחירים ליחידה אם לא חושבו קודם
+          const nights = formData.nights || 1;
+          const totalPrice = selectedRoom.price || formData.price || 0;
+          const pricePerNight = selectedRoom.pricePerNight || (totalPrice / nights);
+          const pricePerNightNoVat = selectedRoom.pricePerNightNoVat || 
+            (formData.isTourist ? pricePerNight : (pricePerNight / 1.17));
+          
+          // הכנת אובייקט ההזמנה החדש
+          const newBookingData = {
+            // פרטי אורח
+            firstName: formData.firstName,
+            lastName: formData.lastName || "-",
+            phone: formData.phone || '',
+            email: formData.email || '',
+            
+            // פרטי הזמנה
+            room: selectedRoom.roomId,
+            checkIn: checkInDate,
+            checkOut: checkOutDate,
+            nights: formData.nights || 1,
+            isTourist: formData.isTourist || false,
+            guests: selectedRoom.guests || formData.guests || 2,
+            
+            // פרטי מחירים
+            price: totalPrice,
+            pricePerNight: pricePerNight,
+            pricePerNightNoVat: pricePerNightNoVat,
+            
+            // פרטי תשלום
+            paymentStatus: formData.paymentStatus || 'unpaid',
+            creditCard: formData.creditCard && formData.creditCard.cardNumber ? {
+              cardNumber: formData.creditCard.cardNumber || '',
+              expiryDate: formData.creditCard.expiryDate || '',
+              cvv: formData.creditCard.cvv || ''
+            } : undefined,
+            
+            // סטטוס הזמנה ופרטים נוספים
+            source: formData.source || 'direct',
+            status: 'pending',
+            notes: formData.notes || '',
+            externalBookingNumber: formData.externalBookingNumber || '',
+            
+            // מיקום
+            location: location
+          };
+          
+          console.log('שולח נתוני הזמנה חדשה לחדר:', selectedRoom.roomId, 'עם תאריכים:', {
+            checkIn: checkInDate,
+            checkOut: checkOutDate,
+            nights: formData.nights || 1,
+            price: totalPrice,
+            pricePerNight: pricePerNight,
+            pricePerNightNoVat: pricePerNightNoVat
+          });
+          
+          // שליחת בקשה ליצירת הזמנה
+          const response = await axios.post('/api/bookings', newBookingData);
+          console.log('הזמנה נוספת נוצרה בהצלחה:', response.data);
+          
+        } catch (error) {
+          console.error('שגיאה ביצירת הזמנה עבור חדר:', selectedRoom.roomId, error);
+          throw error; // העלאת השגיאה למעלה כדי שתטופל בבלוק catch הכללי
+        }
+      }
+      
+      // סגירת הדיאלוג
+      setAddRoomsDialogOpen(false);
+      
+      // הצגת הודעת הצלחה
+      enqueueSnackbar(`נוספו ${selectedRooms.length} חדרים נוספים בהצלחה`, {
+        variant: 'success'
+      });
+      
+    } catch (error) {
+      console.error('שגיאה בהוספת חדרים:', error);
+      if (error.response && error.response.data) {
+        console.error('פרטי שגיאה מהשרת:', error.response.data);
+        setError(`אירעה שגיאה בהוספת החדרים: ${error.response.data.message || 'נא לנסות שוב'}`);
+        enqueueSnackbar(`שגיאה: ${error.response.data.message || 'בעיה בהוספת חדרים, נא לנסות שוב'}`, {
+          variant: 'error'
+        });
+      } else {
+        setError('אירעה שגיאה בהוספת החדרים. אנא נסו שנית.');
+        enqueueSnackbar('שגיאה בהוספת חדרים, אנא נסו שנית', {
+          variant: 'error'
+        });
+      }
+    } finally {
+      setAdditionalRoomsLoading(false);
+    }
   };
 
   return (
@@ -1678,20 +1930,46 @@ const NewBookingForm = ({
       </DialogContent>
       
       <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
-        {isEditMode && onDelete && (
-          <Button 
-            variant="contained"
-            onClick={handleDeleteClick}
-            color="error"
-            sx={{ 
-              bgcolor: accentColors.red, 
-              '&:hover': { bgcolor: '#c64064' } 
-            }}
-            startIcon={<DeleteIcon />}
-          >
-            מחיקה
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {isEditMode && onDelete && (
+            <Button 
+              variant="contained"
+              onClick={handleDeleteClick}
+              color="error"
+              sx={{ 
+                bgcolor: accentColors.red, 
+                '&:hover': { bgcolor: '#c64064' } 
+              }}
+              startIcon={<DeleteIcon />}
+            >
+              מחיקה
+            </Button>
+          )}
+          
+          {!isEditMode && (
+            <Button
+              variant="outlined"
+              onClick={handleOpenAddRoomsDialog}
+              disabled={additionalRoomsLoading || !formData.room}
+              startIcon={<ViewQuiltIcon />}
+              sx={{ 
+                borderColor: currentColors.main,
+                color: currentColors.main,
+                '&:hover': { 
+                  borderColor: currentColors.dark, 
+                  backgroundColor: `${currentColors.bgLight}50`
+                }
+              }}
+            >
+              {additionalRoomsLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'הוספת חדרים'
+              )}
+            </Button>
+          )}
+        </Box>
+        
         <Box sx={{ ml: 'auto' }}>
           <Button onClick={onClose} sx={{ mx: 1 }}>ביטול</Button>
           <Button 
@@ -1727,6 +2005,160 @@ const NewBookingForm = ({
             sx={{ bgcolor: accentColors.red, '&:hover': { bgcolor: '#c64064' } }}
           >
             מחיקה
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* דיאלוג להוספת חדרים נוספים */}
+      <Dialog
+        open={addRoomsDialogOpen}
+        onClose={() => setAddRoomsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: style.dialog.borderRadius,
+            overflow: 'hidden',
+            width: '95%',
+            maxWidth: '900px'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            bgcolor: currentColors.bgLight, 
+            color: currentColors.main,
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: `1px solid ${currentColors.main}`,
+            py: 1.5
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <ViewQuiltIcon sx={{ marginRight: '10px' }} />
+            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
+              הוספת חדרים לאותם תאריכים ({format(new Date(formData.checkIn), 'dd/MM/yyyy')} - {format(new Date(formData.checkOut), 'dd/MM/yyyy')})
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setAddRoomsDialogOpen(false)} size="small" sx={{ color: accentColors.red }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          {availableRooms.length === 0 ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              אין חדרים זמינים בתאריכים אלו
+            </Alert>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                בחר את החדרים הנוספים להזמנה. כל הפרטים מההזמנה הראשית (פרטי אורח, תשלום וכו') יועתקו אוטומטית.
+              </Typography>
+              
+              <TableContainer component={Paper} sx={{ mb: 3, borderRadius: style.card.borderRadius }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                      <TableCell padding="checkbox" align="center" sx={{ fontWeight: 'bold' }}>בחירה</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>מספר חדר</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>סוג חדר</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>מחיר בסיס</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>אורחים</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>מחיר</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {availableRooms.map(room => {
+                      const isSelected = selectedRooms.some(selected => selected.roomId === room._id);
+                      const selectedRoom = isSelected 
+                        ? selectedRooms.find(selected => selected.roomId === room._id) 
+                        : null;
+                      
+                      return (
+                        <TableRow 
+                          key={room._id}
+                          sx={{ 
+                            '&:hover': { bgcolor: '#f9f9f9' },
+                            ...(isSelected && { bgcolor: `${currentColors.bgLight}90` })
+                          }}
+                        >
+                          <TableCell padding="checkbox" align="center">
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={() => handleRoomSelection(room._id)}
+                              icon={<CheckBoxOutlineBlankIcon />}
+                              checkedIcon={<CheckBoxIcon />}
+                              sx={{ 
+                                color: currentColors.main,
+                                '&.Mui-checked': { color: currentColors.main }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">{room.roomNumber}</TableCell>
+                          <TableCell align="right">{room.category}</TableCell>
+                          <TableCell align="right">{formData.isTourist ? room.basePrice : room.vatPrice} ₪</TableCell>
+                          <TableCell align="right">
+                            {isSelected ? (
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={selectedRoom.guests}
+                                onChange={(e) => handleAdditionalRoomGuestsChange(room._id, e.target.value)}
+                                InputProps={{ 
+                                  inputProps: { min: 1, max: room.maxOccupancy || 4 }
+                                }}
+                                sx={{ width: '60px' }}
+                              />
+                            ) : (
+                              formData.guests || 2
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {isSelected ? (
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={selectedRoom.price}
+                                onChange={(e) => handleAdditionalRoomPriceChange(room._id, e.target.value)}
+                                InputProps={{ 
+                                  endAdornment: <InputAdornment position="end">₪</InputAdornment>,
+                                  inputProps: { min: 0 }
+                                }}
+                                sx={{ width: '120px' }}
+                              />
+                            ) : (
+                              `${formData.price || (formData.isTourist ? room.basePrice : room.vatPrice)} ₪`
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {selectedRooms.length > 0 && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  נבחרו {selectedRooms.length} חדרים נוספים
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setAddRoomsDialogOpen(false)}>ביטול</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveAdditionalRooms}
+            disabled={selectedRooms.length === 0 || additionalRoomsLoading}
+            startIcon={additionalRoomsLoading ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
+          >
+            הוסף {selectedRooms.length} חדרים
           </Button>
         </DialogActions>
       </Dialog>
