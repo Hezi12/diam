@@ -29,9 +29,9 @@ import {
   Receipt as ReceiptIcon,
   BarChart as RevenueIcon,
   Menu as MenuIcon,
-  AttachMoney as AttachMoneyIcon,
   AccountBalanceWallet as AccountBalanceWalletIcon,
-  SwapHoriz as MigrationIcon
+  SwapHoriz as MigrationIcon,
+  Description as DocumentsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -253,7 +253,7 @@ const Sidebar = () => {
   const iconColors = {
     dashboard: '#4A90E2', // כחול כהה יותר
     bookings: '#5E97F6', // כחול בהיר
-    invoices: '#34A853', // ירוק
+    documents: '#34A853', // ירוק (היה invoices)
     revenue: '#9C27B0', // סגול
     rothschild: '#304dbd', // צבע רוטשילד מקורי
     airport: '#0059b3', // צבע אייפורט מקורי 
@@ -364,22 +364,7 @@ const Sidebar = () => {
             iconColor={iconColors.bookings}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
-          <SidebarItem
-            icon={<ReceiptIcon />}
-            to="/invoices"
-            title="חשבוניות"
-            iconColor={iconColors.invoices}
-            onClick={isMobile ? toggleDrawer(false) : undefined}
-          />
-          
-          {/* קישור למיגרציה של iCount */}
-          <SidebarItem
-            icon={<MigrationIcon />}
-            to="/icount-migration"
-            title="מיגרציה ל-iCount"
-            iconColor={iconColors.icount}
-            onClick={isMobile ? toggleDrawer(false) : undefined}
-          />
+          {/* הוסרו אייקוני מסמכים ומיגרציה */}
           
           {/* קבוצת הכנסות ופיננסים */}
           <SidebarItem
