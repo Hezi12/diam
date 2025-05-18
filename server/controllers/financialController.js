@@ -1073,6 +1073,64 @@ const financialController = {
       console.error('Error generating yearly financial summary:', error);
       res.status(500).json({ message: 'שגיאה בהכנת סיכום פיננסי שנתי', error: error.message });
     }
+  },
+
+  /**
+   * הוספת הוצאות באצ' (ייבוא אקסל)
+   */
+  createBatchExpenses: async (req, res) => {
+    try {
+      const { expenses } = req.body;
+      
+      if (!Array.isArray(expenses) || expenses.length === 0) {
+        return res.status(400).json({ message: 'נדרש מערך תקין של הוצאות' });
+      }
+      
+      // הוספת שם של המשתמש שיצר את ההוצאות
+      const createdBy = req.user ? req.user.id : null;
+      
+      // מערך לשמירת כל ההוצאות שנוספו
+      const savedExpenses = [];
+      
+      // הוספת כל ההוצאות
+      for (const expenseData of expenses) {
+        // וידוא שהנתונים תקינים
+        const { amount, description, date, category, location, paymentMethod } = expenseData;
+        
+        if (!amount || !description || !date || !category || !location || !paymentMethod) {
+          continue; // דילוג על הוצאות עם נתונים חסרים
+        }
+        
+        // יצירת אובייקט הוצאה
+        const newExpense = await Expense.create({
+          amount: Number(amount),
+          description,
+          date: new Date(date),
+          category,
+          location,
+          paymentMethod,
+          isRecurring: expenseData.isRecurring || false,
+          createdBy
+        });
+        
+        // עדכון יתרה בסיכום הפיננסי
+        await updateFinancialSummary(paymentMethod, -amount);
+        
+        // עדכון נתוני הון אוטומטי
+        await capitalController.updateCapitalOnNewExpense(paymentMethod, Number(amount));
+        
+        // שמירת ההוצאה שנוספה
+        savedExpenses.push(newExpense);
+      }
+      
+      res.status(201).json({
+        message: `נוספו ${savedExpenses.length} הוצאות בהצלחה`,
+        expenses: savedExpenses
+      });
+    } catch (error) {
+      console.error('שגיאה בייבוא הוצאות:', error);
+      res.status(500).json({ message: 'שגיאה בייבוא הוצאות', error: error.message });
+    }
   }
 };
 

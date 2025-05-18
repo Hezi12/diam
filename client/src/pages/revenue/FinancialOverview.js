@@ -42,6 +42,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import MoneyIcon from '@mui/icons-material/Money';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 
 // קומפוננטות לתצוגת הדוח
 import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigation';
@@ -51,10 +52,11 @@ import RevenueSummaryCards from '../../components/revenue/RevenueSummaryCards';
 import ExpensesList from '../../components/revenue/ExpensesList';
 import ExpenseCategoryChart from '../../components/revenue/ExpenseCategoryChart';
 import ManualIncomesList from '../../components/revenue/ManualIncomesList';
+import ImportExpensesModal from '../../components/revenue/ImportExpensesModal';
 
 // סרוויס לקבלת נתונים
 import { getMonthlyRevenueData } from '../../services/revenueService';
-import { getExpenses, addExpense, deleteExpense, updateExpense } from '../../services/expenseService';
+import { getExpenses, addExpense, deleteExpense, updateExpense, addBatchExpenses } from '../../services/expenseService';
 import { getManualIncomes, addManualIncome, deleteManualIncome, getIncomeCategories } from '../../services/incomeService';
 
 // פאנל לטעינת נתונים
@@ -447,6 +449,9 @@ const FinancialOverview = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   
+  // מצבים לדיאלוג ייבוא הוצאות מאקסל
+  const [openImportDialog, setOpenImportDialog] = useState(false);
+  
   // קטגוריות הוצאות
   const expenseCategories = [
     'שכירות',
@@ -461,6 +466,12 @@ const FinancialOverview = () => {
     'פרסום',
     'ביטוח',
     'משיכה',
+    'תקשורת',
+    'ריהוט',
+    'אחזקת-אתר',
+    'עמלות-בנק',
+    'מס הכנסה ניכויים',
+    'מס הכנסה',
     'אחר'
   ];
   
@@ -801,6 +812,55 @@ const FinancialOverview = () => {
       console.error('שגיאה בעדכון הוצאה:', error);
     }
   };
+  
+  // פתיחת דיאלוג ייבוא הוצאות
+  const handleOpenImportDialog = () => {
+    setOpenImportDialog(true);
+  };
+  
+  // שמירת הוצאות מייבוא אקסל
+  const handleSaveImportedExpenses = async (importedExpenses) => {
+    try {
+      const month = getMonth(selectedDate) + 1;
+      const year = getYear(selectedDate);
+      const site = sites[selectedSite];
+      
+      setLoading(true);
+      
+      // הכנת הוצאות לשמירה בפורמט המוכר לשרת
+      const expensesToSave = importedExpenses.map(expense => ({
+        amount: expense.amount,
+        description: expense.description,
+        date: expense.date,
+        category: expense.category,
+        location: site,
+        paymentMethod: expense.paymentMethod,
+        isRecurring: false
+      }));
+      
+      // שימוש בשירות החדש לשמירת הוצאות באצ'
+      const savedExpenses = await addBatchExpenses(expensesToSave);
+      
+      // עדכון רשימת ההוצאות המקומית
+      setExpenses(prev => [...prev, ...savedExpenses]);
+      
+      // סגירת הדיאלוג
+      setOpenImportDialog(false);
+      
+      // רענון הנתונים
+      fetchData();
+      
+      // הצגת הודעת הצלחה
+      setErrorMessage(`נוספו ${savedExpenses.length} הוצאות בהצלחה`);
+      setShowError(true);
+    } catch (error) {
+      console.error('שגיאה בשמירת הוצאות מייבוא:', error);
+      setErrorMessage("שגיאה בשמירת ההוצאות: " + (error.response?.data?.message || error.message || "שגיאת שרת"));
+      setShowError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Box 
@@ -1020,19 +1080,33 @@ const FinancialOverview = () => {
                     
                     {/* כפתור הוספה דינמי בהתאם לטאב הנבחר */}
                     {selectedTab === 0 ? (
-                      <Button 
-                        variant="contained" 
-                        size="small" 
-                        startIcon={<AddIcon />}
-                        onClick={handleOpenAddExpense}
-                        sx={{ 
-                          borderRadius: 2,
-                          boxShadow: 'none',
-                          '&:hover': { boxShadow: 'none', bgcolor: theme.palette.primary.dark }
-                        }}
-                      >
-                        הוספת הוצאה
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button 
+                          variant="outlined" 
+                          size="small" 
+                          startIcon={<FileUploadIcon />}
+                          onClick={handleOpenImportDialog}
+                          sx={{ 
+                            borderRadius: 2,
+                            boxShadow: 'none'
+                          }}
+                        >
+                          ייבוא מאקסל
+                        </Button>
+                        <Button 
+                          variant="contained" 
+                          size="small" 
+                          startIcon={<AddIcon />}
+                          onClick={handleOpenAddExpense}
+                          sx={{ 
+                            borderRadius: 2,
+                            boxShadow: 'none',
+                            '&:hover': { boxShadow: 'none', bgcolor: theme.palette.primary.dark }
+                          }}
+                        >
+                          הוספת הוצאה
+                        </Button>
+                      </Box>
                     ) : (
                       <Button 
                         variant="contained" 
@@ -1461,6 +1535,16 @@ const FinancialOverview = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* מודל ייבוא הוצאות מאקסל */}
+      <ImportExpensesModal 
+        open={openImportDialog}
+        onClose={() => setOpenImportDialog(false)}
+        onSave={handleSaveImportedExpenses}
+        expenseCategories={expenseCategories}
+        paymentMethods={paymentMethods}
+        currentLocation={sites[selectedSite]}
+      />
       
       {/* הודעת שגיאה */}
       <Snackbar

@@ -256,4 +256,34 @@ export const deleteExpense = async (id) => {
     console.error('שגיאה במחיקת הוצאה:', error);
     throw error;
   }
+};
+
+/**
+ * הוספת הוצאות מרובות (ייבוא מאקסל)
+ * @param {Array} expenses - מערך של אובייקטי הוצאה
+ * @returns {Promise<Object>} תוצאת הייבוא
+ */
+export const addBatchExpenses = async (expenses) => {
+  // במצב מוק, נשתמש בהוספת הוצאה רגילה
+  if (USE_MOCK_DATA) {
+    const results = [];
+    for (const expense of expenses) {
+      results.push(await addExpense(expense));
+    }
+    return results;
+  }
+  
+  // פנייה לשרת
+  try {
+    const token = getToken();
+    const response = await axios.post(`${API_URL}/financial/expenses/batch`, { expenses }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    console.log('תגובה מהשרת לאחר ייבוא הוצאות:', response.data);
+    return response.data.expenses;
+  } catch (error) {
+    console.error('שגיאה בייבוא הוצאות:', error);
+    throw error;
+  }
 }; 

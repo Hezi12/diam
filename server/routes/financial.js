@@ -18,6 +18,7 @@ router.put('/income-categories/:id', authMiddleware.verifyToken, financialContro
 // נתיבי הוצאות
 router.get('/expenses', authMiddleware.verifyToken, financialController.getExpensesByMonth);
 router.post('/expenses', authMiddleware.verifyToken, financialController.createExpense);
+router.post('/expenses/batch', authMiddleware.verifyToken, financialController.createBatchExpenses);
 router.put('/expenses/:id', authMiddleware.verifyToken, financialController.updateExpense);
 router.delete('/expenses/:id', authMiddleware.verifyToken, financialController.deleteExpense);
 router.get('/expenses/:id', authMiddleware.verifyToken, financialController.getExpenseById);
