@@ -17,7 +17,7 @@ const InvoiceSchema = new Schema({
   // סוג המסמך
   documentType: {
     type: String,
-    enum: ['invoice', 'invoice_receipt', 'credit_invoice', 'confirmation'],
+    enum: ['invoice', 'invoice_receipt', 'credit_invoice'],
     default: 'invoice'
   },
   

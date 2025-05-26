@@ -15,7 +15,8 @@ import {
   TextField,
   MenuItem,
   Select,
-  CircularProgress
+  CircularProgress,
+  Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -30,10 +31,11 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ArticleIcon from '@mui/icons-material/Article';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import axios from 'axios';
-import BookingConfirmation from './BookingConfirmation';
+
 import CreateDocumentDialog from '../documents/CreateDocumentDialog';
 
 /**
@@ -45,8 +47,9 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
   const [editedBooking, setEditedBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [confirmationOpen, setConfirmationOpen] = useState(false);
+
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [hasInvoice, setHasInvoice] = useState(false);
 
   // הגדרות צבעים לפי סטטוס הזמנה
   const bookingStatusColors = {
@@ -99,6 +102,22 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
     completed: 'הושלם'
   };
 
+  // בדיקה אם קיימת חשבונית להזמנה
+  const checkIfInvoiceExists = async (bookingId) => {
+    if (!bookingId) return;
+    
+    try {
+      // שליחת בקשה לשרת לבדוק אם קיימת חשבונית להזמנה
+      const response = await axios.get(`/api/documents/check-booking/${bookingId}`);
+      setHasInvoice(response.data.exists);
+      return response.data.exists;
+    } catch (error) {
+      console.error('שגיאה בבדיקת קיום חשבונית:', error);
+      setHasInvoice(false);
+      return false;
+    }
+  };
+
   // טעינת מידע ההזמנה בעת פתיחת המודל
   useEffect(() => {
     if (open && bookingId) {
@@ -112,6 +131,9 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
           console.log('הזמנה נטענה:', response.data);
           setBooking(response.data);
           setEditedBooking(response.data);
+          
+          // בדיקה אם קיימת חשבונית להזמנה
+          checkIfInvoiceExists(bookingId);
         })
         .catch(err => {
           console.error('שגיאה בטעינת פרטי ההזמנה:', err);
@@ -241,7 +263,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
           </Box>
           
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {/* כפתור יצירת מסמך/חשבונית */}
+            {/* כפתור יצירת מסמך/חשבונית - יוצג תמיד, גם אם יש חשבונית */}
             {!isEditing && (
               <Button
                 onClick={() => setDocumentDialogOpen(true)}
@@ -253,6 +275,26 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
                 יצירת מסמך
               </Button>
             )}
+            
+
+            
+            {/* הצגת סימון שקיימת חשבונית */}
+            {!isEditing && hasInvoice && (
+              <Tooltip title="קיימת חשבונית להזמנה זו">
+                <Box sx={{ 
+                  color: '#06a271', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  mr: 1,
+                  fontSize: '0.875rem',
+                  fontWeight: 'bold'
+                }}>
+                  <CheckCircleIcon sx={{ fontSize: '1.2rem', mr: 0.5 }} />
+                  חשבונית קיימת
+                </Box>
+              </Tooltip>
+            )}
+            
             <Button
               startIcon={isEditing ? null : <EditIcon />}
               variant={isEditing ? "contained" : "outlined"}
@@ -499,12 +541,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
         </DialogActions>
       </Dialog>
 
-      {/* חלון אישור הזמנה */}
-      <BookingConfirmation
-        open={confirmationOpen}
-        onClose={() => setConfirmationOpen(false)}
-        bookingData={booking}
-      />
+
       
       {/* דיאלוג יצירת מסמך */}
       <CreateDocumentDialog

@@ -27,7 +27,7 @@ exports.createDocument = async (req, res) => {
     }
     
     // אימות סוג המסמך
-    if (!['invoice', 'invoice_receipt', 'confirmation'].includes(documentType)) {
+    if (!['invoice', 'invoice_receipt'].includes(documentType)) {
       return res.status(400).json({
         success: false,
         message: 'סוג מסמך לא תקין'
@@ -44,10 +44,7 @@ exports.createDocument = async (req, res) => {
       });
     }
     
-    // אם זה אישור הזמנה, טפל בו בנפרד (לא קשור ל-iCount)
-    if (documentType === 'confirmation') {
-      return await createBookingConfirmation(req, res, booking);
-    }
+
     
     // בדיקה אם כבר יש חשבונית מאותו סוג להזמנה זו
     const existingInvoice = await Invoice.findOne({
@@ -109,27 +106,66 @@ exports.createDocument = async (req, res) => {
       throw new Error('שגיאה ביצירת חשבונית ב-iCount');
     }
     
-    // שמירת רפרנס למסמך במערכת שלנו
-    const invoice = new Invoice({
-      invoiceNumber: icountResponse.invoiceNumber,
-      documentType,
-      location: booking.location,
-      booking: booking._id,
-      bookingNumber: booking.bookingNumber,
-      customer: {
-        name: customer.name,
-        identifier: customer.identifier,
-        email: customer.email
-      },
-      amount: total,
-      icountData: {
-        success: true,
-        docNumber: icountResponse.invoiceNumber,
-        responseData: icountResponse.data
-      }
-    });
+    // לוג של תשובת iCount
+    console.log('תשובה מ-iCount:', JSON.stringify(icountResponse.data, null, 2));
     
-    await invoice.save();
+    // שמירת רפרנס למסמך במערכת שלנו - עם טיפול בכפילויות
+    let invoice;
+    
+    try {
+      // ניסיון ליצור חשבונית חדשה
+      invoice = new Invoice({
+        invoiceNumber: icountResponse.invoiceNumber,
+        documentType,
+        location: booking.location,
+        booking: booking._id,
+        bookingNumber: booking.bookingNumber,
+        customer: {
+          name: customer.name,
+          identifier: customer.identifier,
+          email: customer.email
+        },
+        amount: total,
+        icountData: {
+          success: true,
+          docNumber: icountResponse.invoiceNumber,
+          responseData: icountResponse.data
+        }
+      });
+      
+      await invoice.save();
+      
+    } catch (duplicateError) {
+      // אם יש שגיאת כפילות, נעדכן את החשבונית הקיימת
+      if (duplicateError.code === 11000 && duplicateError.keyPattern?.invoiceNumber) {
+        console.log(`מספר חשבונית ${icountResponse.invoiceNumber} כבר קיים, מעדכן את הרשומה הקיימת`);
+        
+        invoice = await Invoice.findOneAndUpdate(
+          { invoiceNumber: icountResponse.invoiceNumber },
+          {
+            documentType,
+            location: booking.location,
+            booking: booking._id,
+            bookingNumber: booking.bookingNumber,
+            customer: {
+              name: customer.name,
+              identifier: customer.identifier,
+              email: customer.email
+            },
+            amount: total,
+            icountData: {
+              success: true,
+              docNumber: icountResponse.invoiceNumber,
+              responseData: icountResponse.data
+            }
+          },
+          { new: true, upsert: true }
+        );
+      } else {
+        // אם זו שגיאה אחרת, נזרוק אותה הלאה
+        throw duplicateError;
+      }
+    }
     
     // עדכון ההזמנה עם מזהה החשבונית
     booking.invoice = invoice._id;
@@ -152,78 +188,7 @@ exports.createDocument = async (req, res) => {
   }
 };
 
-/**
- * יצירת אישור הזמנה (לא קשור ל-iCount)
- * 
- * @param {Object} req - בקשת HTTP
- * @param {Object} res - תגובת HTTP
- * @param {Object} booking - נתוני ההזמנה
- */
-async function createBookingConfirmation(req, res, booking) {
-  try {
-    // שמירת רפרנס למסמך במערכת שלנו
-    const invoice = new Invoice({
-      invoiceNumber: `CONF-${booking.bookingNumber}`,
-      documentType: 'confirmation',
-      location: booking.location,
-      booking: booking._id,
-      bookingNumber: booking.bookingNumber,
-      customer: {
-        name: `${booking.firstName} ${booking.lastName}`.trim(),
-        email: booking.email
-      },
-      amount: booking.price || 0,
-      icountData: {
-        success: true,
-        docNumber: `CONF-${booking.bookingNumber}`
-      }
-    });
-    
-    await invoice.save();
-    
-    // יצירת PDF פשוט של אישור הזמנה
-    const pdfPath = path.join(__dirname, '..', 'uploads', 'invoices', `confirmation-${booking.bookingNumber}.pdf`);
-    
-    // וודא שהתיקייה קיימת
-    const dir = path.dirname(pdfPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    // יצירת ה-PDF
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    
-    // שמירה לקובץ
-    doc.pipe(fs.createWriteStream(pdfPath));
-    
-    // הוספת תוכן
-    doc.font('Helvetica-Bold').fontSize(20).text('אישור הזמנה', { align: 'center' });
-    doc.moveDown();
-    doc.font('Helvetica').fontSize(14).text(`מספר הזמנה: ${booking.bookingNumber}`, { align: 'right' });
-    doc.font('Helvetica').fontSize(14).text(`שם האורח: ${booking.firstName} ${booking.lastName}`, { align: 'right' });
-    doc.font('Helvetica').fontSize(14).text(`תאריך צ'ק-אין: ${new Date(booking.checkIn).toLocaleDateString('he-IL')}`, { align: 'right' });
-    doc.font('Helvetica').fontSize(14).text(`תאריך צ'ק-אאוט: ${new Date(booking.checkOut).toLocaleDateString('he-IL')}`, { align: 'right' });
-    doc.font('Helvetica').fontSize(14).text(`מספר לילות: ${booking.nights}`, { align: 'right' });
-    doc.font('Helvetica').fontSize(14).text(`מחיר כולל: ${booking.price} ₪`, { align: 'right' });
-    
-    // סיום
-    doc.end();
-    
-    return res.status(201).json({
-      success: true,
-      message: 'אישור הזמנה נוצר בהצלחה',
-      invoice,
-      pdfPath: `/api/documents/pdf/${invoice._id}`
-    });
-  } catch (error) {
-    console.error('שגיאה ביצירת אישור הזמנה:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'שגיאה ביצירת אישור הזמנה',
-      error: error.message
-    });
-  }
-}
+
 
 /**
  * קבלת מסמך לפי מזהה

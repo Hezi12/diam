@@ -66,7 +66,7 @@ class ICountService {
         
         // פרטי לקוח
         client_name: invoiceData.customer.name,
-        client_id: invoiceData.customer.identifier || '',
+        client_id: "פרטי",
         email: invoiceData.customer.email || '',
         client_address: invoiceData.customer.address || '',
         client_phone: invoiceData.customer.phone || '',
@@ -97,7 +97,7 @@ class ICountService {
         requestData.cc = { 
           sum: invoiceData.total,
           card_type: 'VISA',
-          confirmation_code: invoiceData.confirmationCode || ''
+      
         };
       } else if (invoiceData.paymentMethod === 'bank_transfer') {
         requestData.banktransfer = {
