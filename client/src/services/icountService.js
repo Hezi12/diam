@@ -65,21 +65,44 @@ class ICountService {
   }
 
   /**
-   * חיוב כרטיס אשראי דרך iCount
+   * חיוב כרטיס אשראי דרך iCount (כולל יצירת חשבונית אוטומטית)
    * @param {string} location - מזהה המתחם ('airport' או 'rothschild')
-   * @param {Object} paymentData - נתוני התשלום
-   * @returns {Promise<Object>} - תוצאות החיוב
+   * @param {string} bookingId - מזהה ההזמנה
+   * @param {number} amount - סכום לסליקה
+   * @returns {Promise<Object>} - תוצאות החיוב והחשבונית
    */
-  async chargeCard(location, paymentData) {
+  async chargeCard(location, bookingId, amount) {
     try {
+      console.log('🔄 שולח בקשת סליקת אשראי לשרת:', {
+        location,
+        bookingId,
+        amount
+      });
+
       const response = await axios.post(`${API_URL}/api/icount/charge`, {
         location,
-        ...paymentData
+        bookingId,
+        amount
       });
+
+      console.log('✅ תגובה מהשרת:', response.data);
       return response.data;
+      
     } catch (error) {
-      console.error('שגיאה בחיוב כרטיס אשראי:', error);
-      throw error;
+      console.error('❌ שגיאה בחיוב כרטיס אשראי:', error);
+      
+      // טיפול בשגיאות ספציפיות
+      if (error.response) {
+        // שגיאה מהשרת
+        const errorData = error.response.data;
+        throw new Error(errorData.message || errorData.error || 'שגיאה בסליקת כרטיס אשראי');
+      } else if (error.request) {
+        // בעיה ברשת
+        throw new Error('בעיה בחיבור לשרת');
+      } else {
+        // שגיאה כללית
+        throw new Error(error.message || 'שגיאה לא צפויה');
+      }
     }
   }
 

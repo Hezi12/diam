@@ -176,7 +176,7 @@ router.get('/view-all', async (req, res) => {
                         <td class="amount">${invoice.amount ? invoice.amount + ' ₪' : 'לא צוין'}</td>
                         <td>${new Date(invoice.createdAt).toLocaleDateString('he-IL')}</td>
                         <td>
-                            <a href="/api/documents/pdf/${invoice._id}" target="_blank" class="btn">צפה במסמך</a>
+                            מספר חשבונית: ${invoice.invoiceNumber}
                         </td>
                     </tr>`;
     });

@@ -249,6 +249,10 @@ const NewBookingForm = ({
     baseOccupancy: 2
   });
 
+  // מצב חלון דיאלוג להוספת חדרים נוספים
+  const [addRoomsDialogOpen, setAddRoomsDialogOpen] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [selectedRooms, setSelectedRooms] = useState([]);
   const [additionalRoomsLoading, setAdditionalRoomsLoading] = useState(false);
 
   // בדיקה אם קיימת חשבונית להזמנה
@@ -1731,6 +1735,29 @@ const NewBookingForm = ({
               מחיקה
             </Button>
           )}
+          
+          {!isEditMode && (
+            <Button
+              variant="outlined"
+              onClick={handleOpenAddRoomsDialog}
+              disabled={additionalRoomsLoading || !formData.room}
+              startIcon={<ViewQuiltIcon />}
+              sx={{ 
+                borderColor: currentColors.main,
+                color: currentColors.main,
+                '&:hover': { 
+                  borderColor: currentColors.dark, 
+                  backgroundColor: `${currentColors.bgLight}50`
+                }
+              }}
+            >
+              {additionalRoomsLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'הוספת חדרים'
+              )}
+            </Button>
+          )}
         </Box>
         
         <Box sx={{ ml: 'auto' }}>
@@ -1768,6 +1795,160 @@ const NewBookingForm = ({
             sx={{ bgcolor: accentColors.red, '&:hover': { bgcolor: '#c64064' } }}
           >
             מחיקה
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* דיאלוג להוספת חדרים נוספים */}
+      <Dialog
+        open={addRoomsDialogOpen}
+        onClose={() => setAddRoomsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: style.dialog.borderRadius,
+            overflow: 'hidden',
+            width: '95%',
+            maxWidth: '900px'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            bgcolor: currentColors.bgLight, 
+            color: currentColors.main,
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: `1px solid ${currentColors.main}`,
+            py: 1.5
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <ViewQuiltIcon sx={{ marginRight: '10px' }} />
+            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
+              הוספת חדרים לאותם תאריכים ({format(new Date(formData.checkIn), 'dd/MM/yyyy')} - {format(new Date(formData.checkOut), 'dd/MM/yyyy')})
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setAddRoomsDialogOpen(false)} size="small" sx={{ color: accentColors.red }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          {availableRooms.length === 0 ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              אין חדרים זמינים בתאריכים אלו
+            </Alert>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                בחר את החדרים הנוספים להזמנה. כל הפרטים מההזמנה הראשית (פרטי אורח, תשלום וכו') יועתקו אוטומטית.
+              </Typography>
+              
+              <TableContainer component={Paper} sx={{ mb: 3, borderRadius: style.card.borderRadius }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                      <TableCell padding="checkbox" align="center" sx={{ fontWeight: 'bold' }}>בחירה</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>מספר חדר</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>סוג חדר</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>מחיר בסיס</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>אורחים</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>מחיר</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {availableRooms.map(room => {
+                      const isSelected = selectedRooms.some(selected => selected.roomId === room._id);
+                      const selectedRoom = isSelected 
+                        ? selectedRooms.find(selected => selected.roomId === room._id) 
+                        : null;
+                      
+                      return (
+                        <TableRow 
+                          key={room._id}
+                          sx={{ 
+                            '&:hover': { bgcolor: '#f9f9f9' },
+                            ...(isSelected && { bgcolor: `${currentColors.bgLight}90` })
+                          }}
+                        >
+                          <TableCell padding="checkbox" align="center">
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={() => handleRoomSelection(room._id)}
+                              icon={<CheckBoxOutlineBlankIcon />}
+                              checkedIcon={<CheckBoxIcon />}
+                              sx={{ 
+                                color: currentColors.main,
+                                '&.Mui-checked': { color: currentColors.main }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">{room.roomNumber}</TableCell>
+                          <TableCell align="right">{room.category}</TableCell>
+                          <TableCell align="right">{formData.isTourist ? room.basePrice : room.vatPrice} ₪</TableCell>
+                          <TableCell align="right">
+                            {isSelected ? (
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={selectedRoom.guests}
+                                onChange={(e) => handleAdditionalRoomGuestsChange(room._id, e.target.value)}
+                                InputProps={{ 
+                                  inputProps: { min: 1, max: room.maxOccupancy || 4 }
+                                }}
+                                sx={{ width: '60px' }}
+                              />
+                            ) : (
+                              formData.guests || 2
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {isSelected ? (
+                              <TextField
+                                size="small"
+                                type="number"
+                                value={selectedRoom.price}
+                                onChange={(e) => handleAdditionalRoomPriceChange(room._id, e.target.value)}
+                                InputProps={{ 
+                                  endAdornment: <InputAdornment position="end">₪</InputAdornment>,
+                                  inputProps: { min: 0 }
+                                }}
+                                sx={{ width: '120px' }}
+                              />
+                            ) : (
+                              `${formData.price || (formData.isTourist ? room.basePrice : room.vatPrice)} ₪`
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {selectedRooms.length > 0 && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  נבחרו {selectedRooms.length} חדרים נוספים
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setAddRoomsDialogOpen(false)}>ביטול</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveAdditionalRooms}
+            disabled={selectedRooms.length === 0 || additionalRoomsLoading}
+            startIcon={additionalRoomsLoading ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
+          >
+            הוסף {selectedRooms.length} חדרים
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,8 +1,8 @@
 /**
- * דיאלוג ליצירת מסמכים מתוך הזמנה (חשבוניות, חשבוניות-קבלה, אישורי הזמנה)
+ * דיאלוג ליצירת מסמכים מתוך הזמנה (חשבוניות ואישורי הזמנה)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,22 +10,17 @@ import {
   DialogActions,
   Button,
   FormControl,
-  FormControlLabel,
   RadioGroup,
+  FormControlLabel,
   Radio,
-  Typography,
-  CircularProgress,
   Box,
+  Typography,
   Alert,
-  AlertTitle,
-  Chip
+  CircularProgress
 } from '@mui/material';
 import {
   ReceiptLong as ReceiptIcon,
-  FileDownload as FileDownloadIcon,
   Check as CheckIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
   Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
@@ -41,7 +36,7 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [existingInvoices, setExistingInvoices] = useState([]); // מערך של כל החשבוניות הקיימות
+  const [existingInvoice, setExistingInvoice] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   
   // מצב תצוגת אישור הזמנה
@@ -50,47 +45,22 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
   // הוק להודעות
   const { enqueueSnackbar } = useSnackbar();
   
-  // בדיקה ראשונית בעת פתיחת הדיאלוג אם כבר קיימת חשבונית
-  useEffect(() => {
-    if (open && booking && booking._id) {
-      checkIfInvoiceExists();
-    }
-  }, [open, booking]);
-  
   // בדיקה אם קיימת חשבונית להזמנה
-  const checkIfInvoiceExists = async () => {
+  const checkIfInvoiceExists = useCallback(async () => {
     if (!booking || !booking._id) return;
     
     setInitialLoading(true);
     
     try {
-      // שליחת בקשה לשרת לבדוק אם קיימות חשבוניות להזמנה
+      // שליחת בקשה לשרת לבדוק אם קיימת חשבונית להזמנה
       const response = await axios.get(`/api/documents/check-booking/${booking._id}`);
       
-      if (response.data.exists && response.data.invoices) {
-        // אם החזירו מערך של חשבוניות
-        setExistingInvoices(Array.isArray(response.data.invoices) ? response.data.invoices : [response.data.invoices]);
-        
-        // בחירת ברירת מחדל - אם יש חשבונית רגילה, נבחר חשבונית מס/קבלה
-        const hasInvoice = response.data.invoices.some(inv => inv.documentType === 'invoice');
-        const hasInvoiceReceipt = response.data.invoices.some(inv => inv.documentType === 'invoice_receipt');
-        
-        if (hasInvoice && !hasInvoiceReceipt) {
-          setDocumentType('invoice_receipt');
-        } else if (!hasInvoice && hasInvoiceReceipt) {
-          setDocumentType('invoice');
-        } else if (hasInvoice && hasInvoiceReceipt) {
-          setDocumentType('confirmation'); // אם יש את שניהם, נבחר אישור הזמנה
-        }
-      } else if (response.data.exists && response.data.invoice) {
-        // תמיכה לאחור - אם החזירו חשבונית יחידה
-        setExistingInvoices([response.data.invoice]);
-        
-        if (response.data.invoice.documentType === 'invoice') {
-          setDocumentType('invoice_receipt');
-        }
+      if (response.data.exists && response.data.invoice) {
+        setExistingInvoice(response.data.invoice);
+        // אם יש חשבונית, נבחר אישור הזמנה כברירת מחדל
+        setDocumentType('confirmation');
       } else {
-        setExistingInvoices([]);
+        setExistingInvoice(null);
         setResult(null);
       }
     } catch (error) {
@@ -99,7 +69,14 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [booking]);
+  
+  // בדיקה ראשונית בעת פתיחת הדיאלוג אם כבר קיימת חשבונית
+  useEffect(() => {
+    if (open && booking) {
+      checkIfInvoiceExists();
+    }
+  }, [open, booking, checkIfInvoiceExists]);
   
   // טיפול בשינוי סוג המסמך
   const handleDocumentTypeChange = (event) => {
@@ -112,7 +89,6 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
       setResult(null);
       setError(null);
       setShowConfirmation(false);
-      // שמירת מצב של חשבונית קיימת
       onClose();
     }
   };
@@ -142,47 +118,27 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
         
         // בדיקה האם מדובר בחשבונית קיימת
         if (response.message && response.message.includes('כבר קיימת חשבונית')) {
-          // עדכון רשימת החשבוניות הקיימות
-          if (response.invoice && !existingInvoices.some(inv => inv._id === response.invoice._id)) {
-            setExistingInvoices(prev => [...prev, response.invoice]);
+          // עדכון החשבונית הקיימת
+          if (response.invoice) {
+            setExistingInvoice(response.invoice);
           }
           enqueueSnackbar('כבר קיימת חשבונית להזמנה זו', { variant: 'info' });
         } else {
-          enqueueSnackbar('המסמך נוצר בהצלחה', { variant: 'success' });
-          // אם נוצרה חשבונית חדשה, נוסיף אותה לרשימה
+          enqueueSnackbar('החשבונית נוצרה בהצלחה', { variant: 'success' });
+          // אם נוצרה חשבונית חדשה, נעדכן את המצב
           if (response.invoice) {
-            setExistingInvoices(prev => [...prev, response.invoice]);
+            setExistingInvoice(response.invoice);
           }
         }
       } else {
-        throw new Error(response.message || 'שגיאה ביצירת המסמך');
+        throw new Error(response.message || 'שגיאה ביצירת החשבונית');
       }
     } catch (err) {
       console.error('שגיאה ביצירת מסמך:', err);
-      setError(err.message || 'שגיאה ביצירת המסמך');
-      enqueueSnackbar('שגיאה ביצירת המסמך', { variant: 'error' });
+      setError(err.message || 'שגיאה ביצירת החשבונית');
+      enqueueSnackbar('שגיאה ביצירת החשבונית', { variant: 'error' });
     } finally {
       setLoading(false);
-    }
-  };
-  
-  // הורדת מסמך
-  const handleDownloadDocument = (specificInvoice = null) => {
-    const invoiceToDownload = specificInvoice || result?.invoice || getExistingInvoiceByType(documentType);
-    
-    if (invoiceToDownload && invoiceToDownload._id) {
-      setLoading(true);
-      const success = documentService.downloadDocument(invoiceToDownload._id);
-      
-      // אם הפונקציה החזירה הצלחה (ניסיון הורדה התחיל)
-      if (success) {
-        enqueueSnackbar('המסמך נפתח בחלון חדש', { variant: 'success' });
-      } else {
-        enqueueSnackbar('אירעה שגיאה בפתיחת המסמך', { variant: 'error' });
-      }
-      setLoading(false);
-    } else {
-      enqueueSnackbar('פרטי מסמך חסרים', { variant: 'error' });
     }
   };
   
@@ -191,23 +147,11 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
     switch (type) {
       case 'invoice':
         return 'חשבונית מס';
-      case 'invoice_receipt':
-        return 'חשבונית מס/קבלה';
       case 'confirmation':
         return 'אישור הזמנה';
       default:
         return 'מסמך';
     }
-  };
-  
-  // פונקציה לבדיקה אם מסמך מסוג מסוים כבר קיים
-  const isDocumentTypeExists = (type) => {
-    return existingInvoices.some(invoice => invoice.documentType === type);
-  };
-  
-  // פונקציה לקבלת חשבונית מסוג מסוים
-  const getExistingInvoiceByType = (type) => {
-    return existingInvoices.find(invoice => invoice.documentType === type);
   };
   
   // אם אנחנו בתהליך טעינה ראשוני
@@ -269,7 +213,7 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
           </Box>
         )}
         
-        {/* בחירת סוג מסמך - תמיד מוצג, גם אם יש חשבונית קיימת */}
+        {/* בחירת סוג מסמך */}
         {!result && !loading && (
           <FormControl component="fieldset" fullWidth>
             <Typography variant="subtitle1" gutterBottom>
@@ -281,66 +225,24 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
                 control={<Radio />} 
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', opacity: isDocumentTypeExists('invoice') ? 0.6 : 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', opacity: existingInvoice ? 0.6 : 1 }}>
                       <ReceiptIcon sx={{ mr: 1 }} /> 
                       חשבונית מס
-                      {isDocumentTypeExists('invoice') && (
+                      {existingInvoice && (
                         <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
                           (כבר קיימת)
                         </Typography>
                       )}
                     </Box>
-                    {isDocumentTypeExists('invoice') && (
+                    {existingInvoice && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CheckIcon sx={{ color: '#4caf50', fontSize: '1.2rem' }} />
-                        <Button
-                          onClick={() => handleDownloadDocument(getExistingInvoiceByType('invoice'))}
-                          size="small"
-                          variant="outlined"
-                          startIcon={<FileDownloadIcon />}
-                          sx={{ minWidth: 'auto', px: 1 }}
-                        >
-                          הורד
-                        </Button>
                       </Box>
                     )}
                   </Box>
                 }
                 // לא מאפשר לבחור חשבונית מס אם כבר קיימת
-                disabled={isDocumentTypeExists('invoice')}
-              />
-              <FormControlLabel 
-                value="invoice_receipt" 
-                control={<Radio />} 
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', opacity: isDocumentTypeExists('invoice_receipt') ? 0.6 : 1 }}>
-                      <ReceiptIcon sx={{ mr: 1 }} /> 
-                      חשבונית מס/קבלה
-                      {isDocumentTypeExists('invoice_receipt') && (
-                        <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                          (כבר קיימת)
-                        </Typography>
-                      )}
-                    </Box>
-                    {isDocumentTypeExists('invoice_receipt') && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CheckIcon sx={{ color: '#4caf50', fontSize: '1.2rem' }} />
-                        <Button
-                          onClick={() => handleDownloadDocument(getExistingInvoiceByType('invoice_receipt'))}
-                          size="small"
-                          variant="outlined"
-                          startIcon={<FileDownloadIcon />}
-                          sx={{ minWidth: 'auto', px: 1 }}
-                        >
-                          הורד
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
-                }
-                // לא מאפשר לבחור חשבונית מס/קבלה אם כבר קיימת כזאת
-                disabled={isDocumentTypeExists('invoice_receipt')}
+                disabled={!!existingInvoice}
               />
               <FormControlLabel 
                 value="confirmation" 
@@ -351,7 +253,6 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
                   </Box>
                 }
               />
-
             </RadioGroup>
           </FormControl>
         )}
@@ -409,16 +310,16 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
               onClick={handleCreateDocument} 
               color="primary" 
               variant="contained"
-              // מאופשר רק אם אין חשבונית קיימת מאותו סוג (לא רלוונטי לאישור הזמנה)
-              disabled={documentType !== 'confirmation' && isDocumentTypeExists(documentType)}
+              // מאופשר רק אם אין חשבונית קיימת (לא רלוונטי לאישור הזמנה)
+              disabled={documentType === 'invoice' && !!existingInvoice}
               title={
-                documentType !== 'confirmation' && isDocumentTypeExists(documentType) 
-                  ? `${getDocumentTypeName(documentType)} כבר קיים להזמנה זו`
+                documentType === 'invoice' && existingInvoice 
+                  ? 'חשבונית מס כבר קיימת להזמנה זו'
                   : ''
               }
             >
               {documentType === 'confirmation' ? 'הצג' : 'צור'} {getDocumentTypeName(documentType)}
-              {documentType !== 'confirmation' && isDocumentTypeExists(documentType) && ' (כבר קיים)'}
+              {documentType === 'invoice' && existingInvoice && ' (כבר קיים)'}
             </Button>
           </>
         )}
@@ -428,13 +329,6 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
           <>
             <Button onClick={handleClose} color="inherit">
               סגור
-            </Button>
-            <Button
-              onClick={handleDownloadDocument}
-              color="primary"
-              variant="contained"
-            >
-              הורד {getDocumentTypeName(documentType)}
             </Button>
           </>
         )}

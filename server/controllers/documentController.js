@@ -1,5 +1,5 @@
 /**
- * בקר למסמכים (חשבוניות, חשבוניות-קבלה, ואישורי הזמנה)
+ * בקר למסמכים (חשבוניות ואישורי הזמנה)
  */
 
 const Invoice = require('../models/Invoice');
@@ -26,11 +26,11 @@ exports.createDocument = async (req, res) => {
       });
     }
     
-    // אימות סוג המסמך
-    if (!['invoice', 'invoice_receipt'].includes(documentType)) {
+    // אימות סוג המסמך - רק חשבונית מס
+    if (documentType !== 'invoice') {
       return res.status(400).json({
         success: false,
-        message: 'סוג מסמך לא תקין'
+        message: 'סוג מסמך לא תקין - רק חשבונית מס נתמכת'
       });
     }
     
@@ -44,12 +44,10 @@ exports.createDocument = async (req, res) => {
       });
     }
     
-
-    
-    // בדיקה אם כבר יש חשבונית מאותו סוג להזמנה זו
+    // בדיקה אם כבר יש חשבונית להזמנה זו
     const existingInvoice = await Invoice.findOne({
       booking: bookingId,
-      documentType: documentType
+      documentType: 'invoice'
     });
     
     if (existingInvoice) {
@@ -72,6 +70,10 @@ exports.createDocument = async (req, res) => {
     const checkInDate = new Date(booking.checkIn);
     const checkOutDate = new Date(booking.checkOut);
     
+    // סכומים
+    const total = booking.price || 0;
+    const subtotal = total / 1.17; // חישוב לאחור ממחיר כולל מע"מ
+    
     // הכנת פריטים לחשבונית
     const items = [{
       description: `לינה ${booking.nights} לילות (${checkInDate.toLocaleDateString('he-IL')} - ${checkOutDate.toLocaleDateString('he-IL')})`,
@@ -79,10 +81,6 @@ exports.createDocument = async (req, res) => {
       unitPrice: booking.pricePerNightNoVat || (booking.price / (booking.nights * 1.17)),
       taxExempt: false
     }];
-    
-    // סכומים
-    const total = booking.price || 0;
-    const subtotal = total / 1.17; // חישוב לאחור ממחיר כולל מע"מ
     
     // הכנת נתוני החשבונית ל-iCount
     const invoiceData = {
@@ -99,15 +97,12 @@ exports.createDocument = async (req, res) => {
     const icountResponse = await icountService.createInvoice(
       invoiceData,
       booking.location,
-      documentType
+      'invoice'
     );
     
     if (!icountResponse || !icountResponse.success) {
       throw new Error('שגיאה ביצירת חשבונית ב-iCount');
     }
-    
-    // לוג של תשובת iCount
-    console.log('תשובה מ-iCount:', JSON.stringify(icountResponse.data, null, 2));
     
     // שמירת רפרנס למסמך במערכת שלנו - עם טיפול בכפילויות
     let invoice;
@@ -116,7 +111,7 @@ exports.createDocument = async (req, res) => {
       // ניסיון ליצור חשבונית חדשה
       invoice = new Invoice({
         invoiceNumber: icountResponse.invoiceNumber,
-        documentType,
+        documentType: 'invoice',
         location: booking.location,
         booking: booking._id,
         bookingNumber: booking.bookingNumber,
@@ -143,7 +138,7 @@ exports.createDocument = async (req, res) => {
         invoice = await Invoice.findOneAndUpdate(
           { invoiceNumber: icountResponse.invoiceNumber },
           {
-            documentType,
+            documentType: 'invoice',
             location: booking.location,
             booking: booking._id,
             bookingNumber: booking.bookingNumber,
@@ -173,7 +168,7 @@ exports.createDocument = async (req, res) => {
     
     return res.status(201).json({
       success: true,
-      message: 'מסמך נוצר בהצלחה',
+      message: 'חשבונית נוצרה בהצלחה',
       invoice,
       icountData: icountResponse
     });
@@ -187,8 +182,6 @@ exports.createDocument = async (req, res) => {
     });
   }
 };
-
-
 
 /**
  * קבלת מסמך לפי מזהה

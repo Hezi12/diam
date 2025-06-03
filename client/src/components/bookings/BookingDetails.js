@@ -37,6 +37,7 @@ import { he } from 'date-fns/locale';
 import axios from 'axios';
 
 import CreateDocumentDialog from '../documents/CreateDocumentDialog';
+import CreditCardChargeDialog from '../payment/CreditCardChargeDialog';
 
 /**
  * רכיב להצגת פרטי הזמנה מלאים
@@ -49,6 +50,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
   const [error, setError] = useState(null);
 
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [chargeDialogOpen, setChargeDialogOpen] = useState(false);
   const [hasInvoice, setHasInvoice] = useState(false);
 
   // הגדרות צבעים לפי סטטוס הזמנה
@@ -276,7 +278,18 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
               </Button>
             )}
             
-
+            {/* כפתור סליקת אשראי */}
+            {!isEditing && (
+              <Button
+                onClick={() => setChargeDialogOpen(true)}
+                startIcon={<CreditCardIcon />}
+                variant="outlined"
+                color="secondary"
+                sx={{ mr: 1 }}
+              >
+                סליקת אשראי
+              </Button>
+            )}
             
             {/* הצגת סימון שקיימת חשבונית */}
             {!isEditing && hasInvoice && (
@@ -541,12 +554,17 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
         </DialogActions>
       </Dialog>
 
-
-      
       {/* דיאלוג יצירת מסמך */}
       <CreateDocumentDialog
         open={documentDialogOpen}
         onClose={() => setDocumentDialogOpen(false)}
+        booking={booking}
+      />
+
+      {/* דיאלוג סליקת אשראי */}
+      <CreditCardChargeDialog
+        open={chargeDialogOpen}
+        onClose={() => setChargeDialogOpen(false)}
         booking={booking}
       />
     </>

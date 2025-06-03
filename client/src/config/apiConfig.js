@@ -56,6 +56,19 @@ const API_ENDPOINTS = {
     byId: (id) => `/api/documents/${id}`,
     pdf: (id) => `/api/documents/pdf/${id}`,
     checkConnection: '/api/documents/check-connection'
+  },
+  
+  // נתיבי iCount
+  icount: {
+    login: '/api/icount/login',
+    checkConnection: (location) => `/api/icount/check-connection/${location}`,
+    invoice: '/api/icount/invoice',
+    charge: '/api/icount/charge',
+    chargeAndInvoice: '/api/icount/charge-and-invoice',
+    testConnection: (location) => `/api/icount/test-connection/${location}`,
+    bulkMigrate: '/api/icount/bulk-migrate',
+    migrateSingle: '/api/icount/migrate-single',
+    migrationStatus: (location) => `/api/icount/migration-status/${location}`
   }
 };
 
