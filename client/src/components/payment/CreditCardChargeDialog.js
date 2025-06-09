@@ -14,17 +14,25 @@ import {
   Alert,
   CircularProgress,
   TextField,
-  InputAdornment
+  InputAdornment,
+  FormControlLabel,
+  Checkbox,
+  Paper
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import icountService from '../../services/icountService';
 
 const CreditCardChargeDialog = ({ open, onClose, booking }) => {
+  // מצב סכום לחיוב
+  const [chargeAmount, setChargeAmount] = useState(booking?.price || 0);
+  
   // מצב טעינה ותוצאות
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [chargeAmount, setChargeAmount] = useState(booking?.price || 0);
+  
+  // מצב חדש - האם להוציא חשבונית
+  const [createInvoice, setCreateInvoice] = useState(true);
   
   // הוק להודעות
   const { enqueueSnackbar } = useSnackbar();
@@ -39,11 +47,18 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
   // איפוס הדיאלוג בעת סגירה
   const handleClose = () => {
     if (!loading) {
-      setResult(null);
-      setError(null);
-      setChargeAmount(booking?.price || 0);
+      resetDialog();
       onClose();
     }
+  };
+  
+  // פונקציה לאיפוס הדיאלוג
+  const resetDialog = () => {
+    setChargeAmount(booking?.price || 0);
+    setCreateInvoice(true);
+    setLoading(false);
+    setResult(null);
+    setError(null);
   };
   
   // ביצוע הסליקה
@@ -103,27 +118,22 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
       console.log('🔄 מתחיל תהליך סליקת אשראי...');
       
       // קריאה אמיתית לשרת
-      const response = await icountService.chargeCard(booking.location, booking._id, chargeAmount);
+      const response = await icountService.chargeCard(booking.location, booking._id, chargeAmount, createInvoice);
       
       console.log('✅ תגובה מהשרת:', response);
       
       if (response.success) {
         console.log(`🎉 סליקה הושלמה בהצלחה! מספר עסקה: ${response.transactionId}`);
         
-        // בניית הודעת הצלחה מפורטת
-        let successMessage = `סליקה בוצעה בהצלחה!\n`;
-        successMessage += `מספר עסקה: ${response.transactionId}\n`;
-        successMessage += `סכום: ${response.amount} ₪\n`;
-        successMessage += `סוג כרטיס: ${response.cardType}`;
+        // הצגת הודעת הצלחה
+        const successMessage = createInvoice 
+          ? `✅ הסליקה בוצעה בהצלחה! ${response.invoice ? `חשבונית: ${response.invoice.docNum}` : ''}` 
+          : '✅ הסליקה בוצעה בהצלחה ללא חשבונית!';
         
-        // הוספת מידע על חשבונית אם נוצרה
-        if (response.invoice && response.invoice.success) {
-          successMessage += `\n📄 חשבונית נוצרה: ${response.invoice.invoiceNumber}`;
-          console.log(`📄 חשבונית נוצרה בהצלחה: ${response.invoice.invoiceNumber}`);
-        } else if (response.invoice) {
-          successMessage += `\n⚠️ חשבונית לא נוצרה (סליקה בוצעה בהצלחה)`;
-          console.log(`⚠️ חשבונית לא נוצרה אך הסליקה הצליחה`);
-        }
+        enqueueSnackbar(successMessage, { 
+          variant: 'success',
+          autoHideDuration: 6000
+        });
         
         setResult({
           success: true,
@@ -131,12 +141,9 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
           amount: response.amount,
           cardType: response.cardType,
           invoice: response.invoice,
+          hasInvoice: createInvoice,
           message: successMessage
         });
-        
-        // הודעת הצלחה קצרה לסנקבר
-        const shortMessage = `סליקה בוצעה בהצלחה! מספר עסקה: ${response.transactionId}`;
-        enqueueSnackbar(shortMessage, { variant: 'success' });
         
         // סגירת הדיאלוג אחרי 3 שניות
         setTimeout(() => {
@@ -180,73 +187,126 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
-        <Typography variant="h6">
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: '0 8px 40px rgba(0, 0, 0, 0.12)',
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        textAlign: 'center', 
+        pb: 1, 
+        pt: 3,
+        px: 3
+      }}>
+        <Typography variant="h5" sx={{ 
+          fontWeight: 600,
+          color: 'text.primary',
+          letterSpacing: '-0.025em'
+        }}>
           סליקת כרטיס אשראי
         </Typography>
       </DialogTitle>
       
-      <DialogContent>
-        {/* פרטי הזמנה */}
-        {booking && (
-          <Box sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 1 }}>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
-              פרטי הזמנה
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-              <Typography variant="body2">
-                <strong>מספר הזמנה:</strong> {booking.bookingNumber}
+      <DialogContent sx={{ px: 3, py: 2 }}>
+        {/* פריסה חדשה - שני עמודים */}
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+          mb: 3
+        }}>
+          {/* עמודה שמאלית - פרטי הזמנה */}
+          {booking && (
+            <Box sx={{ 
+              p: 2, 
+              bgcolor: 'grey.50', 
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'grey.200'
+            }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ 
+                fontWeight: 600, 
+                color: 'text.primary',
+                mb: 1.5
+              }}>
+                פרטי הזמנה
               </Typography>
-              <Typography variant="body2">
-                <strong>מתחם:</strong> {getLocationName()}
-              </Typography>
-              <Typography variant="body2">
-                <strong>שם אורח:</strong> {booking.firstName} {booking.lastName}
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 500 }}>מספר הזמנה:</span>
+                  <span style={{ fontWeight: 600, color: '#1976d2' }}>{booking.bookingNumber}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 500 }}>מתחם:</span>
+                  <span>{getLocationName()}</span>
+                </Typography>
+                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 500 }}>שם אורח:</span>
+                  <span>{booking.firstName} {booking.lastName}</span>
+                </Typography>
+              </Box>
             </Box>
+          )}
+
+          {/* עמודה ימנית - סכום לחיוב */}
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              label="סכום לחיוב"
+              type="number"
+              value={chargeAmount}
+              onChange={(e) => setChargeAmount(parseFloat(e.target.value) || 0)}
+              fullWidth
+              variant="outlined"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">₪</InputAdornment>,
+                inputProps: { min: 0, step: 0.01 },
+                sx: {
+                  fontSize: '1.1rem',
+                  fontWeight: 500
+                }
+              }}
+              InputLabelProps={{
+                sx: { fontWeight: 500 }
+              }}
+              disabled={loading || result}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'primary.main',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderWidth: 2,
+                  }
+                }
+              }}
+            />
           </Box>
-        )}
-        
-        {/* סכום לחיוב */}
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            label="סכום לחיוב"
-            type="number"
-            value={chargeAmount}
-            onChange={(e) => setChargeAmount(parseFloat(e.target.value) || 0)}
-            fullWidth
-            InputProps={{
-              endAdornment: <InputAdornment position="end">₪</InputAdornment>,
-              inputProps: { min: 0, step: 0.01 }
-            }}
-            disabled={loading || result}
-            sx={{ mb: 2 }}
-          />
         </Box>
-        
-        {/* פרטי כרטיס אשראי */}
-        {booking?.creditCard && (
-          <Box sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
-              פרטי כרטיס אשראי
-            </Typography>
-            <Box sx={{ display: 'grid', gap: 1 }}>
-              <Typography variant="body2">
-                <strong>מספר כרטיס:</strong> {maskCardNumber(booking.creditCard.cardNumber)}
-              </Typography>
-              <Typography variant="body2">
-                <strong>תוקף:</strong> {booking.creditCard.expiryDate}
-              </Typography>
-            </Box>
-          </Box>
-        )}
         
         {/* מצב טעינה */}
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 3 }}>
-            <CircularProgress />
-            <Typography variant="body1" sx={{ ml: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            py: 4,
+            flexDirection: 'column',
+            gap: 2
+          }}>
+            <CircularProgress size={40} thickness={4} />
+            <Typography variant="body1" sx={{ 
+              color: 'text.secondary',
+              fontWeight: 500
+            }}>
               מבצע סליקה...
             </Typography>
           </Box>
@@ -254,30 +314,94 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
         
         {/* הצגת שגיאה */}
         {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mt: 2,
+              borderRadius: 2,
+              '& .MuiAlert-message': {
+                fontWeight: 500
+              }
+            }}
+          >
             {error}
           </Alert>
         )}
         
-        {/* הצגת תוצאה מוצלחת */}
-        {result && result.success && (
-          <Box sx={{ mt: 2 }}>
-            <Alert severity="success" sx={{ mb: 2 }}>
-              הסליקה בוצעה בהצלחה!
-            </Alert>
+        {/* תוצאת הסליקה */}
+        {result && (
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              backgroundColor: result.success ? 'success.light' : 'error.light',
+              color: result.success ? 'success.contrastText' : 'error.contrastText',
+              borderRadius: 2,
+              border: '2px solid',
+              borderColor: result.success ? 'success.main' : 'error.main'
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              {result.success ? '✅ סליקה הושלמה בהצלחה!' : '❌ סליקה נכשלה'}
+            </Typography>
             
-            <Box sx={{ p: 2, bgcolor: '#f0f8f0', borderRadius: 1 }}>
-              <Typography variant="body2" gutterBottom>
-                <strong>מספר עסקה:</strong> {result.transactionId}
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                <strong>סכום שנחרג:</strong> {result.amount} ₪
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                <strong>זמן עסקה:</strong> {new Date().toLocaleString('he-IL')}
-              </Typography>
-            </Box>
-          </Box>
+            {result.success && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  מספר עסקה: <strong>{result.transactionId}</strong>
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  סכום שנוע: <strong>{result.amount} ₪</strong>
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
+                  סוג כרטיס: <strong>{result.cardType}</strong>
+                </Typography>
+                
+                {/* מידע על חשבונית */}
+                {result.hasInvoice && (
+                  <>
+                    {result.invoice && result.invoice.success ? (
+                      <Typography variant="body2" sx={{ 
+                        mt: 2, 
+                        p: 1.5,
+                        bgcolor: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: 1,
+                        fontWeight: 600
+                      }}>
+                        📄 חשבונית נוצרה: {result.invoice.docNum}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" sx={{ 
+                        mt: 2, 
+                        p: 1.5,
+                        bgcolor: 'rgba(255, 193, 7, 0.2)',
+                        borderRadius: 1,
+                        color: 'warning.dark',
+                        fontWeight: 500
+                      }}>
+                        ⚠️ חשבונית לא נוצרה (סליקה בוצעה בהצלחה)
+                      </Typography>
+                    )}
+                  </>
+                )}
+                
+                {/* הודעה אם לא נבחר ליצור חשבונית */}
+                {!result.hasInvoice && (
+                  <Typography variant="body2" sx={{ 
+                    mt: 2, 
+                    p: 1.5,
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: 1,
+                    fontStyle: 'italic',
+                    fontWeight: 500
+                  }}>
+                    💡 נבחר לא ליצור חשבונית
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Paper>
         )}
         
         {/* הודעה אם אין פרטי אשראי */}
@@ -288,30 +412,62 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
         )}
       </DialogContent>
       
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        {/* כפתורים למצב רגיל - עדיין לא בוצעה סליקה */}
-        {!loading && !result && (
-          <>
-            <Button onClick={handleClose} color="inherit">
-              ביטול
-            </Button>
-            <Button 
-              onClick={handleCharge} 
-              color="primary" 
-              variant="contained"
-              disabled={!booking?.creditCard?.cardNumber || !chargeAmount || chargeAmount <= 0}
-            >
-              בצע סליקה ({chargeAmount} ₪)
-            </Button>
-          </>
-        )}
+      <DialogActions sx={{ 
+        px: 3, 
+        py: 2, 
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 2
+      }}>
+        {/* חקבוקס להוצאת חשבונית - מינימלי */}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={createInvoice}
+              onChange={(e) => setCreateInvoice(e.target.checked)}
+              disabled={loading || result}
+              color="primary"
+              size="small"
+            />
+          }
+          label={
+            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
+              הוצא חשבונית
+            </Typography>
+          }
+          sx={{ m: 0 }}
+        />
         
-        {/* כפתורים למצב של תוצאה מוצלחת */}
-        {result && result.success && (
-          <Button onClick={handleClose} color="primary" variant="contained">
-            סגור
+        {/* כפתורים */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button 
+            onClick={handleClose} 
+            disabled={loading}
+            variant="outlined"
+            sx={{ 
+              minWidth: 80,
+              borderRadius: 2,
+              fontWeight: 500
+            }}
+          >
+            ביטול
           </Button>
-        )}
+          <Button 
+            onClick={handleCharge} 
+            disabled={loading || result || !chargeAmount || chargeAmount <= 0}
+            variant="contained"
+            size="large"
+            sx={{ 
+              minWidth: 120,
+              borderRadius: 2,
+              fontWeight: 600,
+              px: 3
+            }}
+          >
+            {loading ? 'מבצע סליקה...' : `בצע סליקה (${chargeAmount} ₪)`}
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

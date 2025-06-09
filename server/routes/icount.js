@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const icountService = require('../services/icountService');
 const auth = require('../middleware/auth');
+const Booking = require('../models/Booking');
 
 /**
  * התחברות ל-iCount
@@ -105,40 +106,28 @@ router.post('/invoice', auth, async (req, res) => {
  */
 router.post('/charge', auth, async (req, res) => {
   try {
-    console.log('🔄 התקבלה בקשת סליקת אשראי:', {
-      location: req.body.location,
-      bookingId: req.body.bookingId,
-      amount: req.body.amount
+    const { location, bookingId, amount, createInvoice = true } = req.body;
+    
+    console.log(`💳 מתקבלת בקשת סליקה:`, {
+      location,
+      bookingId,
+      amount,
+      createInvoice
     });
 
-    const { location, bookingId, amount } = req.body;
-    
-    // בדיקת תקינות נתונים
-    if (!location) {
+    // בדיקת פרמטרים
+    if (!location || !bookingId || !amount) {
       return res.status(400).json({
         success: false,
-        error: 'מתחם חסר'
+        error: 'פרמטרים חסרים: location, bookingId, amount נדרשים'
       });
     }
 
-    if (!bookingId) {
-      return res.status(400).json({
-        success: false,
-        error: 'מזהה הזמנה חסר'
-      });
-    }
+    // המרת המיקום לפורמט הנכון
+    const normalizedLocation = location === 'airport' ? 'airport' : 'rothschild';
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'סכום לא תקין'
-      });
-    }
-
-    // חיפוש ההזמנה במסד הנתונים
-    console.log(`🔍 מחפש הזמנה עם ID: ${bookingId}`);
-    const Booking = require('../models/Booking');
-    const booking = await Booking.findById(bookingId).populate('room');
+    // מציאת ההזמנה
+    const booking = await Booking.findById(bookingId);
 
     if (!booking) {
       return res.status(404).json({
@@ -157,10 +146,24 @@ router.post('/charge', auth, async (req, res) => {
       });
     }
 
-    console.log(`💳 מבצע סליקה עבור הזמנה ${booking.bookingNumber} בסכום ${amount} ₪`);
+    console.log(`💳 מבצע סליקה עבור הזמנה ${booking.bookingNumber} בסכום ${amount} ₪${createInvoice ? ' + חשבונית' : ' ללא חשבונית'}`);
 
-    // קריאה לשירות iCount לסליקה ויצירת חשבונית
-    const result = await icountService.chargeCard(booking, amount, location);
+    // קריאה לשירות iCount - עם או בלי חשבונית
+    let result;
+    if (createInvoice) {
+      // סליקה + חשבונית
+      result = await icountService.chargeCard(booking, amount, location);
+    } else {
+      // סליקה בלבד
+      result = await icountService.chargeCardOnly(booking, amount, location);
+      // התאמה לפורמט המצופה
+      result = {
+        success: result.success,
+        charge: result,
+        invoice: null,
+        message: 'סליקה בוצעה בהצלחה ללא חשבונית'
+      };
+    }
     
     if (result.success) {
       console.log(`✅ סליקה הושלמה בהצלחה:`, {

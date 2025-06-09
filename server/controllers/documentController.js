@@ -72,15 +72,41 @@ exports.createDocument = async (req, res) => {
     
     // סכומים
     const total = booking.price || 0;
-    const subtotal = total / 1.17; // חישוב לאחור ממחיר כולל מע"מ
+    
+    // בדיקה האם הלקוח תייר
+    const isTaxExempt = booking.isTourist === true;
+    console.log(`👤 סטטוס לקוח: ${isTaxExempt ? 'תייר (פטור ממע"מ)' : 'תושב (כולל מע"מ)'}`);
+    console.log(`🔍 דיבוג - booking.isTourist = ${booking.isTourist} (type: ${typeof booking.isTourist})`);
+    
+    // חישוב מחירים לפי סטטוס מע"מ
+    let subtotal, unitPrice;
+    
+    if (isTaxExempt) {
+      // תייר - המחיר שמור הוא כבר ללא מע"מ
+      subtotal = total;
+      unitPrice = booking.pricePerNightNoVat || (booking.price / (booking.nights || 1));
+      console.log(`💰 חשבונית לתייר: ${total} ₪ (ללא מע"מ)`);
+    } else {
+      // תושב - המחיר כולל מע"מ, צריך לחשב את הסכום ללא מע"מ
+      subtotal = Math.round((total / 1.17) * 100) / 100; // חישוב לאחור ממחיר כולל מע"מ
+      unitPrice = booking.pricePerNightNoVat || (booking.price / (booking.nights * 1.17));
+      console.log(`💰 חשבונית לתושב: ${subtotal} ₪ + מע"מ = ${total} ₪`);
+    }
     
     // הכנת פריטים לחשבונית
     const items = [{
       description: `לינה ${booking.nights} לילות (${checkInDate.toLocaleDateString('he-IL')} - ${checkOutDate.toLocaleDateString('he-IL')})`,
       quantity: booking.nights || 1,
-      unitPrice: booking.pricePerNightNoVat || (booking.price / (booking.nights * 1.17)),
-      taxExempt: false
+      unitPrice: unitPrice,
+      taxExempt: isTaxExempt  // 🔧 תיקון: מבוסס על סטטוס התייר
     }];
+    
+    console.log(`📋 נתוני פריט לחשבונית:`);
+    console.log(`   - תיאור: ${items[0].description}`);
+    console.log(`   - כמות: ${items[0].quantity}`);
+    console.log(`   - מחיר יחידה: ${items[0].unitPrice} ₪`);
+    console.log(`   - פטור ממע"מ: ${items[0].taxExempt}`);
+    console.log(`   - סכום כולל: ${total} ₪`);
     
     // הכנת נתוני החשבונית ל-iCount
     const invoiceData = {

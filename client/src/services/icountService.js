@@ -69,20 +69,23 @@ class ICountService {
    * @param {string} location - מזהה המתחם ('airport' או 'rothschild')
    * @param {string} bookingId - מזהה ההזמנה
    * @param {number} amount - סכום לסליקה
+   * @param {boolean} createInvoice - האם ליצור חשבונית (ברירת מחדל: true)
    * @returns {Promise<Object>} - תוצאות החיוב והחשבונית
    */
-  async chargeCard(location, bookingId, amount) {
+  async chargeCard(location, bookingId, amount, createInvoice = true) {
     try {
       console.log('🔄 שולח בקשת סליקת אשראי לשרת:', {
         location,
         bookingId,
-        amount
+        amount,
+        createInvoice
       });
 
       const response = await axios.post(`${API_URL}/api/icount/charge`, {
         location,
         bookingId,
-        amount
+        amount,
+        createInvoice
       });
 
       console.log('✅ תגובה מהשרת:', response.data);

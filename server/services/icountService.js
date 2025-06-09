@@ -31,12 +31,12 @@ class ICountService {
   }
 
   /**
-   * יצירת חשבונית במערכת iCount
+   * יצירת חשבונית ב-iCount
    * 
    * @param {Object} invoiceData - נתוני החשבונית
    * @param {string} location - מיקום (airport/rothschild)
-   * @param {string} documentType - סוג המסמך (רק invoice נתמך)
-   * @returns {Promise<Object>} - תוצאת הבקשה מ-iCount
+   * @param {string} documentType - סוג מסמך (invoice)
+   * @returns {Promise<Object>} - תוצאת יצירת החשבונית
    */
   async createInvoice(invoiceData, location = 'rothschild', documentType = 'invoice') {
     try {
@@ -58,6 +58,10 @@ class ICountService {
       if (documentType !== 'invoice') {
         throw new Error('רק חשבונית מס נתמכת');
       }
+
+      // בדיקה האם יש פריט פטור ממע"מ
+      const hasTaxExemptItem = invoiceData.items.some(item => item.taxExempt === true);
+      console.log(`🏷️ האם יש פריט פטור ממע"מ: ${hasTaxExemptItem ? 'כן' : 'לא'}`);
       
       // הכנת נתוני הבקשה לפי דרישות ה-API של iCount
       const requestData = {
@@ -84,18 +88,31 @@ class ICountService {
         // פרטי תשלום
         doc_date: invoiceData.issueDate || new Date().toISOString().split('T')[0],
         
-        // פריטים
-        items: invoiceData.items.map(item => ({
-          description: item.description || 'שירות אירוח',
-          quantity: item.quantity || 1,
-          unitprice: item.unitPrice || 0,
-          tax_exempt: item.taxExempt || false
-        })),
+        // פריטים - תיקון המיפוי של tax_exempt
+        items: invoiceData.items.map(item => {
+          const mappedItem = {
+            description: item.description || 'שירות אירוח',
+            quantity: item.quantity || 1,
+            unitprice: item.unitPrice || 0
+          };
+          
+          // תיקון: הוספת tax_exempt רק אם זה true במפורש
+          if (item.taxExempt === true) {
+            mappedItem.tax_exempt = true;
+            console.log(`📋 פריט פטור ממע"מ: ${item.description} - ${item.unitPrice} ₪`);
+          } else {
+            // עבור פריטים רגילים, לא נוסיף את השדה או נגדיר אותו כ-false
+            mappedItem.tax_exempt = false;
+            console.log(`📋 פריט רגיל (עם מע"מ): ${item.description} - ${item.unitPrice} ₪`);
+          }
+          
+          return mappedItem;
+        }),
         
         // הערות
         notes: invoiceData.notes || '',
       };
-      
+
       // הוספת פרטי תשלום אם יש
       if (invoiceData.paymentMethod === 'cash') {
         requestData.cash = { sum: invoiceData.total };
@@ -119,9 +136,17 @@ class ICountService {
         };
       }
       
-      // שליחת הבקשה ל-API של iCount
-      console.log(`שולח בקשה ליצירת חשבונית במיקום ${normalizedLocation}`);
+      // הדפסת פרטי הבקשה לדיבוג
+      console.log(`📤 שולח בקשה ליצירת חשבונית במיקום ${normalizedLocation}:`);
+      console.log(`👤 לקוח: ${requestData.client_name}`);
+      console.log(`💰 סכום כולל: ${invoiceData.total} ₪`);
+      console.log(`📋 פריטים:`, requestData.items.map(item => ({
+        description: item.description,
+        unitprice: item.unitprice,
+        tax_exempt: item.tax_exempt
+      })));
       
+      // שליחת הבקשה ל-API של iCount
       const response = await axios.post(
         `${this.baseUrl}/doc/create`,
         requestData
@@ -131,6 +156,8 @@ class ICountService {
         throw new Error(`שגיאה ביצירת מסמך ב-iCount: ${response.data.error}`);
       }
       
+      console.log(`✅ חשבונית נוצרה בהצלחה: ${response.data.docnum}`);
+      
       return {
         success: true,
         data: response.data,
@@ -138,11 +165,11 @@ class ICountService {
       };
       
     } catch (error) {
-      console.error('שגיאה ביצירת מסמך ב-iCount:', error.message);
+      console.error('❌ שגיאה ביצירת מסמך ב-iCount:', error.message);
       
       // אם יש תשובה משרת iCount עם פרטי שגיאה
       if (error.response && error.response.data) {
-        console.error('פרטי השגיאה מ-iCount:', error.response.data);
+        console.error('🔍 פרטי השגיאה מ-iCount:', error.response.data);
       }
       
       throw error;
@@ -200,6 +227,7 @@ class ICountService {
       // בדיקה אם הלקוח תייר - אם כן, פטור ממע"מ
       const isTaxExempt = booking.isTourist === true;
       console.log(`👤 סטטוס לקוח: ${isTaxExempt ? 'תייר (פטור ממע"מ)' : 'תושב (כולל מע"מ)'}`);
+      console.log(`🔍 דיבוג - booking.isTourist = ${booking.isTourist} (type: ${typeof booking.isTourist})`);
       
       // חישוב מחיר יחידה לפי סטטוס המע"מ
       let unitPrice, totalPrice;
@@ -208,7 +236,7 @@ class ICountService {
         // תייר - החשבונית צריכה להיות על הסכום שנסלק (ללא מע"מ)
         unitPrice = amount;
         totalPrice = amount;
-        console.log(`💰 חשבונית לתייר: ${amount} ₪ (ללא מע"מ)`);
+        console.log(`💰 חשבונית לתייר: ${amount} ₪ (ללא מע"מ) - unitPrice=${unitPrice}, totalPrice=${totalPrice}`);
       } else {
         // תושב - הסכום שנסלק כולל כבר מע"מ, אז צריך לחשב את המחיר ללא מע"מ
         unitPrice = Math.round((amount / 1.18) * 100) / 100; // חלוקה ב-1.18 כדי לקבל את המחיר ללא מע"מ (מע"מ 18%)
@@ -244,6 +272,13 @@ class ICountService {
           cardType: chargeResult.cardType
         }
       };
+      
+      console.log(`📋 נתוני חשבונית לפני שליחה:`);
+      console.log(`   - לקוח: ${invoiceData.customer.name}`);
+      console.log(`   - פריט: ${invoiceData.items[0].description}`);
+      console.log(`   - מחיר יחידה: ${invoiceData.items[0].unitPrice} ₪`);
+      console.log(`   - פטור ממע"מ: ${invoiceData.items[0].taxExempt}`);
+      console.log(`   - סכום כולל: ${invoiceData.total} ₪`);
       
       const invoiceResult = await this.createInvoice(invoiceData, location, 'invoice');
       
