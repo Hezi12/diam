@@ -50,7 +50,8 @@ const corsOptions = {
       'https://diam-schwartzHezi-gmailcoms-projects.vercel.app',
       'https://diam-git-main-schwartzHezi-gmailcoms-projects.vercel.app',
       'https://diam-client.vercel.app',
-      'https://diam-client-git-main.vercel.app'
+      'https://diam-client-git-main.vercel.app',
+      'https://diam-client-git-main-bhowmiks-projects.vercel.app'
     ];
     
     // בדיקה אם הדומיין שממנו מגיעה הבקשה מאושר
@@ -81,16 +82,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('dev'));
 
-// הגדרת headers לפתרון בעיות CORS - מוודא שכל הנתיבים מקבלים את ה-headers הנכונים
+// הגדרת headers נוספים (רק אם צריך)
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // תשובה מהירה לבקשות preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
+  // לא נכתוב על הגדרות CORS שכבר קיימות
+  // רק נוסיף headers נוספים אם צריך
   
   next();
 });
