@@ -26,7 +26,7 @@ import {
 import { useSnackbar } from 'notistack';
 import documentService from '../../services/documentService';
 import axios from 'axios';
-import BookingConfirmationView from './BookingConfirmationView';
+
 
 const CreateDocumentDialog = ({ open, onClose, booking }) => {
   // מצב סוג המסמך
@@ -168,21 +168,12 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
     );
   }
   
-  // אם אנחנו מציגים אישור הזמנה, נחזיר את הרכיב המתאים
+  // אם אנחנו מציגים אישור הזמנה, נסגור את הדיאלוג
   if (showConfirmation) {
-    return (
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogContent sx={{ p: 0 }}>
-          <BookingConfirmationView 
-            booking={booking} 
-            onClose={() => {
-              setShowConfirmation(false);
-              // לא סוגרים את הדיאלוג הראשי, רק חוזרים אליו
-            }} 
-          />
-        </DialogContent>
-      </Dialog>
-    );
+    // פונקציונליות אישור הזמנה עברה ל-CreditCardChargeDialog
+    setShowConfirmation(false);
+    handleClose();
+    return null;
   }
 
   return (

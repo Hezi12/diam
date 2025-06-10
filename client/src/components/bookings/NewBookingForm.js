@@ -64,8 +64,7 @@ import { useSnackbar } from 'notistack';
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
 
-// רכיב דיאלוג יצירת חשבונית
-import CreateDocumentDialog from '../documents/CreateDocumentDialog';
+// רכיב דיאלוג סליקת אשראי וחשבוניות
 import CreditCardChargeDialog from '../payment/CreditCardChargeDialog';
 
 // פונקציה לסינון חדרים מקטגוריית "Not for Sale"
@@ -215,10 +214,7 @@ const NewBookingForm = ({
   // מצב חלון אישור המחיקה
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  // מצב חלון יצירת חשבונית
-  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
-  
-  // מצב חלון סליקת אשראי
+  // מצב חלון סליקת אשראי וחשבוניות
   const [chargeDialogOpen, setChargeDialogOpen] = useState(false);
   
   // מצב עבור בדיקה אם קיימת חשבונית להזמנה
@@ -973,11 +969,7 @@ const NewBookingForm = ({
   }, [editBooking]);
 
   // פתיחת דיאלוג חשבונית
-  const handleInvoiceClick = () => {
-    setInvoiceDialogOpen(true);
-  };
-
-  // פתיחת דיאלוג סליקת אשראי
+  // פתיחת דיאלוג סליקת אשראי וחשבוניות
   const handleChargeClick = () => {
     setChargeDialogOpen(true);
   };
@@ -1035,19 +1027,10 @@ const NewBookingForm = ({
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton 
-            onClick={handleInvoiceClick} 
-            size="small" 
-            sx={{ color: currentColors.main, mr: 1 }}
-            title="יצירת חשבונית"
-          >
-            <ReceiptIcon />
-          </IconButton>
-          
-          <IconButton 
             onClick={handleChargeClick} 
             size="small" 
             sx={{ color: currentColors.main, mr: 1 }}
-            title="סליקת כרטיס אשראי"
+            title="סליקת אשראי וחשבוניות"
           >
             <CreditCard />
           </IconButton>
@@ -1772,14 +1755,7 @@ const NewBookingForm = ({
         </DialogActions>
       </Dialog>
 
-      {/* דיאלוג יצירת חשבונית */}
-      <CreateDocumentDialog
-        open={invoiceDialogOpen}
-        onClose={() => setInvoiceDialogOpen(false)}
-        booking={formData}
-      />
-
-      {/* דיאלוג סליקת אשראי */}
+      {/* דיאלוג סליקת אשראי וחשבוניות */}
       <CreditCardChargeDialog
         open={chargeDialogOpen}
         onClose={() => setChargeDialogOpen(false)}

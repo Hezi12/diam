@@ -1,5 +1,5 @@
 /**
- * בקר למסמכים (חשבוניות ואישורי הזמנה)
+ * בקר למסמכים (חשבוניות)
  */
 
 const Invoice = require('../models/Invoice');
@@ -17,7 +17,7 @@ const path = require('path');
  */
 exports.createDocument = async (req, res) => {
   try {
-    const { bookingId, documentType = 'invoice' } = req.body;
+    const { bookingId, documentType = 'invoice', amount } = req.body;
     
     if (!bookingId) {
       return res.status(400).json({
@@ -44,18 +44,21 @@ exports.createDocument = async (req, res) => {
       });
     }
     
-    // בדיקה אם כבר יש חשבונית להזמנה זו
-    const existingInvoice = await Invoice.findOne({
+    // בדיקה אם כבר יש חשבונית להזמנה זו - רק לשם מידע
+    const existingInvoices = await Invoice.find({
       booking: bookingId,
       documentType: 'invoice'
     });
     
-    if (existingInvoice) {
-      return res.status(200).json({
-        success: true,
-        message: 'כבר קיימת חשבונית להזמנה זו',
-        invoice: existingInvoice
-      });
+    let existingInvoiceInfo = null;
+    if (existingInvoices.length > 0) {
+      const latestInvoice = existingInvoices[existingInvoices.length - 1];
+      existingInvoiceInfo = {
+        invoiceNumber: latestInvoice.invoiceNumber || latestInvoice.icountData?.docNumber,
+        amount: latestInvoice.amount,
+        count: existingInvoices.length
+      };
+      console.log(`⚠️ נמצאו ${existingInvoices.length} חשבוניות קיימות להזמנה זו. אחרונה: ${existingInvoiceInfo.invoiceNumber}`);
     }
     
     // הכנת נתוני לקוח
@@ -70,8 +73,8 @@ exports.createDocument = async (req, res) => {
     const checkInDate = new Date(booking.checkIn);
     const checkOutDate = new Date(booking.checkOut);
     
-    // סכומים
-    const total = booking.price || 0;
+    // סכומים - משתמש בסכום שנשלח בדיוק (גם אם הוא 0) או בסכום מההזמנה
+    const total = amount !== undefined && amount !== null ? amount : (booking.price || 0);
     
     // בדיקה האם הלקוח תייר
     const isTaxExempt = booking.isTourist === true;
@@ -82,15 +85,15 @@ exports.createDocument = async (req, res) => {
     let subtotal, unitPrice;
     
     if (isTaxExempt) {
-      // תייר - המחיר שמור הוא כבר ללא מע"מ
+      // תייר - הסכום שהוכנס הוא ללא מע"מ
       subtotal = total;
-      unitPrice = booking.pricePerNightNoVat || (booking.price / (booking.nights || 1));
-      console.log(`💰 חשבונית לתייר: ${total} ₪ (ללא מע"מ)`);
+      unitPrice = total / (booking.nights || 1); // מחיר ללילה ללא מע"מ
+      console.log(`💰 חשבונית לתייר: ${total} ₪ (ללא מע"מ) - unitPrice=${unitPrice} למחיר ללילה`);
     } else {
-      // תושב - המחיר כולל מע"מ, צריך לחשב את הסכום ללא מע"מ
-      subtotal = Math.round((total / 1.17) * 100) / 100; // חישוב לאחור ממחיר כולל מע"מ
-      unitPrice = booking.pricePerNightNoVat || (booking.price / (booking.nights * 1.17));
-      console.log(`💰 חשבונית לתושב: ${subtotal} ₪ + מע"מ = ${total} ₪`);
+      // תושב - הסכום שהוכנס כולל מע"מ, צריך לחשב את המחיר ללא מע"מ
+      subtotal = Math.round((total / 1.18) * 100) / 100; // חישוב לאחור ממחיר כולל מע"מ (מע"מ 18%)
+      unitPrice = Math.round((subtotal / (booking.nights || 1)) * 100) / 100; // מחיר ללילה ללא מע"מ
+      console.log(`💰 חשבונית לתושב: ${subtotal} ₪ ללא מע"מ + מע"מ = ${total} ₪ כולל - unitPrice=${unitPrice} למחיר ללילה`);
     }
     
     // הכנת פריטים לחשבונית
@@ -192,11 +195,18 @@ exports.createDocument = async (req, res) => {
     booking.invoice = invoice._id;
     await booking.save();
     
+    // הכנת הודעה מתאימה
+    let message = 'חשבונית נוצרה בהצלחה';
+    if (existingInvoiceInfo) {
+      message = `חשבונית נוצרה בהצלחה (זו חשבונית מס' ${existingInvoiceInfo.count + 1} להזמנה זו)`;
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'חשבונית נוצרה בהצלחה',
+      message,
       invoice,
-      icountData: icountResponse
+      icountData: icountResponse,
+      existingInvoice: existingInvoiceInfo
     });
     
   } catch (error) {

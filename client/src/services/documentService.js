@@ -11,18 +11,26 @@ class DocumentService {
    * 
    * @param {string} bookingId - מזהה ההזמנה
    * @param {string} documentType - סוג המסמך (רק invoice נתמך)
+   * @param {number} amount - סכום החשבונית (אופציונלי)
    * @returns {Promise<Object>} - תוצאות יצירת המסמך
    */
-  async createDocument(bookingId, documentType = 'invoice') {
+  async createDocument(bookingId, documentType = 'invoice', amount = null) {
     try {
       if (!bookingId) {
         throw new Error('מזהה הזמנה חסר');
       }
 
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.documents.base}`, {
+      const requestData = {
         bookingId,
         documentType
-      });
+      };
+      
+      // הוספת סכום אם סופק
+      if (amount !== null && amount !== undefined) {
+        requestData.amount = amount;
+      }
+
+      const response = await axios.post(`${API_URL}${API_ENDPOINTS.documents.base}`, requestData);
 
       return response.data;
     } catch (error) {
