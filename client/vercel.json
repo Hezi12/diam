@@ -4,7 +4,7 @@
   ],
   "build": {
     "env": {
-      "REACT_APP_API_URL": "https://diam-server.onrender.com/api"
+      "REACT_APP_API_URL": "https://diam-loy6.onrender.com"
     }
   }
 } 
