@@ -13,6 +13,15 @@ class ICountService {
   constructor() {
     this.baseUrl = 'https://api.icount.co.il/api/v3.php';
     
+    // הגדרת axios עם timeout מותאם
+    this.axiosInstance = axios.create({
+      timeout: 30000, // 30 שניות timeout
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'DiamHotels/1.0'
+      }
+    });
+    
     // הגדרות חשבונות לפי מיקום
     this.accounts = {
       airport: {
@@ -147,10 +156,17 @@ class ICountService {
       })));
       
       // שליחת הבקשה ל-API של iCount
-      const response = await axios.post(
+      console.log(`🌐 מתחבר ל-iCount API: ${this.baseUrl}/doc/create`);
+      console.log(`⏱️ יש timeout של 30 שניות`);
+      
+      const startTime = Date.now();
+      const response = await this.axiosInstance.post(
         `${this.baseUrl}/doc/create`,
         requestData
       );
+      const endTime = Date.now();
+      
+      console.log(`⚡ זמן תגובה מ-iCount: ${endTime - startTime}ms`);
       
       if (response.data && response.data.status === 'error') {
         throw new Error(`שגיאה ביצירת מסמך ב-iCount: ${response.data.error}`);
@@ -167,9 +183,22 @@ class ICountService {
     } catch (error) {
       console.error('❌ שגיאה ביצירת מסמך ב-iCount:', error.message);
       
+      // טיפול מפורט בסוגי שגיאות שונים
+      if (error.code === 'ECONNABORTED') {
+        console.error('⏱️ השגיאה: timeout - החיבור ל-iCount API לקח יותר מ-30 שניות');
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error('🚫 השגיאה: חיבור נדחה - iCount API לא זמין');
+      } else if (error.code === 'ENOTFOUND') {
+        console.error('🌐 השגיאה: DNS לא נמצא - בעיה בפתרון כתובת iCount API');
+      } else if (error.code === 'ETIMEDOUT') {
+        console.error('⏰ השגיאה: timeout ברשת - החיבור ל-iCount API נכשל');
+      }
+      
       // אם יש תשובה משרת iCount עם פרטי שגיאה
       if (error.response && error.response.data) {
         console.error('🔍 פרטי השגיאה מ-iCount:', error.response.data);
+        console.error('📊 סטטוס HTTP:', error.response.status);
+        console.error('📋 headers:', error.response.headers);
       }
       
       throw error;
@@ -373,7 +402,14 @@ class ICountService {
       });
       
       // שליחת בקשת סליקה
-      const response = await axios.post(`${this.baseUrl}/cc/bill`, requestData);
+      console.log(`🌐 מתחבר ל-iCount API לסליקה: ${this.baseUrl}/cc/bill`);
+      console.log(`⏱️ יש timeout של 30 שניות`);
+      
+      const startTime = Date.now();
+      const response = await this.axiosInstance.post(`${this.baseUrl}/cc/bill`, requestData);
+      const endTime = Date.now();
+      
+      console.log(`⚡ זמן תגובה מ-iCount לסליקה: ${endTime - startTime}ms`);
       
       console.log(`✅ תגובה מ-iCount:`, response.data);
       
@@ -401,7 +437,24 @@ class ICountService {
       };
       
     } catch (error) {
-      console.error('❌ שגיאה בחיוב כרטיס אשראי:', error);
+      console.error('❌ שגיאה בחיוב כרטיס אשראי:', error.message);
+      
+      // טיפול מפורט בסוגי שגיאות שונים
+      if (error.code === 'ECONNABORTED') {
+        console.error('⏱️ השגיאה: timeout - החיבור ל-iCount API לקח יותר מ-30 שניות');
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error('🚫 השגיאה: חיבור נדחה - iCount API לא זמין');
+      } else if (error.code === 'ENOTFOUND') {
+        console.error('🌐 השגיאה: DNS לא נמצא - בעיה בפתרון כתובת iCount API');
+      } else if (error.code === 'ETIMEDOUT') {
+        console.error('⏰ השגיאה: timeout ברשת - החיבור ל-iCount API נכשל');
+      }
+      
+      if (error.response && error.response.data) {
+        console.error('🔍 פרטי השגיאה מ-iCount:', error.response.data);
+        console.error('📊 סטטוס HTTP:', error.response.status);
+      }
+      
       throw error;
     }
   }

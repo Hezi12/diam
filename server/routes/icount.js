@@ -313,6 +313,58 @@ router.get('/health', async (req, res) => {
 });
 
 /**
+ * בדיקת חיבור ישיר ל-iCount API - ללא אימות
+ * GET /api/icount/direct-test
+ */
+router.get('/direct-test', async (req, res) => {
+  try {
+    console.log('🧪 מתחיל בדיקת חיבור ישיר ל-iCount API...');
+    
+    const axios = require('axios');
+    const startTime = Date.now();
+    
+    // נוסה לעשות בקשה פשוטה ל-iCount API
+    const response = await axios.get('https://api.icount.co.il', {
+      timeout: 10000
+    });
+    
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    console.log(`✅ חיבור ל-iCount API הצליח בזמן ${responseTime}ms`);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'חיבור ישיר ל-iCount API הצליח',
+      responseTime: responseTime,
+      status: response.status,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ בדיקת חיבור ישיר נכשלה:', error.message);
+    
+    const errorInfo = {
+      success: false,
+      message: 'חיבור ישיר ל-iCount API נכשל',
+      error: error.message,
+      code: error.code,
+      timestamp: new Date().toISOString()
+    };
+    
+    if (error.code === 'ECONNABORTED') {
+      errorInfo.description = 'timeout - החיבור לקח יותר מ-10 שניות';
+    } else if (error.code === 'ECONNREFUSED') {
+      errorInfo.description = 'חיבור נדחה - השרת לא זמין';
+    } else if (error.code === 'ENOTFOUND') {
+      errorInfo.description = 'DNS לא נמצא - בעיה בפתרון כתובת';
+    }
+    
+    return res.status(500).json(errorInfo);
+  }
+});
+
+/**
  * מיגרציה המונית של חשבוניות ל-iCount
  * POST /api/icount/bulk-migrate
  */
