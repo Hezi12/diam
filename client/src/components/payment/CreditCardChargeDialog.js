@@ -446,23 +446,23 @@ ${importantInfo}
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background-color: #f5f5f5;
             color: #333;
-            line-height: 1.6;
+            line-height: 1.4;
         }
         .container {
             max-width: 800px;
             margin: 0 auto;
             background: white;
-            padding: 30px;
+            padding: 15px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #1976d2;
         }
         .header h1 {
@@ -549,15 +549,15 @@ ${importantInfo}
             <h2 style="margin: 10px 0; font-size: 1.3em;">אישור הזמנה #${booking.bookingNumber}</h2>
         </div>
 
-        <div style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
-            <h3 style="margin: 0 0 8px 0; color: #333; font-size: 1.1em;">לכבוד</h3>
+        <div style="margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #ddd;">
+            <h3 style="margin: 0 0 4px 0; color: #333; font-size: 1.1em;">לכבוד</h3>
             <p style="margin: 0; font-size: 1.1em; font-weight: bold;">${booking.firstName} ${booking.lastName}</p>
-            <p style="margin: 3px 0 0 0; color: #666;">טלפון: ${booking.phone}</p>
+            <p style="margin: 2px 0 0 0; color: #666;">טלפון: ${booking.phone}</p>
         </div>
 
-        <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; padding-bottom: 8px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">פרטי השהייה</h3>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
+        <div style="margin-bottom: 12px;">
+            <h3 style="margin: 0 0 6px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">פרטי השהייה</h3>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
                 <div>
                     <strong>צ'ק אין:</strong><br/>
                     ${new Date(booking.checkIn).toLocaleDateString('he-IL')}
@@ -577,8 +577,8 @@ ${importantInfo}
             </div>
         </div>
 
-        <div style="margin-bottom: 30px;">
-            <h3 style="margin: 0 0 15px 0; padding-bottom: 8px; border-bottom: 1px solid #ddd; color: #333;">פירוט חיוב</h3>
+        <div style="margin-bottom: 15px;">
+            <h3 style="margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333;">פירוט חיוב</h3>
             
             <div style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd;">
@@ -594,28 +594,28 @@ ${importantInfo}
                 ` : ''}
             </div>
 
-            <div style="display: flex; justify-content: space-between; padding: 15px; border-top: 2px solid #333; background-color: #f5f5f5; font-weight: bold; font-size: 1.2em;">
+            <div style="display: flex; justify-content: space-between; padding: 10px; border-top: 2px solid #333; background-color: #f5f5f5; font-weight: bold; font-size: 1.1em;">
                 <span>סה"כ לתשלום</span>
                 <span style="color: #1976d2;">₪${booking.price.toLocaleString()}</span>
             </div>
         </div>
 
         ${booking.notes ? `
-        <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; padding-bottom: 8px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">הערות</h3>
-            <p style="margin: 8px 0 0 0;">${booking.notes}</p>
+        <div style="margin-bottom: 10px;">
+            <h3 style="margin: 0 0 4px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">הערות</h3>
+            <p style="margin: 4px 0 0 0;">${booking.notes}</p>
         </div>
         ` : ''}
 
-        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ffa726; border-radius: 5px; background-color: #fff3e0;">
-            <h3 style="margin: 0 0 8px 0; color: #e65100; font-size: 1.1em;">מידע חשוב</h3>
-            <div style="white-space: pre-line; line-height: 1.6; margin-top: 8px;">
+        <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ffa726; border-radius: 5px; background-color: #fff3e0;">
+            <h3 style="margin: 0 0 4px 0; color: #e65100; font-size: 1.1em;">מידע חשוב</h3>
+            <div style="white-space: pre-line; line-height: 1.4; margin-top: 4px;">
                 ${importantInfo}
             </div>
         </div>
 
         <div class="footer">
-            <p><em>תודה שבחרת ב-${hotelName} - מחכים לראותך!</em></p>
+            <p style="margin: 8px 0 0 0;"><em>תודה שבחרת ב-${hotelName} - מחכים לראותך!</em></p>
         </div>
     </div>
 </body>

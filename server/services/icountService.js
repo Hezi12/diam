@@ -78,14 +78,14 @@ class ICountService {
         cid: accountDetails.companyId,
         user: accountDetails.username,
         pass: accountDetails.password,
-        vat_id: accountDetails.vatId,
+        vat_id: "0",
         
         // סוג מסמך וסטטוס
         doctype: 'invoice',
         
         // פרטי לקוח
         client_name: invoiceData.customer.name,
-        client_id: "פרטי",
+        client_id: "0",
         email: invoiceData.customer.email || '',
         client_address: invoiceData.customer.address || '',
         client_phone: invoiceData.customer.phone || '',
@@ -374,7 +374,7 @@ class ICountService {
         cid: accountDetails.companyId,
         user: accountDetails.username,
         pass: accountDetails.password,
-        vat_id: accountDetails.vatId,
+        vat_id: "0",
         
         // פרטי לקוח
         client_name: `${booking.firstName} ${booking.lastName}`.trim(),
