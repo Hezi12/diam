@@ -261,6 +261,44 @@ const NewBookingForm = ({
     }
   };
 
+  /**
+   * חישוב מחיר עם אורחים נוספים
+   * @param {Object} roomData - נתוני החדר
+   * @param {number} guests - מספר אורחים
+   * @param {boolean} isTourist - האם תייר
+   * @param {number} nights - מספר לילות
+   * @returns {Object} - אובייקט עם המחירים המחושבים
+   */
+  const calculatePriceWithExtraGuests = (roomData, guests, isTourist, nights) => {
+    if (!roomData) return { pricePerNight: 0, pricePerNightNoVat: 0, totalPrice: 0 };
+    
+    // מחיר בסיס לפי סטטוס תייר
+    const baseVatPrice = roomData.vatPrice || 0;
+    const baseNoVatPrice = roomData.basePrice || 0;
+    const basePricePerNight = isTourist ? baseNoVatPrice : baseVatPrice;
+    
+    // חישוב תוספת לאורחים נוספים
+    const baseOccupancy = roomData.baseOccupancy || 2;
+    const extraGuestCharge = roomData.extraGuestCharge || 0;
+    const extraGuests = Math.max(0, guests - baseOccupancy);
+    const extraCharge = extraGuests * extraGuestCharge;
+    
+    // מחיר סופי ללילה
+    const pricePerNight = basePricePerNight + extraCharge;
+    const pricePerNightNoVat = baseNoVatPrice + extraCharge;
+    
+    // מחיר כולל
+    const totalPrice = parseFloat((pricePerNight * nights).toFixed(2));
+    
+    return {
+      pricePerNight,
+      pricePerNightNoVat,
+      totalPrice,
+      extraGuests,
+      extraCharge
+    };
+  };
+
   // איפוס הטופס כאשר הדיאלוג נפתח
   useEffect(() => {
     if (open) {
@@ -428,23 +466,21 @@ const NewBookingForm = ({
       const roomFromProps = rooms.find(room => room._id === actualRoomId);
       
       if (roomFromProps) {
-        // חישוב מחירים לפי סטטוס תייר
-        const vatPrice = roomFromProps.vatPrice || 0;
-        const noVatPrice = roomFromProps.basePrice || 0;
-        const pricePerNight = formData.isTourist ? noVatPrice : vatPrice;
-        const pricePerNightNoVat = noVatPrice;
-        
-        // חישוב מחיר כולל לפי מספר הלילות
-        const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(2));
+        // חישוב מחירים עם אורחים נוספים
+        const priceCalculation = calculatePriceWithExtraGuests(
+          roomFromProps, 
+          formData.guests, 
+          formData.isTourist, 
+          formData.nights
+        );
         
         // עדכון הטופס
         setFormData(prev => ({
           ...prev,
-          // וידוא שהחדר הוא מזהה ולא אובייקט
           room: actualRoomId,
-          pricePerNight,
-          pricePerNightNoVat,
-          price: totalPrice
+          pricePerNight: priceCalculation.pricePerNight,
+          pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+          price: priceCalculation.totalPrice
         }));
         
         // עדכון פרטי המחיר לחישובים עתידיים
@@ -454,7 +490,10 @@ const NewBookingForm = ({
           fridayPrice: roomFromProps.fridayPrice || roomFromProps.basePrice,
           vatPrice: roomFromProps.vatPrice,
           extraGuestCharge: roomFromProps.extraGuestCharge || 0,
-          baseOccupancy: roomFromProps.baseOccupancy || 2
+          baseOccupancy: roomFromProps.baseOccupancy || 2,
+          guests: formData.guests,
+          nights: formData.nights,
+          isTourist: formData.isTourist
         }));
         
         return;
@@ -465,22 +504,21 @@ const NewBookingForm = ({
       const roomData = response.data;
       
       if (roomData) {
-        const vatPrice = roomData.vatPrice || 0;
-        const noVatPrice = roomData.basePrice || 0;
-        const pricePerNight = formData.isTourist ? noVatPrice : vatPrice;
-        const pricePerNightNoVat = noVatPrice;
-        
-        // חישוב מחיר כולל לפי מספר הלילות
-        const totalPrice = parseFloat((pricePerNight * formData.nights).toFixed(2));
+        // חישוב מחירים עם אורחים נוספים
+        const priceCalculation = calculatePriceWithExtraGuests(
+          roomData, 
+          formData.guests, 
+          formData.isTourist, 
+          formData.nights
+        );
         
         // עדכון הטופס
         setFormData(prev => ({
           ...prev,
-          // וידוא שהחדר הוא מזהה ולא אובייקט
           room: actualRoomId,
-          pricePerNight,
-          pricePerNightNoVat,
-          price: totalPrice
+          pricePerNight: priceCalculation.pricePerNight,
+          pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+          price: priceCalculation.totalPrice
         }));
         
         // עדכון פרטי המחיר לחישובים עתידיים
@@ -490,7 +528,10 @@ const NewBookingForm = ({
           fridayPrice: roomData.fridayPrice || roomData.basePrice,
           vatPrice: roomData.vatPrice,
           extraGuestCharge: roomData.extraGuestCharge || 0,
-          baseOccupancy: roomData.baseOccupancy || 2
+          baseOccupancy: roomData.baseOccupancy || 2,
+          guests: formData.guests,
+          nights: formData.nights,
+          isTourist: formData.isTourist
         }));
       }
     } catch (error) {
@@ -515,18 +556,37 @@ const NewBookingForm = ({
     }
   }, [formData.room, formData.isTourist]);
   
-  // עדכון המחיר הכולל כאשר מספר הלילות משתנה
+  // עדכון המחיר הכולל כאשר מספר הלילות או האורחים משתנה
   useEffect(() => {
-    if (formData.pricePerNight && formData.nights) {
-      // חישוב המחיר הכולל לפי מספר הלילות ומחיר ללילה
-      const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(2));
-    
-    setFormData(prev => ({
-      ...prev,
-        price: totalPrice
-    }));
+    if (formData.room && formData.pricePerNight && formData.nights) {
+      // מציאת החדר הנבחר
+      const selectedRoom = rooms.find(room => room._id === formData.room);
+      
+      if (selectedRoom) {
+        // חישוב מחיר מחדש עם מספר האורחים הנוכחי
+        const priceCalculation = calculatePriceWithExtraGuests(
+          selectedRoom, 
+          formData.guests, 
+          formData.isTourist, 
+          formData.nights
+        );
+        
+        setFormData(prev => ({
+          ...prev,
+          pricePerNight: priceCalculation.pricePerNight,
+          pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+          price: priceCalculation.totalPrice
+        }));
+      } else {
+        // אם לא מצאנו את החדר, נשתמש במחיר הקיים
+        const totalPrice = parseFloat((formData.pricePerNight * formData.nights).toFixed(2));
+        setFormData(prev => ({
+          ...prev,
+          price: totalPrice
+        }));
+      }
     }
-  }, [formData.nights, formData.pricePerNight]);
+  }, [formData.nights, formData.guests, formData.isTourist, rooms]);
 
   // חישוב מחיר והתאמות לפי תאריכים וחדר נבחר
   useEffect(() => {
@@ -568,6 +628,7 @@ const NewBookingForm = ({
         checkOut: formData.checkOut,
         room: formData.room,
         isTourist: formData.isTourist,
+        guests: formData.guests,
         hasRoomBeenChanged: false
       };
       
@@ -594,7 +655,8 @@ const NewBookingForm = ({
     
     // עדכון המעקב אחר החדר
     prevFormState.current.room = formData.room;
-  }, [formData.room, isExistingBooking]);
+    prevFormState.current.guests = formData.guests;
+  }, [formData.room, formData.guests, isExistingBooking]);
 
   // מעקב אחר שינויים כשאחד מהשדות משתנה
   useEffect(() => {
@@ -603,25 +665,38 @@ const NewBookingForm = ({
       return;
     }
     
-    // פונקציה לבדיקה אם יום מסוים הוא יום שישי
-    const isFriday = (date) => {
-      const day = new Date(date).getDay();
-      return day === 5; // 0 = ראשון, 5 = שישי
-    };
-    
     // אם התאריכים או מספר האורחים השתנו, נעדכן את המחיר בהתאם
     const checkInChanged = formData.checkIn.getTime() !== prevFormState.current.checkIn.getTime();
     const checkOutChanged = formData.checkOut.getTime() !== prevFormState.current.checkOut.getTime();
     const isTouristChanged = formData.isTourist !== prevFormState.current.isTourist;
     const guestsChanged = formData.guests !== prevFormState.current.guests;
     
-    if ((checkInChanged || checkOutChanged || isTouristChanged || guestsChanged) && !isExistingBooking) {
-      // לוגיקה מורכבת לחישוב מחיר מחדש...
-      // בהזמנות קיימות נשמור על המחיר המקורי אלא אם המשתמש שינה אותו באופן מפורש
+    if ((checkInChanged || checkOutChanged || isTouristChanged || guestsChanged) && !isExistingBooking && formData.room) {
+      // חישוב מחיר מחדש עם הפרמטרים החדשים
+      const selectedRoom = rooms.find(room => room._id === formData.room);
+      if (selectedRoom) {
+        const priceCalculation = calculatePriceWithExtraGuests(
+          selectedRoom, 
+          formData.guests, 
+          formData.isTourist, 
+          formData.nights
+        );
+        
+        setFormData(prev => ({
+          ...prev,
+          pricePerNight: priceCalculation.pricePerNight,
+          pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+          price: priceCalculation.totalPrice
+        }));
+      }
     }
     
-    // אין קריאה ל-fetchRoomData כאן - הועבר ל-useEffect הקודם
-  }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist, formData.guests]);
+    // עדכון המצב הקודם
+    prevFormState.current.checkIn = formData.checkIn;
+    prevFormState.current.checkOut = formData.checkOut;
+    prevFormState.current.isTourist = formData.isTourist;
+    prevFormState.current.guests = formData.guests;
+  }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist, formData.guests, rooms, isExistingBooking]);
 
   // בדיקת תקינות הטופס
   const validateForm = () => {

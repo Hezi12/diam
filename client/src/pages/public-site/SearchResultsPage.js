@@ -45,16 +45,23 @@ const SearchResultsPage = () => {
   const searchParams = new URLSearchParams(location.search);
   const checkInStr = searchParams.get('checkIn');
   const checkOutStr = searchParams.get('checkOut');
+  const nightsStr = searchParams.get('nights');
+  const guestsStr = searchParams.get('guests');
+  const isTouristStr = searchParams.get('isTourist');
   
   // בדיקת תקינות פרמטרים
   const validParams = checkInStr && checkOutStr;
   
-  // המרה לתאריכים
+  // המרה לתאריכים, מספר אורחים וסטטוס תייר
   const checkIn = validParams ? parseISO(checkInStr) : null;
   const checkOut = validParams ? parseISO(checkOutStr) : null;
+  const guests = parseInt(guestsStr, 10) || 2;
+  const isTourist = isTouristStr === 'true';
   
-  // חישוב מספר לילות
-  const nightsCount = validParams ? differenceInDays(checkOut, checkIn) : 0;
+  // חישוב מספר לילות - עדיפות לפרמטר מה-URL, אחרת חישוב מהתאריכים
+  const nightsFromUrl = parseInt(nightsStr, 10);
+  const nightsFromDates = validParams ? differenceInDays(checkOut, checkIn) : 0;
+  const nightsCount = nightsFromUrl && nightsFromUrl > 0 ? nightsFromUrl : nightsFromDates;
   
   useEffect(() => {
     // אם אין פרמטרים תקינים, חזור לדף הבית
@@ -85,9 +92,10 @@ const SearchResultsPage = () => {
         
         const availabilityResults = await Promise.all(availabilityPromises);
         
-        // סינון רק חדרים זמינים
+        // סינון רק חדרים זמינים ומתאימים למספר האורחים
         const available = roomsResponse.data.filter((room, index) => 
-          availabilityResults[index].data.available
+          availabilityResults[index].data.available && 
+          room.maxOccupancy >= guests
         );
         
         setAvailableRooms(available);
@@ -100,7 +108,7 @@ const SearchResultsPage = () => {
     };
     
     fetchRooms();
-  }, [checkInStr, checkOutStr, navigate, validParams]);
+  }, [checkInStr, checkOutStr, guests, nightsCount, navigate, validParams]);
   
   // פורמט תאריכים לתצוגה
   const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
@@ -140,6 +148,40 @@ const SearchResultsPage = () => {
     );
   };
   
+  /**
+   * חישוב מחיר עם אורחים נוספים וסטטוס תייר
+   * @param {Object} room - נתוני החדר
+   * @param {number} guests - מספר אורחים
+   * @param {number} nights - מספר לילות
+   * @param {boolean} isTourist - האם תייר
+   * @returns {Object} - אובייקט עם המחירים המחושבים
+   */
+  const calculateRoomPrice = (room, guests, nights, isTourist) => {
+    if (!room) return { pricePerNight: 0, totalPrice: 0 };
+    
+    // מחיר בסיס לפי סטטוס תייר
+    const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+    
+    // חישוב תוספת לאורחים נוספים
+    const baseOccupancy = room.baseOccupancy || 2;
+    const extraGuestCharge = room.extraGuestCharge || 0;
+    const extraGuests = Math.max(0, guests - baseOccupancy);
+    const extraCharge = extraGuests * extraGuestCharge;
+    
+    // מחיר סופי ללילה
+    const pricePerNight = basePricePerNight + extraCharge;
+    
+    // מחיר כולל
+    const totalPrice = pricePerNight * nights;
+    
+    return {
+      pricePerNight,
+      totalPrice,
+      extraGuests,
+      extraCharge
+    };
+  };
+  
   return (
     <PublicSiteLayout>
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -162,6 +204,14 @@ const SearchResultsPage = () => {
             <Typography variant="body1">
               {formattedCheckIn} - {formattedCheckOut} ({nightsCount} לילות)
             </Typography>
+            {isTourist && (
+              <Chip 
+                label="תייר - מחירים ללא מע״מ" 
+                color="success" 
+                size="small" 
+                sx={{ ml: 2 }}
+              />
+            )}
           </Box>
           
           <Paper elevation={1} sx={{ p: 2, mb: 4, borderRadius: '10px' }}>
@@ -179,85 +229,112 @@ const SearchResultsPage = () => {
           </Alert>
         ) : availableRooms.length === 0 ? (
           <Alert severity="info" sx={{ mb: 4 }}>
-            אין חדרים זמינים בתאריכים שנבחרו. אנא נסה תאריכים אחרים.
+            אין חדרים זמינים בתאריכים שנבחרו עבור {guests} אורח{guests > 1 ? 'ים' : ''}. 
+            אנא נסה תאריכים אחרים או מספר אורחים קטן יותר.
           </Alert>
         ) : (
           <Grid container spacing={3}>
-            {availableRooms.map((room) => (
-              <Grid item xs={12} md={6} lg={4} key={room._id}>
-                <Card 
-                  elevation={2} 
-                  sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    borderRadius: '10px',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                >
-                  {renderRoomImage(room)}
-                  
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography gutterBottom variant="h6" component="h2" fontWeight={600}>
-                        {room.category}
-                      </Typography>
-                      <Chip 
-                        label={`חדר ${room.roomNumber}`} 
-                        size="small" 
-                        sx={{ bgcolor: 'rgba(25, 118, 210, 0.1)', color: 'primary.main' }}
-                      />
-                    </Box>
+            {availableRooms.map((room) => {
+              const roomPricing = calculateRoomPrice(room, guests, nightsCount, isTourist);
+              
+              return (
+                <Grid item xs={12} md={6} lg={4} key={room._id}>
+                  <Card 
+                    elevation={2} 
+                    sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      borderRadius: '10px',
+                      transition: 'transform 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-5px)',
+                        boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
+                      }
+                    }}
+                  >
+                    {renderRoomImage(room)}
                     
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      {room.description || 'חדר מאובזר ונוח למנוחה מושלמת. כולל מזגן, טלוויזיה ומקלחת פרטית.'}
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                      {room.amenities && room.amenities.map((amenity, idx) => (
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography gutterBottom variant="h6" component="h2" fontWeight={600}>
+                          {room.category}
+                        </Typography>
                         <Chip 
-                          key={idx} 
-                          label={amenity} 
+                          label={`חדר ${room.roomNumber}`} 
                           size="small" 
-                          variant="outlined"
-                          sx={{ fontSize: '0.75rem' }}
+                          sx={{ bgcolor: 'rgba(25, 118, 210, 0.1)', color: 'primary.main' }}
                         />
-                      ))}
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">
-                        עד {room.maxOccupancy} אורחים
+                      </Box>
+                      
+                      <Typography variant="body2" color="text.secondary" paragraph>
+                        {room.description || 'חדר מאובזר ונוח למנוחה מושלמת. כולל מזגן, טלוויזיה ומקלחת פרטית.'}
                       </Typography>
-                      <Typography variant="h6" color="primary.main" fontWeight={600}>
-                        {room.vatPrice} ₪ / לילה
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                  
-                  <Divider />
-                  
-                  <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
-                    <Typography variant="body2" fontWeight={600} color="success.main">
-                      {nightsCount * room.vatPrice} ₪ סה"כ
-                    </Typography>
+                      
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                        {room.amenities && room.amenities.map((amenity, idx) => (
+                          <Chip 
+                            key={idx} 
+                            label={amenity} 
+                            size="small" 
+                            variant="outlined"
+                            sx={{ fontSize: '0.75rem' }}
+                          />
+                        ))}
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="body2">
+                          עד {room.maxOccupancy} אורחים
+                        </Typography>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="h6" color="primary.main" fontWeight={600}>
+                            {roomPricing.pricePerNight} ₪ / לילה
+                          </Typography>
+                          {roomPricing.extraGuests > 0 && (
+                            <Typography variant="caption" color="text.secondary">
+                              כולל {roomPricing.extraGuests} אורח{roomPricing.extraGuests > 1 ? 'ים' : ''} נוסף{roomPricing.extraGuests > 1 ? 'ים' : ''}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                      
+                      {/* הצגת המחיר הכולל בתוך הכרטיס */}
+                      <Box sx={{ 
+                        bgcolor: 'rgba(76, 175, 80, 0.1)', 
+                        borderRadius: 1, 
+                        p: 1.5, 
+                        mb: 1,
+                        border: '1px solid rgba(76, 175, 80, 0.3)'
+                      }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {guests} אורח{guests > 1 ? 'ים' : ''} • {nightsCount} לילות
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700} color="success.main">
+                            {roomPricing.totalPrice} ₪ סה"כ
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
                     
-                    <Button 
-                      variant="contained" 
-                      component={Link}
-                      to={`/airport-booking/book?roomId=${room._id}&checkIn=${checkInStr}&checkOut=${checkOutStr}`}
-                      sx={{ fontWeight: 500 }}
-                    >
-                      הזמן עכשיו
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
+                    <Divider />
+                    
+                    <CardActions sx={{ p: 2, justifyContent: 'center' }}>
+                      <Button 
+                        variant="contained" 
+                        component={Link}
+                        to={`/airport-booking/book?roomId=${room._id}&checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${guests}&isTourist=${isTourist}`}
+                        sx={{ fontWeight: 500, width: '100%' }}
+                        size="large"
+                      >
+                        הזמן עכשיו
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
       </Container>

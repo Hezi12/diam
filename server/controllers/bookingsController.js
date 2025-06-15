@@ -668,7 +668,8 @@ exports.createPublicBooking = async (req, res) => {
       checkIn,
       checkOut,
       notes,
-      creditCard
+      creditCard,
+      isTourist
     } = req.body;
     
     // בדיקת שדות חובה
@@ -740,11 +741,30 @@ exports.createPublicBooking = async (req, res) => {
         basePrice: roomData.basePrice
       });
       
-      // חישוב מספר הלילות ומחיר סופי
+      // חישוב מספר הלילות ומחיר סופי עם אורחים נוספים
       const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-      const price = nights * roomData.vatPrice;
+      const guestsCount = parseInt(guests, 10) || 2;
       
-      console.log('חישוב תמחור:', { nights, price });
+      // חישוב מחיר עם אורחים נוספים
+      const baseOccupancy = roomData.baseOccupancy || 2;
+      const extraGuestCharge = roomData.extraGuestCharge || 0;
+      const extraGuests = Math.max(0, guestsCount - baseOccupancy);
+      const extraCharge = extraGuests * extraGuestCharge;
+      
+      // מחיר ללילה כולל תוספת אורחים
+      const pricePerNight = roomData.vatPrice + extraCharge;
+      const pricePerNightNoVat = roomData.basePrice + extraCharge;
+      const price = nights * pricePerNight;
+      
+              console.log('חישוב תמחור:', { 
+          nights, 
+          guests: guestsCount, 
+          baseOccupancy, 
+          extraGuests, 
+          extraCharge, 
+          pricePerNight, 
+          price 
+        });
       
       // יצירת מספר הזמנה רץ
       const lastBooking = await Booking.findOne({ location: roomData.location })
@@ -760,7 +780,7 @@ exports.createPublicBooking = async (req, res) => {
         lastName,
         email,
         phone,
-        guests: parseInt(guests, 10) || 1,
+        guests: guestsCount,
         room,
         roomNumber: roomData.roomNumber,
         location: roomData.location,
@@ -768,14 +788,15 @@ exports.createPublicBooking = async (req, res) => {
         checkOut: checkOutDate,
         nights,
         price,
-        pricePerNight: roomData.vatPrice,
-        pricePerNightNoVat: roomData.basePrice,
+        pricePerNight: pricePerNight,
+        pricePerNightNoVat: pricePerNightNoVat,
         notes,
         bookingNumber,
         source: 'website',
         paymentMethod: creditCard ? 'credit-card' : 'cash',
         paymentStatus: 'unpaid',
         status: 'pending',
+        isTourist: isTourist || false,
         // שמירת נתוני כרטיס האשראי בצורה מאובטחת
         creditCard: creditCard ? {
           lastDigits: creditCard.cardNumber.slice(-4),

@@ -482,9 +482,10 @@ exports.getPublicRoomsByLocation = async (req, res) => {
     
     console.log(`מחפש חדרים ציבוריים במיקום: ${location}`);
     
-    // מחזיר חדרים במיקום המבוקש, ללא סינון לפי סטטוס
+    // מחזיר חדרים במיקום המבוקש, מסנן חדרים מסוג "Not for Sale"
     const rooms = await Room.find({ 
-      location
+      location,
+      category: { $ne: 'Not for Sale' } // מסנן חדרים שאינם למכירה
     }).select({
       roomNumber: 1,
       category: 1,
@@ -497,6 +498,7 @@ exports.getPublicRoomsByLocation = async (req, res) => {
       images: 1,
       baseOccupancy: 1,
       maxOccupancy: 1,
+      extraGuestCharge: 1,
       location: 1,
       status: 1
     }).sort({ roomNumber: 1 });
@@ -531,6 +533,7 @@ exports.getPublicRoomById = async (req, res) => {
       images: 1,
       baseOccupancy: 1,
       maxOccupancy: 1,
+      extraGuestCharge: 1,
       location: 1,
       status: 1
     });

@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
-  Grid, 
   Paper, 
   Skeleton,
-  ImageList,
-  ImageListItem,
   useMediaQuery,
   useTheme,
   Typography
@@ -16,14 +13,10 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 const GalleryPreview = ({ location, limit = 6 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // מספר העמודות בהתאם לגודל המסך
-  const cols = isMobile ? 1 : isTablet ? 2 : 3;
   
   useEffect(() => {
     const fetchImages = async () => {
@@ -56,16 +49,44 @@ const GalleryPreview = ({ location, limit = 6 }) => {
     fetchImages();
   }, [location, limit]);
   
-  // סקלטון לטעינה
+  // סקלטון לטעינה - שורה אחת
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          gap: 2, 
+          overflowX: 'auto',
+          pb: 1,
+          '&::-webkit-scrollbar': {
+            height: 8,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.1)',
+            borderRadius: 4,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            borderRadius: 4,
+            '&:hover': {
+              backgroundColor: 'rgba(0,0,0,0.5)',
+            }
+          }
+        }}
+      >
         {Array.from(new Array(limit)).map((_, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Skeleton variant="rectangular" width="100%" height={200} />
-          </Grid>
+          <Skeleton 
+            key={index}
+            variant="rectangular" 
+            width={isMobile ? 250 : 300} 
+            height={200} 
+            sx={{ 
+              borderRadius: '10px',
+              flexShrink: 0
+            }}
+          />
         ))}
-      </Grid>
+      </Box>
     );
   }
   
@@ -135,26 +156,50 @@ const GalleryPreview = ({ location, limit = 6 }) => {
   }
   
   return (
-    <ImageList sx={{ overflow: 'hidden' }} cols={cols} gap={16}>
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        gap: 2, 
+        overflowX: 'auto',
+        pb: 1,
+        '&::-webkit-scrollbar': {
+          height: 8,
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'rgba(0,0,0,0.1)',
+          borderRadius: 4,
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: 4,
+          '&:hover': {
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }
+        }
+      }}
+    >
       {images.map((item, index) => (
-        <ImageListItem key={index}>
-          <Paper 
-            elevation={2} 
-            sx={{ 
-              overflow: 'hidden', 
-              borderRadius: '10px',
-              height: '200px',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'scale(1.02)',
-              }
-            }}
-          >
-            {renderGalleryItem(item, index)}
-          </Paper>
-        </ImageListItem>
+        <Paper 
+          key={index}
+          elevation={2} 
+          sx={{ 
+            overflow: 'hidden', 
+            borderRadius: '10px',
+            width: isMobile ? 250 : 300,
+            height: 200,
+            flexShrink: 0,
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'pointer',
+            '&:hover': {
+              transform: 'scale(1.02)',
+              boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
+            }
+          }}
+        >
+          {renderGalleryItem(item, index)}
+        </Paper>
       ))}
-    </ImageList>
+    </Box>
   );
 };
 

@@ -30,7 +30,8 @@ import { styled } from '@mui/material/styles';
 const Footer = styled(Box)(({ theme }) => ({
   backgroundColor: '#2c3e50',
   color: 'white',
-  padding: theme.spacing(6, 0),
+  padding: theme.spacing(1.5, 0),
+  borderTop: '1px solid rgba(255,255,255,0.1)',
 }));
 
 const PublicSiteLayout = ({ children }) => {
@@ -214,52 +215,11 @@ const PublicSiteLayout = ({ children }) => {
         {children}
       </Box>
       
-      {/* פוטר */}
+      {/* פוטר מינימליסטי */}
       <Footer>
         <Container>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Airport Guest House
-              </Typography>
-              <Typography variant="body2">
-                אירוח איכותי במחירים נוחים בקרבת שדה התעופה
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                צור קשר
-              </Typography>
-              <Typography variant="body2" paragraph>
-                טלפון: 03-123-4567
-              </Typography>
-              <Typography variant="body2" paragraph>
-                מייל: info@airport-guesthouse.com
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                קישורים מהירים
-              </Typography>
-              <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none' }}>
-                {menuItems.map((item) => (
-                  <Box component="li" key={item.path} sx={{ mb: 1 }}>
-                    <Link 
-                      to={item.path}
-                      style={{ 
-                        color: 'white', 
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {item.label}
-                    </Link>
-                  </Box>
-                ))}
-              </Box>
-            </Grid>
-          </Grid>
-          <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-            <Typography variant="body2" sx={{ opacity: 0.7 }}>
+          <Box sx={{ py: 2, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ opacity: 0.7, fontSize: '0.875rem' }}>
               &copy; {new Date().getFullYear()} Airport Guest House. כל הזכויות שמורות.
             </Typography>
           </Box>

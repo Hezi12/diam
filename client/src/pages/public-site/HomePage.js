@@ -1,20 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { 
   Box, 
   Container, 
   Typography, 
   Paper, 
   Grid,
-  Button,
-  useMediaQuery,
-  useTheme
+  Button
 } from '@mui/material';
 import { 
-  Hotel as HotelIcon,
   LocationOn as LocationOnIcon,
-  Star as StarIcon,
-  Collections as CollectionsIcon,
-  Info as InfoIcon
+  Collections as CollectionsIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -25,85 +20,68 @@ import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 
 const HomePage = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
   return (
     <PublicSiteLayout>
-      {/* חלק עליון - hero section */}
+      {/* Hero Section - מינימליסטי */}
       <Box
         sx={{
           width: '100%',
-          minHeight: '500px',
-          // backgroundImage: 'url("/images/airport-hero.jpg")',
+          minHeight: '450px',
           background: 'linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
+          alignItems: 'center',
           position: 'relative',
-          mb: 6,
-          // שכבה אפלה על התמונה
+          mb: 8,
           '&::before': {
             content: '""',
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.4)',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.2)',
             zIndex: 1
           }
         }}
       >
-        <Container maxWidth="lg" 
-          sx={{ 
-            position: 'relative', 
-            zIndex: 2, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            textAlign: 'center',
-            py: 6 
-          }}
-        >
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2, textAlign: 'center', py: 6 }}>
           <Typography 
-            variant="h2" 
-            component="h1" 
+            variant="h4" 
+            component="h1"
             sx={{ 
               color: 'white', 
-              fontWeight: 700, 
-              mb: 2,
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)',
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+              mb: 2, 
+              fontWeight: 300,
+              textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' },
+              letterSpacing: '0.5px'
             }}
           >
-            Airport Guest House
+            אירוח איכותי במרחק דקות מנתב"ג
           </Typography>
           
           <Typography 
-            variant="h5" 
+            variant="h6" 
             sx={{ 
-              color: 'white', 
-              mb: 4, 
-              maxWidth: '700px',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)',
-              fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              color: 'rgba(255, 255, 255, 0.9)', 
+              mb: 5, 
+              fontWeight: 300,
+              fontSize: { xs: '1rem', sm: '1.1rem' },
+              maxWidth: '500px',
+              mx: 'auto',
+              lineHeight: 1.6
             }}
           >
-            אירוח נוח ואיכותי במרחק דקות מנתב"ג
+            מלונית נוחה ומקצועית לנוסעים ואנשי עסקים
           </Typography>
           
           <Paper 
-            elevation={3} 
+            elevation={8} 
             sx={{ 
-              p: 3, 
-              width: '100%', 
-              maxWidth: '900px', 
-              borderRadius: '10px',
-              bgcolor: 'rgba(255, 255, 255, 0.95)'
+              p: { xs: 3, sm: 4 }, 
+              maxWidth: '700px', 
+              mx: 'auto',
+              borderRadius: '16px',
+              bgcolor: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)'
             }}
           >
             <SearchBox />
@@ -111,200 +89,112 @@ const HomePage = () => {
         </Container>
       </Box>
       
-      {/* יתרונות */}
+      {/* תיאור ומיקום */}
       <Container maxWidth="lg" sx={{ mb: 8 }}>
-        <Grid container spacing={4} justifyContent="center">
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={1} 
+        <Grid container spacing={6} alignItems="center">
+          {/* תיאור */}
+          <Grid item xs={12} md={6}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
               sx={{ 
-                p: 3, 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                textAlign: 'center',
-                borderRadius: '10px',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                }
+                mb: 4, 
+                fontWeight: 600, 
+                color: 'text.primary',
+                fontSize: { xs: '1.8rem', sm: '2rem' }
               }}
             >
-              <LocationOnIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                מיקום מעולה
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                5 דקות נסיעה בלבד מנמל התעופה בן גוריון. אידיאלי לנוסעים.
-              </Typography>
-            </Paper>
+              למה לבחור בנו?
+            </Typography>
+            
+            <Typography variant="body1" paragraph sx={{ lineHeight: 1.8, fontSize: '1.1rem', mb: 3 }}>
+              Airport Guest House מציעה אירוח איכותי במחירים הוגנים, במיקום מושלם 
+              למטיילים ואנשי עסקים.
+            </Typography>
+            
+            <Typography variant="body1" paragraph sx={{ lineHeight: 1.8, fontSize: '1.1rem', mb: 4 }}>
+              חדרים מאובזרים ונוחים, שירות אישי ומקצועי, וקרבה מקסימלית לנמל התעופה 
+              בן גוריון - הכל במקום אחד.
+            </Typography>
+            
+            <Button 
+              component={Link} 
+              to="/airport-booking/about-contact" 
+              variant="contained" 
+              size="large"
+              sx={{ 
+                mt: 2, 
+                borderRadius: '12px',
+                px: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                textTransform: 'none',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              קרא עוד עלינו
+            </Button>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={1} 
+          {/* מיקום */}
+          <Grid item xs={12} md={6}>
+            <Typography 
+              variant="h5" 
+              component="h3" 
               sx={{ 
-                p: 3, 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
+                mb: 3, 
+                fontWeight: 600, 
                 textAlign: 'center',
-                borderRadius: '10px',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                }
+                color: 'text.primary'
               }}
             >
-              <HotelIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                חדרים מרווחים
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                חדרים נוחים ומאובזרים לשהייה מושלמת, כולל מיזוג אוויר ו-WiFi חינם.
-              </Typography>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
+              המיקום שלנו
+            </Typography>
+            
             <Paper 
-              elevation={1} 
+              elevation={3} 
               sx={{ 
                 p: 3, 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                textAlign: 'center',
-                borderRadius: '10px',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                }
+                borderRadius: '16px',
+                overflow: 'hidden'
               }}
             >
-              <StarIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                שירות אישי
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                צוות אדיב ומקצועי לרשותכם 24/7 לכל בקשה או שאלה במהלך השהייה.
-              </Typography>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={1} 
-              sx={{ 
-                p: 3, 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                textAlign: 'center',
-                borderRadius: '10px',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                }
-              }}
-            >
-              <InfoIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                מחירים הוגנים
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                חווית אירוח איכותית במחירים נוחים לכל כיס, ללא עלויות נסתרות.
-              </Typography>
+              <LocationMap />
+              <Box sx={{ mt: 3, textAlign: 'center', bgcolor: '#f8fafc', p: 2, borderRadius: '8px' }}>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    fontWeight: 500,
+                    color: 'text.primary'
+                  }}
+                >
+                  <LocationOnIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  רחוב הערבה 5, אור יהודה
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  5 דקות נסיעה מנמל התעופה בן גוריון
+                </Typography>
+              </Box>
             </Paper>
           </Grid>
         </Grid>
       </Container>
       
-      {/* אודות */}
-      <Box sx={{ bgcolor: '#f7f7f7', py: 8, mb: 8 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Typography variant="h4" component="h2" sx={{ mb: 3, fontWeight: 600 }}>
-                Airport Guest House
-              </Typography>
-              
-              <Typography variant="body1" paragraph>
-                ברוכים הבאים ל-Airport Guest House, מלונית המציעה אירוח נוח ואיכותי במחירים תחרותיים, במרחק של דקות בלבד מנמל התעופה בן גוריון.
-              </Typography>
-              
-              <Typography variant="body1" paragraph>
-                המלונית שלנו מציעה חדרים מאובזרים היטב, נקיים ומרווחים, המתאימים ליחידים ולמשפחות. כל החדרים כוללים מיזוג אוויר, טלוויזיה, שירותים צמודים וחיבור אינטרנט אלחוטי חינם.
-              </Typography>
-              
-              <Typography variant="body1" paragraph>
-                מיקומנו הנוח והנגיש הופך אותנו לבחירה מושלמת עבור נוסעים בטיסות מוקדמות או מאוחרות, אנשי עסקים ומבקרים באזור המרכז.
-              </Typography>
-              
-              <Button 
-                component={Link} 
-                to="/airport-booking/about-contact" 
-                variant="outlined" 
-                sx={{ mt: 2 }}
-              >
-                קרא עוד
-              </Button>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: '300px',
-                  background: 'linear-gradient(135deg, #e5e7eb 25%, #d1d5db 25%, #d1d5db 50%, #e5e7eb 50%, #e5e7eb 75%, #d1d5db 75%, #d1d5db 100%)',
-                  backgroundSize: '20px 20px',
-                  borderRadius: '10px',
-                  boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Typography variant="body1" sx={{ backgroundColor: 'white', p: 2, borderRadius: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  חדר במלונית Airport Guest House
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-      
-      {/* מפה */}
-      <Container maxWidth="lg" sx={{ mb: 8 }}>
-        <Typography variant="h4" component="h2" sx={{ mb: 4, textAlign: 'center', fontWeight: 600 }}>
-          המיקום שלנו
-        </Typography>
-        
-        <Paper elevation={2} sx={{ p: 2, borderRadius: '10px' }}>
-          <LocationMap />
-          
-          <Box sx={{ mt: 3, p: 2 }}>
-            <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center' }}>
-              <LocationOnIcon sx={{ mr: 1, color: 'primary.main' }} />
-              רחוב הערבה 5, אור יהודה - 5 דקות נסיעה מנתב"ג
-            </Typography>
-          </Box>
-        </Paper>
-      </Container>
-      
       {/* גלריה */}
-      <Box sx={{ bgcolor: '#f7f7f7', py: 8, mb: -4 }}>
+      <Box sx={{ bgcolor: '#f8fafc', py: 8 }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-            <Typography variant="h4" component="h2" sx={{ fontWeight: 600 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              sx={{ 
+                fontWeight: 600,
+                color: 'text.primary'
+              }}
+            >
               גלריה
             </Typography>
             
@@ -312,6 +202,13 @@ const HomePage = () => {
               component={Link} 
               to="/airport-booking/gallery" 
               startIcon={<CollectionsIcon />}
+              variant="outlined"
+              sx={{ 
+                borderRadius: '12px',
+                px: 3,
+                py: 1,
+                textTransform: 'none'
+              }}
             >
               לכל התמונות
             </Button>

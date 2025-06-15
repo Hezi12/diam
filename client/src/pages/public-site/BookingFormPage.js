@@ -86,19 +86,60 @@ const BookingFormPage = () => {
   const roomId = searchParams.get('roomId');
   const checkInStr = searchParams.get('checkIn');
   const checkOutStr = searchParams.get('checkOut');
+  const nightsStr = searchParams.get('nights');
+  const guestsStr = searchParams.get('guests');
+  const isTouristStr = searchParams.get('isTourist');
   
   // בדיקת תקינות פרמטרים
   const validParams = roomId && checkInStr && checkOutStr;
   
-  // המרה לתאריכים
+  // המרה לתאריכים, מספר אורחים וסטטוס תייר
   const checkIn = validParams ? parseISO(checkInStr) : null;
   const checkOut = validParams ? parseISO(checkOutStr) : null;
+  const urlGuests = parseInt(guestsStr, 10) || 2;
+  const isTourist = isTouristStr === 'true';
   
-  // חישוב מספר לילות
-  const nightsCount = validParams ? differenceInDays(checkOut, checkIn) : 0;
+  // חישוב מספר לילות - עדיפות לפרמטר מה-URL, אחרת חישוב מהתאריכים
+  const nightsFromUrl = parseInt(nightsStr, 10);
+  const nightsFromDates = validParams ? differenceInDays(checkOut, checkIn) : 0;
+  const nightsCount = nightsFromUrl && nightsFromUrl > 0 ? nightsFromUrl : nightsFromDates;
   
-  // מחיר סופי
-  const totalPrice = room ? nightsCount * room.vatPrice : 0;
+  /**
+   * חישוב מחיר עם אורחים נוספים וסטטוס תייר
+   * @param {Object} room - נתוני החדר
+   * @param {number} guests - מספר אורחים
+   * @param {number} nights - מספר לילות
+   * @param {boolean} isTourist - האם תייר
+   * @returns {Object} - אובייקט עם המחירים המחושבים
+   */
+  const calculateRoomPrice = (room, guests, nights, isTourist) => {
+    if (!room) return { pricePerNight: 0, totalPrice: 0 };
+    
+    // מחיר בסיס לפי סטטוס תייר
+    const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+    
+    // חישוב תוספת לאורחים נוספים
+    const baseOccupancy = room.baseOccupancy || 2;
+    const extraGuestCharge = room.extraGuestCharge || 0;
+    const extraGuests = Math.max(0, guests - baseOccupancy);
+    const extraCharge = extraGuests * extraGuestCharge;
+    
+    // מחיר סופי ללילה
+    const pricePerNight = basePricePerNight + extraCharge;
+    
+    // מחיר כולל
+    const totalPrice = pricePerNight * nights;
+    
+    return {
+      pricePerNight,
+      totalPrice,
+      extraGuests,
+      extraCharge
+    };
+  };
+  
+  // מחיר סופי מחושב
+  const roomPricing = room ? calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist) : { pricePerNight: 0, totalPrice: 0 };
   
   // עדכון הפונקציה submitBooking
   const submitBooking = async () => {
@@ -116,6 +157,7 @@ const BookingFormPage = () => {
         room: roomId,
         checkIn: checkInStr,
         checkOut: checkOutStr,
+        isTourist: isTourist,
         creditCard: bookingData.paymentMethod === 'credit' ? {
           cardNumber: bookingData.creditCard.cardNumber.replace(/\s/g, ''),
           expiryDate: bookingData.creditCard.expiryDate,
@@ -147,7 +189,8 @@ const BookingFormPage = () => {
           checkOut: checkOutStr,
           roomCategory: room.category,
           roomNumber: room.roomNumber,
-          totalPrice
+          totalPrice: roomPricing.totalPrice,
+          guests: bookingData.guests
         }
       });
     } catch (err) {
@@ -204,10 +247,10 @@ const BookingFormPage = () => {
         const roomResponse = await axios.get(`${API_URL}${API_ENDPOINTS.rooms.public.byId(roomId)}`);
         setRoom(roomResponse.data);
         
-        // עדכון מספר האורחים הראשוני לפי ברירת המחדל של החדר
+        // עדכון מספר האורחים הראשוני לפי הפרמטר מה-URL או ברירת המחדל של החדר
         setBookingData(prev => ({
           ...prev,
-          guests: roomResponse.data.baseOccupancy || 1
+          guests: urlGuests || roomResponse.data.baseOccupancy || 1
         }));
         
       } catch (err) {
@@ -220,7 +263,15 @@ const BookingFormPage = () => {
     };
     
     fetchRoom();
-  }, [roomId, checkInStr, checkOutStr, validParams]);
+  }, [roomId, checkInStr, checkOutStr, nightsCount, validParams]);
+  
+  // עדכון המחיר כשמספר האורחים משתנה
+  useEffect(() => {
+    if (room && bookingData.guests) {
+      const newPricing = calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist);
+      // כאן אפשר להוסיף לוגיקה נוספת אם נדרש
+    }
+  }, [bookingData.guests, room, nightsCount, isTourist]);
   
   // פורמט תאריכים לתצוגה
   const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
@@ -588,7 +639,7 @@ const BookingFormPage = () => {
                     סה"כ לתשלום
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {totalPrice} ₪
+                    {roomPricing.totalPrice} ₪
                   </Typography>
                 </Grid>
               </Grid>
@@ -655,7 +706,7 @@ const BookingFormPage = () => {
         <Box sx={{ mb: 4 }}>
           <IconButton 
             component={Link} 
-            to={`/airport-booking/search-results?checkIn=${checkInStr}&checkOut=${checkOutStr}`}
+            to={`/airport-booking/search-results?checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${urlGuests}&isTourist=${isTourist}`}
             sx={{ mb: 2 }}
           >
             <ArrowBackIcon />
@@ -747,16 +798,45 @@ const BookingFormPage = () => {
                           </Typography>
                         </Box>
                         
+                        {isTourist && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="body2" sx={{ 
+                              bgcolor: 'success.light', 
+                              color: 'success.contrastText', 
+                              px: 1, 
+                              py: 0.5, 
+                              borderRadius: 1,
+                              fontSize: '0.75rem'
+                            }}>
+                              תייר - מחירים ללא מע״מ
+                            </Typography>
+                          </Box>
+                        )}
+                        
                         <Divider sx={{ mb: 2 }} />
                         
                         <Box sx={{ mb: 1 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">מחיר ללילה:</Typography>
-                            <Typography variant="body2">{room?.vatPrice} ₪</Typography>
+                            <Typography variant="body2">מחיר בסיס ללילה:</Typography>
+                            <Typography variant="body2">{isTourist ? room?.basePrice : room?.vatPrice} ₪</Typography>
+                          </Box>
+                          {roomPricing.extraGuests > 0 && (
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="body2">תוספת {roomPricing.extraGuests} אורח{roomPricing.extraGuests > 1 ? 'ים' : ''} נוסף{roomPricing.extraGuests > 1 ? 'ים' : ''}:</Typography>
+                              <Typography variant="body2">{roomPricing.extraCharge} ₪</Typography>
+                            </Box>
+                          )}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                            <Typography variant="body2" fontWeight={600}>מחיר ללילה:</Typography>
+                            <Typography variant="body2" fontWeight={600}>{roomPricing.pricePerNight} ₪</Typography>
                           </Box>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="body2">מספר לילות:</Typography>
                             <Typography variant="body2">{nightsCount}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2">מספר אורחים:</Typography>
+                            <Typography variant="body2">{bookingData.guests}</Typography>
                           </Box>
                         </Box>
                         
@@ -767,7 +847,7 @@ const BookingFormPage = () => {
                             סה"כ לתשלום:
                           </Typography>
                           <Typography variant="h6" fontWeight={700} color="primary.main">
-                            {totalPrice} ₪
+                            {roomPricing.totalPrice} ₪
                           </Typography>
                         </Box>
                         

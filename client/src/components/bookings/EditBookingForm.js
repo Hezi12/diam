@@ -150,21 +150,26 @@ const EditBookingForm = ({
     if (formData.room) {
       const selectedRoom = rooms.find(room => room._id === formData.room);
       if (selectedRoom) {
-        let price = formData.isTourist ? selectedRoom.basePrice : selectedRoom.vatPrice;
-        let priceNoVat = selectedRoom.basePrice;
-        
         // רק אם לא מדובר בטעינה ראשונית של הזמנה קיימת (שיש לה כבר מחיר)
         if (!booking || formData.pricePerNight === 0) {
+          // חישוב מחיר עם אורחים נוספים
+          const priceCalculation = calculatePriceWithExtraGuests(
+            selectedRoom, 
+            formData.guests, 
+            formData.isTourist, 
+            formData.nights
+          );
+          
           setFormData(prev => ({
             ...prev,
-            pricePerNight: price,
-            pricePerNightNoVat: priceNoVat,
-            price: price * prev.nights
+            pricePerNight: priceCalculation.pricePerNight,
+            pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+            price: priceCalculation.totalPrice
           }));
         }
       }
     }
-  }, [formData.room, formData.isTourist, rooms, booking]);
+  }, [formData.room, formData.isTourist, formData.guests, rooms, booking]);
 
   // עדכון הלילות בעת שינוי תאריכים
   useEffect(() => {
@@ -172,14 +177,33 @@ const EditBookingForm = ({
       const nights = Math.max(1, differenceInDays(formData.checkOut, formData.checkIn));
       
       if (nights !== formData.nights) {
-        setFormData(prev => ({
-          ...prev,
-          nights,
-          price: prev.pricePerNight * nights
-        }));
+        // חישוב מחיר מחדש עם מספר הלילות החדש
+        const selectedRoom = rooms.find(room => room._id === formData.room);
+        if (selectedRoom) {
+          const priceCalculation = calculatePriceWithExtraGuests(
+            selectedRoom, 
+            formData.guests, 
+            formData.isTourist, 
+            nights
+          );
+          
+          setFormData(prev => ({
+            ...prev,
+            nights,
+            pricePerNight: priceCalculation.pricePerNight,
+            pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+            price: priceCalculation.totalPrice
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            nights,
+            price: prev.pricePerNight * nights
+          }));
+        }
       }
     }
-  }, [formData.checkIn, formData.checkOut]);
+  }, [formData.checkIn, formData.checkOut, formData.guests, formData.isTourist, rooms]);
 
   // טיפול בשינוי שדות כלליים
   const handleChange = (e) => {
@@ -208,12 +232,32 @@ const EditBookingForm = ({
         ? prev.checkOut 
         : addDays(prev.checkIn, nights);
       
-      return {
-        ...prev,
-        nights,
-        checkOut: newCheckOut,
-        price: prev.pricePerNight * nights
-      };
+      // חישוב מחיר מחדש עם מספר הלילות החדש
+      const selectedRoom = rooms.find(room => room._id === prev.room);
+      if (selectedRoom) {
+        const priceCalculation = calculatePriceWithExtraGuests(
+          selectedRoom, 
+          prev.guests, 
+          prev.isTourist, 
+          nights
+        );
+        
+        return {
+          ...prev,
+          nights,
+          checkOut: newCheckOut,
+          pricePerNight: priceCalculation.pricePerNight,
+          pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+          price: priceCalculation.totalPrice
+        };
+      } else {
+        return {
+          ...prev,
+          nights,
+          checkOut: newCheckOut,
+          price: prev.pricePerNight * nights
+        };
+      }
     });
   };
 
@@ -237,12 +281,32 @@ const EditBookingForm = ({
       // חישוב מספר לילות חדש
       const newNights = Math.max(1, differenceInDays(date, prev.checkIn));
       
-      return {
-        ...prev,
-        checkOut: date,
-        nights: newNights,
-        price: prev.pricePerNight * newNights
-      };
+      // חישוב מחיר מחדש עם מספר הלילות החדש
+      const selectedRoom = rooms.find(room => room._id === prev.room);
+      if (selectedRoom) {
+        const priceCalculation = calculatePriceWithExtraGuests(
+          selectedRoom, 
+          prev.guests, 
+          prev.isTourist, 
+          newNights
+        );
+        
+        return {
+          ...prev,
+          checkOut: date,
+          nights: newNights,
+          pricePerNight: priceCalculation.pricePerNight,
+          pricePerNightNoVat: priceCalculation.pricePerNightNoVat,
+          price: priceCalculation.totalPrice
+        };
+      } else {
+        return {
+          ...prev,
+          checkOut: date,
+          nights: newNights,
+          price: prev.pricePerNight * newNights
+        };
+      }
     });
   };
 
@@ -426,6 +490,44 @@ const EditBookingForm = ({
     'bit_mizrahi', 'paybox_mizrahi', 'transfer_poalim', 'bit_poalim', 
     'paybox_poalim', 'other'
   ].includes(formData.paymentStatus);
+
+  /**
+   * חישוב מחיר עם אורחים נוספים
+   * @param {Object} roomData - נתוני החדר
+   * @param {number} guests - מספר אורחים
+   * @param {boolean} isTourist - האם תייר
+   * @param {number} nights - מספר לילות
+   * @returns {Object} - אובייקט עם המחירים המחושבים
+   */
+  const calculatePriceWithExtraGuests = (roomData, guests, isTourist, nights) => {
+    if (!roomData) return { pricePerNight: 0, pricePerNightNoVat: 0, totalPrice: 0 };
+    
+    // מחיר בסיס לפי סטטוס תייר
+    const baseVatPrice = roomData.vatPrice || 0;
+    const baseNoVatPrice = roomData.basePrice || 0;
+    const basePricePerNight = isTourist ? baseNoVatPrice : baseVatPrice;
+    
+    // חישוב תוספת לאורחים נוספים
+    const baseOccupancy = roomData.baseOccupancy || 2;
+    const extraGuestCharge = roomData.extraGuestCharge || 0;
+    const extraGuests = Math.max(0, guests - baseOccupancy);
+    const extraCharge = extraGuests * extraGuestCharge;
+    
+    // מחיר סופי ללילה
+    const pricePerNight = basePricePerNight + extraCharge;
+    const pricePerNightNoVat = baseNoVatPrice + extraCharge;
+    
+    // מחיר כולל
+    const totalPrice = parseFloat((pricePerNight * nights).toFixed(2));
+    
+    return {
+      pricePerNight,
+      pricePerNightNoVat,
+      totalPrice,
+      extraGuests,
+      extraCharge
+    };
+  };
 
   return (
     <Dialog
