@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Room = require('../models/Room');
+const Counter = require('../models/Counter');
 const capitalController = require('./capitalController');
 
 // קבלת כל ההזמנות
@@ -223,10 +224,15 @@ exports.createBooking = async (req, res) => {
     // חישוב מספר לילות במידה ולא סופק
     const calculatedNights = nights || Math.ceil((checkOutUTC - checkInUTC) / (1000 * 60 * 60 * 24));
     
+    // יצירת מספר הזמנה רץ באופן atomic
+    const locationKey = `bookingNumber_${location || room.location}`;
+    const bookingNumber = await Counter.getNextSequence(locationKey);
+    console.log('מספר הזמנה חדש (atomic):', bookingNumber);
+    
     // יצירת אובייקט ההזמנה
     const newBooking = new Booking({
       room: roomId,
-      location,
+      location: location || room.location,
       firstName,
       lastName,
       phone,
@@ -243,6 +249,7 @@ exports.createBooking = async (req, res) => {
       creditCard,
       status: status || 'pending',
       notes,
+      bookingNumber,
       source: req.body.source || 'direct',
       externalBookingNumber: req.body.externalBookingNumber || ''
     });
@@ -766,13 +773,10 @@ exports.createPublicBooking = async (req, res) => {
           price 
         });
       
-      // יצירת מספר הזמנה רץ
-      const lastBooking = await Booking.findOne({ location: roomData.location })
-        .sort({ bookingNumber: -1 })
-        .limit(1);
-      
-      const bookingNumber = lastBooking ? lastBooking.bookingNumber + 1 : 1000;
-      console.log('מספר הזמנה חדש:', bookingNumber);
+      // יצירת מספר הזמנה רץ באופן atomic
+      const locationKey = `bookingNumber_${roomData.location}`;
+      const bookingNumber = await Counter.getNextSequence(locationKey);
+      console.log('מספר הזמנה חדש (atomic):', bookingNumber);
       
       // יצירת ההזמנה החדשה
       const newBookingData = {
@@ -792,15 +796,16 @@ exports.createPublicBooking = async (req, res) => {
         pricePerNightNoVat: pricePerNightNoVat,
         notes,
         bookingNumber,
-        source: 'website',
+        source: 'home_website',
         paymentMethod: creditCard ? 'credit-card' : 'cash',
         paymentStatus: 'unpaid',
         status: 'pending',
         isTourist: isTourist || false,
-        // שמירת נתוני כרטיס האשראי בצורה מאובטחת
+        // שמירת נתוני כרטיס האשראי מלאים (כמו בהזמנות רגילות)
         creditCard: creditCard ? {
-          lastDigits: creditCard.cardNumber.slice(-4),
-          expiryDate: creditCard.expiryDate
+          cardNumber: creditCard.cardNumber,
+          expiryDate: creditCard.expiryDate,
+          cvv: creditCard.cvv
         } : undefined
       };
       

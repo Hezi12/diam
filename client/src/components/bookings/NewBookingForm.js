@@ -1631,7 +1631,7 @@ const NewBookingForm = ({
                       label="מקור ההזמנה"
                     >
                       <MenuItem value="direct">ישיר</MenuItem>
-                      <MenuItem value="home_website">אתר הבית (Home Website)</MenuItem>
+                      <MenuItem value="home_website">אתר הזמנות Airport Guest House</MenuItem>
                       <MenuItem value="diam">Diam</MenuItem>
                       <MenuItem value="airport_stay">Airport Stay</MenuItem>
                       <MenuItem value="rothschild_stay">Rothschild Stay</MenuItem>

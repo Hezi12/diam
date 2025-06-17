@@ -347,8 +347,17 @@ const BookingFormPage = () => {
       
       if (!bookingData.creditCard.expiryDate.trim()) {
         errors['creditCard.expiryDate'] = 'תאריך תפוגה הוא שדה חובה';
-      } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(bookingData.creditCard.expiryDate)) {
-        errors['creditCard.expiryDate'] = 'אנא הזן תאריך תפוגה תקין (MM/YY)';
+      } else {
+        // בדיקת פורמט תוקף - תמיכה בפורמטים שונים כמו בטופס הרגיל
+        const cleanExpiryDate = bookingData.creditCard.expiryDate.replace(/\s|-/g, '');
+        const isValidFormat = /^(0[1-9]|1[0-2])\/?\d{2}$/.test(cleanExpiryDate) || // MM/YY או MMYY
+                             /^(0[1-9]|1[0-2])\d{2}$/.test(cleanExpiryDate) || // MMYY
+                             /^\d{2}\/\d{2}$/.test(cleanExpiryDate) || // YY/MM (בטעות)
+                             /^\d{4}$/.test(cleanExpiryDate); // MMYY
+        
+        if (!isValidFormat) {
+          errors['creditCard.expiryDate'] = 'אנא הזן תאריך תפוגה תקין (MMYY או MM/YY)';
+        }
       }
       
       if (!bookingData.creditCard.cvv.trim()) {
@@ -536,25 +545,27 @@ const BookingFormPage = () => {
                     helperText={formErrors['creditCard.cardNumber']}
                     required
                     placeholder="#### #### #### ####"
+                    inputProps={{ maxLength: 19, dir: "ltr", style: { textAlign: 'center' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     name="creditCard.expiryDate"
-                    label="תוקף (MM/YY)"
+                    label="תוקף"
                     fullWidth
                     value={bookingData.creditCard.expiryDate}
                     onChange={handleChange}
                     error={!!formErrors['creditCard.expiryDate']}
                     helperText={formErrors['creditCard.expiryDate']}
                     required
-                    placeholder="MM/YY"
+                    placeholder="MMYY או MM/YY"
+                    inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     name="creditCard.cvv"
-                    label="קוד אבטחה (CVV)"
+                    label="CVV"
                     fullWidth
                     value={bookingData.creditCard.cvv}
                     onChange={handleChange}
@@ -562,7 +573,7 @@ const BookingFormPage = () => {
                     helperText={formErrors['creditCard.cvv']}
                     required
                     placeholder="###"
-                    type="password"
+                    inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
                   />
                 </Grid>
                 <Grid item xs={12}>
