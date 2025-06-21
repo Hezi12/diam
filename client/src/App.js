@@ -28,7 +28,7 @@ import SearchResultsPage from './pages/public-site/SearchResultsPage';
 import BookingFormPage from './pages/public-site/BookingFormPage';
 import ConfirmationPage from './pages/public-site/ConfirmationPage';
 import GalleryPage from './pages/public-site/GalleryPage';
-import AboutContactPage from './pages/public-site/AboutContactPage';
+import FAQDetailsPage from './pages/public-site/FAQDetailsPage';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -67,7 +67,7 @@ function App() {
               <Route path="/airport-booking/book" element={<BookingFormPage />} />
               <Route path="/airport-booking/confirmation" element={<ConfirmationPage />} />
               <Route path="/airport-booking/gallery" element={<GalleryPage />} />
-              <Route path="/airport-booking/about-contact" element={<AboutContactPage />} />
+              <Route path="/airport-booking/faq-details" element={<FAQDetailsPage />} />
               
               {/* ניתובים לעמודים מוגנים */}
               <Route

@@ -302,6 +302,17 @@ exports.updateBooking = async (req, res) => {
     if (!booking) {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
+
+    // בדיקה האם זה עדכון של drag & drop שצריך לשמור על המחיר
+    const isDragUpdate = updateData.preservePrice === true;
+    
+    console.log('🔄 עדכון הזמנה:', {
+      id,
+      isDragUpdate,
+      preservePrice: updateData.preservePrice,
+      originalPrice: booking.price,
+      requestedPrice: updateData.price
+    });
     
     // רישום מידע התחלתי
     console.log(`עדכון הזמנה ${id}:`, {
@@ -377,6 +388,19 @@ exports.updateBooking = async (req, res) => {
       }
     }
     
+    // אם זה עדכון drag & drop, נשמור על כל פרטי המחיר הקיימים
+    if (isDragUpdate) {
+      console.log('💰 שמירה על המחיר הקיים בגרירה');
+      
+      // הסרת כל נתוני מחיר מה-updateData כדי לשמור על הקיימים
+      delete updateData.price;
+      delete updateData.pricePerNight;
+      delete updateData.pricePerNightNoVat;
+      delete updateData.preservePrice; // ניקוי הפלג הטכני
+      
+      console.log('📋 נתונים שיעודכנו (ללא מחיר):', Object.keys(updateData));
+    }
+
     // עדכון ההזמנה
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
@@ -413,8 +437,9 @@ exports.updateBooking = async (req, res) => {
     
     res.json({
       success: true,
+      booking: updatedBooking, // שמירה על התבנית הקיימת
       data: updatedBooking,
-      message: 'ההזמנה עודכנה בהצלחה'
+      message: isDragUpdate ? 'ההזמנה הועברה בהצלחה' : 'ההזמנה עודכנה בהצלחה'
     });
   } catch (error) {
     console.error('Error updating booking:', error);

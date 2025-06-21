@@ -396,6 +396,41 @@ const Bookings = () => {
       return false;
     }
   };
+
+  // פונקציה מיוחדת לעדכון הזמנה באמצעות drag & drop
+  const handleDragBookingUpdate = async (bookingId, updatedBookingData) => {
+    try {
+      console.log('🎯 מעדכן הזמנה בגרירה:', { bookingId, updatedBookingData });
+      
+      const response = await axios.put(`/api/bookings/${bookingId}`, {
+        ...updatedBookingData,
+        // וידוא שהמחיר נשמר - זה הנקודה הקריטית!
+        preservePrice: true
+      });
+      
+      if (response.data.success) {
+        console.log('✅ הזמנה עודכנה בהצלחה בגרירה:', response.data.booking);
+        
+        // עדכון ה-state עם ההזמנה המעודכנת
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking._id === bookingId ? response.data.booking : booking
+          )
+        );
+        
+        return true; // החזרת הצלחה לקומפוננט הלוח
+      } else {
+        throw new Error(response.data.message || 'עדכון נכשל');
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בעדכון הזמנה בגרירה:', error);
+      showNotification(
+        error.response?.data?.message || 'שגיאה בעדכון ההזמנה',
+        'error'
+      );
+      return false; // החזרת כישלון
+    }
+  };
   
   // טיפול במחיקת הזמנה
   const handleDeleteBooking = async (bookingId) => {
@@ -583,6 +618,7 @@ const Bookings = () => {
             loading={loading.bookings}
             onBookingClick={handleBookingClick}
             onCreateBooking={handleCreateBookingFromCell}
+            onBookingUpdate={handleDragBookingUpdate}
             location={location}
           />
         </Box>

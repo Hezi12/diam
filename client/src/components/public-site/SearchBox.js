@@ -11,9 +11,14 @@ import {
   TextField,
   MenuItem,
   FormControlLabel,
-  Switch
+  Switch,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Info as InfoIcon } from '@mui/icons-material';
 import { isAfter, isBefore, format, isValid, differenceInDays, addDays, subDays } from 'date-fns';
 
 const SearchBox = () => {
@@ -32,6 +37,7 @@ const SearchBox = () => {
   const [guests, setGuests] = useState(2);
   const [isTourist, setIsTourist] = useState(false);
   const [error, setError] = useState('');
+  const [touristDialogOpen, setTouristDialogOpen] = useState(false);
   
   // קריאת ערכים מה-URL אם קיימים (לעדכון הטופס בעמוד תוצאות החיפוש)
   useEffect(() => {
@@ -150,21 +156,25 @@ const SearchBox = () => {
   };
   
   const handleTouristChange = (e) => {
+    if (e.target.checked) {
+      setTouristDialogOpen(true);
+    }
     setIsTourist(e.target.checked);
   };
-  
+
+  const handleCloseTouristDialog = () => {
+    setTouristDialogOpen(false);
+  };
+
   return (
-    <Box sx={{ p: 1 }}>
-      <Typography variant="h6" component="h2" sx={{ mb: 3, textAlign: 'center', fontWeight: 600 }}>
-        חפש חדר פנוי
-      </Typography>
-      
-      <Grid container spacing={isMobile ? 2 : 3}>
-        <Grid item xs={12} md={2.4}>
+    <Box sx={{ p: 0 }}>
+      <Grid container spacing={1} alignItems="center">
+        <Grid item xs={12} sm={6} md={2.2}>
           <TextField
             label="תאריך צ'ק-אין"
             type="date"
             fullWidth
+            size="small"
             value={format(checkIn, 'yyyy-MM-dd')}
             onChange={handleCheckInChange}
             InputLabelProps={{
@@ -173,14 +183,29 @@ const SearchBox = () => {
             inputProps={{
               min: format(today, 'yyyy-MM-dd')
             }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 1,
+                '& fieldset': {
+                  borderColor: '#d1d5db',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#9ca3af',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#6b7280',
+                },
+              },
+            }}
           />
         </Grid>
         
-        <Grid item xs={12} md={2.4}>
+        <Grid item xs={12} sm={6} md={2.2}>
           <TextField
             label="תאריך צ'ק-אאוט"
             type="date"
             fullWidth
+            size="small"
             value={format(checkOut, 'yyyy-MM-dd')}
             onChange={handleCheckOutChange}
             InputLabelProps={{
@@ -189,107 +214,204 @@ const SearchBox = () => {
             inputProps={{
               min: format(addDays(checkIn, 1), 'yyyy-MM-dd')
             }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 1,
+                '& fieldset': {
+                  borderColor: '#d1d5db',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#9ca3af',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#6b7280',
+                },
+              },
+            }}
           />
         </Grid>
         
-        <Grid item xs={12} md={1.6}>
+        <Grid item xs={6} sm={3} md={1.3}>
           <TextField
             select
             label="מספר לילות"
             fullWidth
+            size="small"
             value={nights}
             onChange={handleNightsChange}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 1,
+                '& fieldset': {
+                  borderColor: '#d1d5db',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#9ca3af',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#6b7280',
+                },
+              },
+            }}
           >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((num) => (
-              <MenuItem key={num} value={num}>
-                {num} {num === 1 ? 'לילה' : 'לילות'}
+            {Array.from({ length: 30 }, (_, i) => i + 1).map((night) => (
+              <MenuItem key={night} value={night}>
+                {night}
               </MenuItem>
             ))}
           </TextField>
         </Grid>
         
-        <Grid item xs={12} md={1.6}>
+        <Grid item xs={6} sm={3} md={1.3}>
           <TextField
             select
             label="מספר אורחים"
             fullWidth
+            size="small"
             value={guests}
             onChange={handleGuestsChange}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 1,
+                '& fieldset': {
+                  borderColor: '#d1d5db',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#9ca3af',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#6b7280',
+                },
+              },
+            }}
           >
-            {[1, 2, 3, 4, 5, 6].map((num) => (
-              <MenuItem key={num} value={num}>
-                {num} {num === 1 ? 'אורח' : 'אורחים'}
+            {[1, 2, 3, 4, 5, 6].map((guestCount) => (
+              <MenuItem key={guestCount} value={guestCount}>
+                {guestCount}
               </MenuItem>
             ))}
           </TextField>
         </Grid>
-        
-        <Grid item xs={12} md={1.6}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '56px',
-            border: '1px solid rgba(0, 0, 0, 0.23)',
-            borderRadius: '4px',
-            px: 1,
-            '&:hover': {
-              borderColor: 'rgba(0, 0, 0, 0.87)'
-            }
-          }}>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '40px',
+              border: '1px solid #d1d5db',
+              borderRadius: 1,
+              px: 1,
+              bgcolor: 'white',
+              '&:hover': {
+                borderColor: '#9ca3af'
+              }
+            }}
+          >
             <FormControlLabel
               control={
-                <Switch 
-                  checked={isTourist} 
+                <Switch
+                  checked={isTourist}
                   onChange={handleTouristChange}
-                  color="primary"
                   size="small"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: '#059669',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: '#059669',
+                    },
+                  }}
                 />
               }
               label={
-                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                  תייר
+                <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.8rem' }}>
+                  אני תייר (ללא מע"מ)
                 </Typography>
               }
-              labelPlacement="top"
               sx={{ 
                 margin: 0,
                 '& .MuiFormControlLabel-label': {
-                  fontSize: '0.75rem',
-                  color: 'rgba(0, 0, 0, 0.6)'
+                  fontSize: '0.8rem'
                 }
               }}
             />
           </Box>
         </Grid>
         
-        <Grid item xs={12} md={1.4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Button
             variant="contained"
             fullWidth
-            sx={{ 
-              height: isMobile ? 'auto' : '56px',
-              textTransform: 'none',
-              fontSize: '1rem',
-              bgcolor: '#1976d2',
-              '&:hover': {
-                bgcolor: '#1565c0'
-              }
-            }}
+            size="large"
             onClick={handleSearch}
             startIcon={<SearchIcon />}
+            sx={{
+              bgcolor: '#dc2626',
+              color: 'white',
+              borderRadius: 1,
+              fontWeight: 500,
+              height: '40px',
+              '&:hover': {
+                bgcolor: '#b91c1c',
+              },
+              '&:active': {
+                bgcolor: '#991b1b',
+              }
+            }}
           >
-            חפש
+            חפש חדרים
           </Button>
         </Grid>
-        
-        {error && (
-          <Grid item xs={12}>
-            <FormHelperText error>{error}</FormHelperText>
-          </Grid>
-        )}
       </Grid>
+      
+      {error && (
+        <FormHelperText 
+          error 
+          sx={{ 
+            mt: 2, 
+            textAlign: 'center',
+            fontSize: '0.875rem'
+          }}
+        >
+          {error}
+        </FormHelperText>
+      )}
+
+      {/* דיאלוג הסבר על פטור ממע"מ לתיירים */}
+      <Dialog
+        open={touristDialogOpen}
+        onClose={handleCloseTouristDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
+          <InfoIcon sx={{ mr: 1, color: 'info.main' }} />
+          פטור ממע"מ לתיירים
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ textAlign: 'center', fontSize: '1rem', lineHeight: 1.6 }}>
+            לקבלת פטור ממע"מ יש להציג בעת הגעה למלונית:
+            <br />
+            <strong>• דרכון זר</strong>
+            <br />
+            <strong>• כרטיס מעבר גבולות המאשר כניסה עם דרכון זר</strong>
+            <br /><br />
+            ללא המסמכים הנדרשים, החיוב יכלול מע"מ.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button 
+            onClick={handleCloseTouristDialog} 
+            variant="contained" 
+            sx={{ px: 4 }}
+          >
+            הבנתי
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

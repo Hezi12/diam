@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -6,42 +6,76 @@ import {
   CircularProgress,
   styled,
   IconButton,
-  Tooltip
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import InfoIcon from '@mui/icons-material/Info';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
-// רכיב מותאם לתא הזמנה בסגנון גאנט
-const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant }) => ({
+// רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop
+const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant, isDragging, isDragOver }) => ({
   position: 'absolute',
   height: variant === 'full' ? '100%' : '70%',
   left: `${startOffset}%`,
   width: `${length}%`,
   borderRadius: '6px',
-  transition: 'all 0.15s ease-in-out',
+  transition: isDragging ? 'none' : 'all 0.15s ease-in-out',
   padding: '8px 8px',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-start',
   justifyContent: 'space-between',
-  cursor: 'pointer',
+  cursor: 'grab',
   overflow: 'hidden',
   whiteSpace: 'nowrap',
   textOverflow: 'ellipsis',
-  zIndex: 2,
+  zIndex: isDragging ? 10 : 2,
+  opacity: isDragging ? 0.8 : 1,
+  transform: isDragging ? 'rotate(2deg) scale(1.02)' : 'none',
+  boxShadow: isDragging ? '0 8px 16px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
+  '&:active': {
+    cursor: 'grabbing',
+  },
   '&:hover': {
-    transform: 'translateY(-3px)',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+    transform: isDragging ? 'rotate(2deg) scale(1.02)' : 'translateY(-3px)',
+    boxShadow: isDragging ? '0 8px 16px rgba(0,0,0,0.3)' : '0 4px 8px rgba(0,0,0,0.15)',
+  }
+}));
+
+// רכיב תא עם תמיכה ב-drop zone
+const DropZoneCell = styled(Box)(({ theme, isValidDropZone, isDragOver }) => ({
+  position: 'relative',
+  minHeight: '60px',
+  border: '1px solid transparent',
+  borderRadius: '4px',
+  transition: 'all 0.2s ease',
+  backgroundColor: isDragOver && isValidDropZone ? 'rgba(76, 175, 80, 0.1)' : 'transparent',
+  borderColor: isDragOver && isValidDropZone ? '#4caf50' : 'transparent',
+  borderWidth: isDragOver && isValidDropZone ? '2px' : '1px',
+  '&::after': {
+    content: isDragOver && isValidDropZone ? '"שחרר כאן"' : '""',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    fontSize: '12px',
+    color: '#4caf50',
+    fontWeight: 'bold',
+    pointerEvents: 'none',
+    opacity: isDragOver && isValidDropZone ? 1 : 0,
+    transition: 'opacity 0.2s ease'
   }
 }));
 
 /**
  * רכיב לוח ההזמנות המרכזי המציג את הזמנות החדרים על פני תקופת זמן
- * מעוצב בסגנון גאנט מודרני
+ * מעוצב בסגנון גאנט מודרני עם תמיכה ב-drag & drop
  */
 const BookingsCalendar = ({
   startDate,
@@ -51,13 +85,209 @@ const BookingsCalendar = ({
   loading,
   onBookingClick,
   location,
-  onCreateBooking
+  onCreateBooking,
+  onBookingUpdate // פונקציה חדשה לעדכון הזמנה
 }) => {
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
 
+  // State לניהול drag & drop
+  const [dragState, setDragState] = useState({
+    isDragging: false,
+    draggedBooking: null,
+    dragOver: null,
+    startPos: null
+  });
+  
+  // State להודעות
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
   // יצירת מערך של כל הימים בטווח הנבחר
   const daysInRange = eachDayOfInterval({ start: startDate, end: endDate });
+
+  // === פונקציות Drag & Drop ===
+
+  // התחלת גרירה
+  const handleDragStart = (e, booking) => {
+    console.log('🎯 התחלת גרירת הזמנה:', booking.firstName, booking.lastName);
+    
+    // מניעת event bubbling
+    e.stopPropagation();
+    
+    setDragState({
+      isDragging: true,
+      draggedBooking: booking,
+      dragOver: null,
+      startPos: { x: e.clientX, y: e.clientY }
+    });
+
+    // הגדרת נתונים לדאטה transfer
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      bookingId: booking._id,
+      originalRoom: booking.room._id || booking.room,
+      originalCheckIn: booking.checkIn,
+      originalCheckOut: booking.checkOut
+    }));
+  };
+
+  // סיום גרירה
+  const handleDragEnd = (e) => {
+    console.log('🏁 סיום גרירה');
+    setDragState({
+      isDragging: false,
+      draggedBooking: null,
+      dragOver: null,
+      startPos: null
+    });
+  };
+
+  // כניסה לאזור drop
+  const handleDragOver = (e, roomId, date) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const dropTarget = { roomId, date: format(date, 'yyyy-MM-dd') };
+    setDragState(prev => ({
+      ...prev,
+      dragOver: dropTarget
+    }));
+  };
+
+  // יציאה מאזור drop
+  const handleDragLeave = (e) => {
+    // רק אם יוצאים מהאלמנט ולא עוברים לילד שלו
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragState(prev => ({
+        ...prev,
+        dragOver: null
+      }));
+    }
+  };
+
+  // שחרור ההזמנה (Drop)
+  const handleDrop = async (e, newRoomId, newDate) => {
+    e.preventDefault();
+    
+    try {
+      const transferData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const { bookingId, originalRoom, originalCheckIn, originalCheckOut } = transferData;
+      
+      if (!dragState.draggedBooking) {
+        console.error('❌ לא נמצאה הזמנה נגררת');
+        return;
+      }
+
+      const booking = dragState.draggedBooking;
+      const newDateStr = format(newDate, 'yyyy-MM-dd');
+      const originalCheckInStr = format(new Date(originalCheckIn), 'yyyy-MM-dd');
+      
+      // בדיקה האם ההזמנה אכן השתנתה
+      const roomChanged = newRoomId !== originalRoom;
+      const dateChanged = newDateStr !== originalCheckInStr;
+      
+      if (!roomChanged && !dateChanged) {
+        console.log('📍 ההזמנה נשארה באותו מקום');
+        showNotification('ההזמנה נשארה באותו מקום', 'info');
+        return;
+      }
+
+      console.log('🔄 מעדכן הזמנה:', {
+        bookingId,
+        originalRoom,
+        newRoom: newRoomId,
+        originalDate: originalCheckInStr,
+        newDate: newDateStr,
+        roomChanged,
+        dateChanged
+      });
+
+      // חישוב תאריכים חדשים (שמירה על אותו מספר לילות)
+      const originalCheckInDate = new Date(originalCheckIn);
+      const originalCheckOutDate = new Date(originalCheckOut);
+      const nights = differenceInDays(originalCheckOutDate, originalCheckInDate);
+      
+      const newCheckInDate = new Date(newDate);
+      const newCheckOutDate = addDays(newCheckInDate, nights);
+
+      // יצירת אובייקט עדכון שמשמר את כל הפרטים הקיימים
+      const updatedBooking = {
+        ...booking,
+        room: newRoomId,
+        checkIn: newCheckInDate,
+        checkOut: newCheckOutDate,
+        // שמירה מפורשת על המחיר הקיים - לא משנים אותו!
+        price: booking.price,
+        pricePerNight: booking.pricePerNight,
+        pricePerNightNoVat: booking.pricePerNightNoVat,
+        // שמירה על כל הפרטים האחרים
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        phone: booking.phone,
+        email: booking.email,
+        guests: booking.guests,
+        isTourist: booking.isTourist,
+        paymentStatus: booking.paymentStatus,
+        creditCard: booking.creditCard,
+        notes: booking.notes,
+        source: booking.source,
+        externalBookingNumber: booking.externalBookingNumber
+      };
+
+      // קריאה לפונקציית העדכון
+      if (onBookingUpdate) {
+        await onBookingUpdate(booking._id, updatedBooking);
+        
+        // הודעת הצלחה
+        let message = '';
+        if (roomChanged && dateChanged) {
+          message = `ההזמנה הועברה לחדר ${getRoomNumber(newRoomId)} ותאריך ${format(newDate, 'dd/MM/yyyy')}`;
+        } else if (roomChanged) {
+          message = `ההזמנה הועברה לחדר ${getRoomNumber(newRoomId)}`;
+        } else if (dateChanged) {
+          message = `ההזמנה הועברה לתאריך ${format(newDate, 'dd/MM/yyyy')}`;
+        }
+        
+        showNotification(message, 'success');
+      }
+
+    } catch (error) {
+      console.error('❌ שגיאה בעדכון הזמנה:', error);
+      showNotification('שגיאה בעדכון ההזמנה', 'error');
+    } finally {
+      // איפוס state הגרירה
+      setDragState({
+        isDragging: false,
+        draggedBooking: null,
+        dragOver: null,
+        startPos: null
+      });
+    }
+  };
+
+  // פונקציה לקבלת מספר חדר
+  const getRoomNumber = (roomId) => {
+    const room = rooms.find(r => r._id === roomId);
+    return room ? room.roomNumber : roomId;
+  };
+
+  // הצגת הודעה
+  const showNotification = (message, severity = 'success') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // סגירת הודעה
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
 
   if (loading) {
     return (
@@ -373,6 +603,10 @@ const BookingsCalendar = ({
           startOffset={rtlStartPosition}
           length={bookingWidth}
           variant="full"
+          isDragging={dragState.isDragging && dragState.draggedBooking?._id === booking._id}
+          draggable={true}
+          onDragStart={(e) => handleDragStart(e, booking)}
+          onDragEnd={handleDragEnd}
           onClick={() => onBookingClick(booking._id)}
           sx={{
             bgcolor: statusColors.bgColor,
@@ -380,10 +614,14 @@ const BookingsCalendar = ({
             color: statusColors.textColor,
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             borderRadius: '6px',
+            cursor: 'grab',
             '&:hover': {
               transform: 'translateY(-3px)',
               boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
               transition: 'all 0.2s ease-in-out'
+            },
+            '&:active': {
+              cursor: 'grabbing'
             }
           }}
         >
@@ -658,27 +896,38 @@ const BookingsCalendar = ({
                   display: 'flex',
                   height: '70px',
                 }}>
-                  {/* תאי רקע לכל יום */}
-                  {daysInRange.map((day, dateIndex) => (
-                    <Box 
-                      key={`bg-${room._id}-${dateIndex}`}
-                      onClick={() => handleEmptyCellClick(room._id, day)}
-                      sx={{ 
-                        flex: 1,
-                        borderLeft: dateIndex < daysInRange.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-                        cursor: 'pointer',
-                        ...(isToday(day) && { 
-                          bgcolor: 'rgba(0, 113, 227, 0.03)',
-                        }),
-                        ...(isFridayOrSaturday(day) && { 
-                          bgcolor: 'rgba(247, 151, 30, 0.03)' 
-                        }),
-                        '&:hover': {
-                          bgcolor: 'rgba(0,0,0,0.04)',
-                        }
-                      }}
-                    />
-                  ))}
+                  {/* תאי רקע לכל יום עם תמיכה ב-drop zone */}
+                  {daysInRange.map((day, dateIndex) => {
+                    const isValidDropZone = dragState.isDragging;
+                    const isDragOver = dragState.dragOver?.roomId === room._id && 
+                      dragState.dragOver?.date === format(day, 'yyyy-MM-dd');
+                      
+                    return (
+                      <DropZoneCell
+                        key={`bg-${room._id}-${dateIndex}`}
+                        isValidDropZone={isValidDropZone}
+                        isDragOver={isDragOver}
+                        onClick={() => handleEmptyCellClick(room._id, day)}
+                        onDragOver={(e) => handleDragOver(e, room._id, day)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, room._id, day)}
+                        sx={{ 
+                          flex: 1,
+                          borderLeft: dateIndex < daysInRange.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                          cursor: 'pointer',
+                          ...(isToday(day) && { 
+                            bgcolor: 'rgba(0, 113, 227, 0.03)',
+                          }),
+                          ...(isFridayOrSaturday(day) && { 
+                            bgcolor: 'rgba(247, 151, 30, 0.03)' 
+                          }),
+                          '&:hover': {
+                            bgcolor: 'rgba(0,0,0,0.04)',
+                          }
+                        }}
+                      />
+                    );
+                  })}
                   
                   {/* רנדור הזמנות כסרגלי גאנט */}
                   {bookings
@@ -697,6 +946,23 @@ const BookingsCalendar = ({
             ))
         )}
       </Paper>
+      
+      {/* הודעות התראה */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

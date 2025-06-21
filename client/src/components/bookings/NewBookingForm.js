@@ -540,9 +540,11 @@ const NewBookingForm = ({
     }
   };
 
-  // עדכון המחיר לפי בחירת החדר
+  // עדכון המחיר לפי בחירת החדר (רק להזמנות חדשות)
   useEffect(() => {
-    if (formData.room) {
+    if (formData.room && !isExistingBooking) {
+      console.log('🔄 מחשב מחיר חדש לחדר:', formData.room);
+      
       // איפוס המחיר הנוכחי לפני עדכון המחיר החדש
       setFormData(prev => ({
         ...prev,
@@ -553,12 +555,16 @@ const NewBookingForm = ({
       
       // טעינת המחיר מהחדר הנבחר
       fetchRoomData(formData.room);
+    } else if (formData.room && isExistingBooking) {
+      console.log('💰 שמירה על המחיר הקיים להזמנה בעריכה:', formData.price);
     }
-  }, [formData.room, formData.isTourist]);
+  }, [formData.room, formData.isTourist, isExistingBooking]);
   
-  // עדכון המחיר הכולל כאשר מספר הלילות או האורחים משתנה
+  // עדכון המחיר הכולל כאשר מספר הלילות או האורחים משתנה (רק להזמנות חדשות)
   useEffect(() => {
-    if (formData.room && formData.pricePerNight && formData.nights) {
+    if (formData.room && formData.pricePerNight && formData.nights && !isExistingBooking) {
+      console.log('🔄 מחשב מחיר מחדש בגלל שינוי בלילות/אורחים');
+      
       // מציאת החדר הנבחר
       const selectedRoom = rooms.find(room => room._id === formData.room);
       
@@ -585,10 +591,12 @@ const NewBookingForm = ({
           price: totalPrice
         }));
       }
+    } else if (isExistingBooking) {
+      console.log('💰 דילוג על חישוב מחיר מחדש - הזמנה בעריכה');
     }
-  }, [formData.nights, formData.guests, formData.isTourist, rooms]);
+  }, [formData.nights, formData.guests, formData.isTourist, rooms, isExistingBooking]);
 
-  // חישוב מחיר והתאמות לפי תאריכים וחדר נבחר
+  // חישוב מחיר והתאמות לפי תאריכים וחדר נבחר (רק להזמנות חדשות)
   useEffect(() => {
     // חישוב מספר לילות רק אם יש תאריכים תקינים
     if (formData.checkIn && formData.checkOut) {
@@ -610,13 +618,16 @@ const NewBookingForm = ({
           nights: nights 
         }));
         
-        // אם יש חדר נבחר, עדכן את המחירים בהתאם להגדרות החדר
-        if (formData.room) {
+        // אם יש חדר נבחר ולא במצב עריכה, עדכן את המחירים בהתאם להגדרות החדר
+        if (formData.room && !isExistingBooking) {
+          console.log('🔄 מחשב מחיר מחדש בגלל שינוי תאריכים');
           fetchRoomData(formData.room);
+        } else if (isExistingBooking) {
+          console.log('💰 דילוג על עדכון מחיר בגלל שינוי תאריכים - הזמנה בעריכה');
         }
       }
     }
-  }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist]);
+  }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist, isExistingBooking]);
 
   // מעקב אחר שינויים בחדר הנבחר
   useEffect(() => {
@@ -788,7 +799,8 @@ const NewBookingForm = ({
       checkIn: newCheckIn,
       checkOut: newCheckOut,
       nights: newNights,
-      price: parseFloat((prev.pricePerNight * newNights).toFixed(2))
+      // עדכון מחיר רק אם זו לא הזמנה בעריכה
+      price: isExistingBooking ? prev.price : parseFloat((prev.pricePerNight * newNights).toFixed(2))
     }));
   };
 
@@ -815,7 +827,8 @@ const NewBookingForm = ({
         ...prev,
         checkOut: newDate,
         nights: 1,
-        price: parseFloat((prev.pricePerNight).toFixed(2))
+        // עדכון מחיר רק אם זו לא הזמנה בעריכה
+        price: isExistingBooking ? prev.price : parseFloat((prev.pricePerNight).toFixed(2))
       }));
       
       return;
@@ -826,7 +839,8 @@ const NewBookingForm = ({
       ...prev,
       checkOut: newCheckOut,
       nights: newNights,
-      price: parseFloat((prev.pricePerNight * newNights).toFixed(2))
+      // עדכון מחיר רק אם זו לא הזמנה בעריכה
+      price: isExistingBooking ? prev.price : parseFloat((prev.pricePerNight * newNights).toFixed(2))
     }));
   };
 
@@ -848,7 +862,8 @@ const NewBookingForm = ({
       ...prev,
       checkOut: newCheckOut,
       nights: nights,
-      price: parseFloat((prev.pricePerNight * nights).toFixed(2))
+      // עדכון מחיר רק אם זו לא הזמנה בעריכה
+      price: isExistingBooking ? prev.price : parseFloat((prev.pricePerNight * nights).toFixed(2))
     }));
     
     setErrors(prev => ({ ...prev, nights: undefined }));
@@ -858,7 +873,17 @@ const NewBookingForm = ({
   const handleTouristChange = (e) => {
     const isTourist = e.target.checked;
     
-    // אם זה תייר, המחיר הוא בלי מע״מ
+    // אם זו הזמנה בעריכה, רק נעדכן את הסטטוס ללא שינוי מחיר
+    if (isExistingBooking) {
+      console.log('💰 שמירה על המחיר הקיים בשינוי סטטוס תייר - הזמנה בעריכה');
+      setFormData(prev => ({
+        ...prev,
+        isTourist
+      }));
+      return;
+    }
+    
+    // אם זה תייר, המחיר הוא בלי מע״מ (רק להזמנות חדשות)
     setFormData(prev => {
       let pricePerNight;
       
@@ -1721,6 +1746,7 @@ const NewBookingForm = ({
                     errors={errors}
                     setErrors={setErrors}
                     style={style}
+                    isExistingBooking={isExistingBooking}
                   />
                 </Grid>
               </Paper>
