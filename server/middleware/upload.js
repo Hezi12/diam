@@ -19,16 +19,38 @@ const storage = multer.diskStorage({
     // קביעת היעד לפי סוג ההעלאה ומיקום
     let uploadPath;
     
-    if (req.params.roomId) {
-      // תמונה לחדר ספציפי
+    // העלאת תמונות לחדר ספציפי (נתיב חדש)
+    if (req.route && req.route.path.includes('/upload-images')) {
+      // נמצא מזהה החדר מהפרמטרים
+      const roomId = req.params.id;
+      
+      // חיפוש החדר כדי לקבל את המיקום
+      const Room = require('../models/Room');
+      try {
+        const room = await Room.findById(roomId);
+        if (room && room.location) {
+          uploadPath = path.join(__dirname, `../uploads/rooms/${room.location}`);
+        } else {
+          console.error('לא נמצא חדר או מיקום לא מוגדר');
+          uploadPath = path.join(__dirname, '../uploads/temp');
+        }
+      } catch (error) {
+        console.error('שגיאה בחיפוש חדר:', error);
+        uploadPath = path.join(__dirname, '../uploads/temp');
+      }
+    }
+    // העלאת תמונה בודדת לחדר (נתיב ישן)
+    else if (req.params.roomId) {
       const { location } = req.body;
       uploadPath = path.join(__dirname, `../uploads/rooms/${location}`);
-    } else if (req.params.location) {
-      // תמונה לגלריית מיקום
+    } 
+    // העלאת תמונה לגלריית מיקום
+    else if (req.params.location) {
       const { location } = req.params;
       uploadPath = path.join(__dirname, `../uploads/gallery/${location}`);
-    } else {
-      // אם לא נקבע יעד ספציפי (לא אמור לקרות)
+    } 
+    // יעד ברירת מחדל
+    else {
       uploadPath = path.join(__dirname, '../uploads/temp');
     }
     

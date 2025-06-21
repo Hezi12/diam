@@ -267,7 +267,7 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // הכנת הנתונים לשליחה
@@ -284,6 +284,7 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
       description: formData.description,
       amenities: formData.amenities.split(',').map(item => item.trim()).filter(item => item),
       images: imagePreview,
+      imageFiles: imageFiles, // הוספת הקבצים עצמם
       status: formData.status
     };
     

@@ -90,16 +90,19 @@ const RoomManagement = ({ location }) => {
     try {
       setLoading(true);
       
+      let savedRoom;
+      
       if (isEdit) {
         // עדכון חדר קיים
         const response = await axios.put(`/api/rooms/${currentRoom._id}`, {
           ...roomData,
           location
         });
+        savedRoom = response.data;
         
         // עדכון החדר ברשימה
         const updatedRooms = rooms.map(room => 
-          room._id === currentRoom._id ? response.data : room
+          room._id === currentRoom._id ? savedRoom : room
         );
         setRooms(updatedRooms);
       } else {
@@ -108,9 +111,34 @@ const RoomManagement = ({ location }) => {
           ...roomData,
           location
         });
+        savedRoom = response.data;
         
         // הוספת החדר החדש לרשימה
-        setRooms([...rooms, response.data]);
+        setRooms([...rooms, savedRoom]);
+      }
+      
+      // העלאת תמונות אם יש כאלה
+      if (roomData.imageFiles && roomData.imageFiles.length > 0) {
+        try {
+          const formData = new FormData();
+          
+          // הוספת כל התמונות ל-FormData
+          roomData.imageFiles.forEach((file, index) => {
+            formData.append('images', file);
+          });
+          
+          // שליחת התמונות לשרת
+          await axios.post(`/api/rooms/${savedRoom._id}/upload-images`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          
+          console.log('התמונות הועלו בהצלחה');
+        } catch (uploadError) {
+          console.error('שגיאה בהעלאת תמונות:', uploadError);
+          alert('החדר נשמר בהצלחה, אך הייתה בעיה בהעלאת התמונות. אנא נסה שוב.');
+        }
       }
       
       setOpenForm(false);

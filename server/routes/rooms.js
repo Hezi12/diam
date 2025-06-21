@@ -26,6 +26,7 @@ router.delete('/:id', roomsController.deleteRoom);
 
 // נתיבים לניהול תמונות
 router.post('/upload-image/:roomId', upload.single('image'), roomsController.uploadImage);
+router.post('/:id/upload-images', upload.array('images', 10), roomsController.uploadRoomImages);
 router.post('/gallery/:location', upload.single('image'), roomsController.uploadGalleryImage);
 router.delete('/gallery/:id', roomsController.deleteGalleryImage);
 

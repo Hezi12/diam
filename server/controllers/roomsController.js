@@ -549,4 +549,52 @@ exports.getPublicRoomById = async (req, res) => {
     console.error('Error getting public room by id:', error);
     res.status(500).json({ message: 'שגיאה בקבלת פרטי החדר הציבורי' });
   }
+};
+
+// העלאת תמונות לחדר ספציפי
+exports.uploadRoomImages = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // בדיקה שהחדר קיים
+    const room = await Room.findById(id);
+    if (!room) {
+      return res.status(404).json({ message: 'חדר לא נמצא' });
+    }
+    
+    // בדיקה שיש קבצים שהועלו
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'לא הועלו קבצים' });
+    }
+    
+    console.log(`מעלה ${req.files.length} תמונות לחדר ${room.roomNumber} במיקום ${room.location}`);
+    
+    // יצירת רשימת URLs לתמונות החדשות
+    const imageUrls = req.files.map(file => {
+      return `${req.protocol}://${req.get('host')}/uploads/rooms/${room.location}/${file.filename}`;
+    });
+    
+    // עדכון החדר במסד הנתונים - הוספת התמונות החדשות לרשימה הקיימת
+    const updatedRoom = await Room.findByIdAndUpdate(
+      id,
+      { 
+        $push: { 
+          images: { $each: imageUrls } 
+        } 
+      },
+      { new: true }
+    );
+    
+    console.log(`עודכנו תמונות חדר ${room.roomNumber}: ${imageUrls.length} תמונות חדשות`);
+    
+    res.json({
+      message: 'התמונות הועלו בהצלחה',
+      room: updatedRoom,
+      uploadedImages: imageUrls
+    });
+    
+  } catch (error) {
+    console.error('Error uploading room images:', error);
+    res.status(500).json({ message: 'שגיאה בהעלאת תמונות החדר' });
+  }
 }; 
