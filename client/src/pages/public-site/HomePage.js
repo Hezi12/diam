@@ -16,7 +16,13 @@ import {
   CheckCircle as CheckCircleIcon,
   Wifi as WifiIcon,
   LocalParking as LocalParkingIcon,
-  AcUnit as AcUnitIcon
+  AcUnit as AcUnitIcon,
+  DirectionsBus as DirectionsBusIcon,
+  Restaurant as RestaurantIcon,
+  Schedule as ScheduleIcon,
+  Lock as LockIcon,
+  Hotel as HotelIcon,
+  BedroomParent as BedroomParentIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -27,6 +33,19 @@ import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 
 const HomePage = () => {
+  // מערך השירותים עם אייקונים ייחודיים וצבעים שונים
+  const services = [
+    { name: 'מיזוג אוויר', icon: <AcUnitIcon />, color: '#0ea5e9' },
+    { name: 'מצעים ומגבות', icon: <HotelIcon />, color: '#8b5cf6' },
+    { name: 'Wi-Fi חינמי', icon: <WifiIcon />, color: '#10b981' },
+    { name: 'חניה חינם', icon: <LocalParkingIcon />, color: '#f59e0b' },
+    { name: 'שירותי הסעות (בתוספת תשלום)', icon: <DirectionsBusIcon />, color: '#ef4444' },
+    { name: 'מסעדות בקרבה', icon: <RestaurantIcon />, color: '#ec4899' },
+    { name: 'צ\'ק-אין 24/7', icon: <ScheduleIcon />, color: '#06b6d4' },
+    { name: 'פרטיות מלאה', icon: <LockIcon />, color: '#84cc16' },
+    { name: 'תמורה מלאה למחיר', icon: <CheckCircleIcon />, color: '#059669' }
+  ];
+
   return (
     <PublicSiteLayout>
       {/* Hero Section - טופס חיפוש בלבד */}
@@ -56,17 +75,17 @@ const HomePage = () => {
 
       {/* מידע על המלונית */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Grid container spacing={6}>
+        <Grid container spacing={4} alignItems="flex-start">
           {/* מידע כללי */}
           <Grid item xs={12} md={6}>
             <Typography 
               variant="h4" 
               component="h2" 
               sx={{ 
-                mb: 3,
-                fontWeight: 500,
+                mb: 2,
+                fontWeight: 600,
                 color: '#1e293b',
-                fontSize: { xs: '1.75rem', sm: '2rem' }
+                fontSize: { xs: '1.5rem', sm: '1.75rem' }
               }}
             >
               מלונית Airport Guest House
@@ -77,88 +96,68 @@ const HomePage = () => {
               sx={{ 
                 mb: 3,
                 color: '#475569',
-                fontSize: '1.1rem',
-                lineHeight: 1.7
+                fontSize: '1rem',
+                lineHeight: 1.6
               }}
             >
-              מציעה חדרים נקיים ומאובזרים במרחק נסיעה קצר מנמל התעופה בן גוריון. 
-              מתאימה לנוסעים, אנשי עסקים ומשפחות המחפשים מקום לינה נוח ואמין.
+              המלונית המובילה באזור נמל התעופה בן גוריון. 
+              חדרים מודרניים ומאובזרים עם שירות מקצועי - 
+              הפתרון המושלם לנוסעים ואנשי עסקים.
             </Typography>
 
-            {/* שירותים זמינים */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Card 
-                  variant="outlined" 
-                  sx={{ 
-                    p: 2,
-                    border: '1px solid #e2e8f0',
-                    boxShadow: 'none'
-                  }}
-                >
-                  <CardContent sx={{ p: 0 }}>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 500, color: '#334155' }}>
-                      בחדר
-                    </Typography>
-                    <Box component="ul" sx={{ pl: 0, m: 0, listStyle: 'none' }}>
-                      <Box component="li" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">מיזוג אוויר</Typography>
-                      </Box>
-                      <Box component="li" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">טלוויזיה</Typography>
-                      </Box>
-                      <Box component="li" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">מקלחת פרטית</Typography>
-                      </Box>
-                      <Box component="li" sx={{ display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">מצעים ומגבות</Typography>
-                      </Box>
+            {/* שירותים מאוחדים */}
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                border: '1px solid #e2e8f0',
+                boxShadow: 'none',
+                borderRadius: 2,
+                bgcolor: '#fafbfc'
+              }}
+            >
+              <CardContent sx={{ p: 2.5 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#334155', fontSize: '1.1rem' }}>
+                  השירותים והמתקנים שלנו
+                </Typography>
+                <Grid container spacing={1}>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {services.map((service, index) => (
+                        <Box 
+                          key={index}
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            bgcolor: 'white',
+                            px: 2,
+                            py: 0.75,
+                            borderRadius: 1,
+                            border: '1px solid #e2e8f0',
+                            minWidth: 'fit-content',
+                            mb: 0.5
+                          }}
+                        >
+                          <Box 
+                            sx={{ 
+                              fontSize: 16, 
+                              color: service.color, 
+                              display: 'flex', 
+                              alignItems: 'center',
+                              marginLeft: '8px'
+                            }}
+                          >
+                            {service.icon}
+                          </Box>
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                            {service.name}
+                          </Typography>
+                        </Box>
+                      ))}
                     </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <Card 
-                  variant="outlined" 
-                  sx={{ 
-                    p: 2,
-                    border: '1px solid #e2e8f0',
-                    boxShadow: 'none'
-                  }}
-                >
-                  <CardContent sx={{ p: 0 }}>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 500, color: '#334155' }}>
-                      שירותים כלליים
-                    </Typography>
-                    <Box component="ul" sx={{ pl: 0, m: 0, listStyle: 'none' }}>
-                      <Box component="li" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">Wi-Fi חינם</Typography>
-                      </Box>
-                      <Box component="li" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">חניה חינם</Typography>
-                      </Box>
-                      <Box component="li" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">מטבחון משותף</Typography>
-                      </Box>
-                      <Box component="li" sx={{ display: 'flex', alignItems: 'center' }}>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 16, color: '#059669' }} />
-                        <Typography variant="body2" color="#64748b">שירותי ניקיון</Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
           </Grid>
 
           {/* מיקום */}

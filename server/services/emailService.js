@@ -42,7 +42,9 @@ class EmailService {
       } else {
         // ברירת מחדל - Ethereal לטסטים
         console.log('⚠️ לא הוגדר ספק מייל, משתמש ב-Ethereal לטסטים');
-        this.setupEtherealTransporter();
+        this.setupEtherealTransporter().catch(error => {
+          console.error('שגיאה בהגדרת Ethereal:', error);
+        });
       }
     } catch (error) {
       console.error('שגיאה בהגדרת transporter:', error);
@@ -447,6 +449,12 @@ class EmailService {
    * שליחת אישור הזמנה לאורח
    */
   async sendGuestConfirmation(bookingData) {
+    // אם אין transporter, ננסה להגדיר Ethereal
+    if (!this.transporter) {
+      console.log('🔄 מגדיר Ethereal transporter...');
+      await this.setupEtherealTransporter();
+    }
+    
     if (!this.transporter) {
       console.error('❌ Email transporter לא מוגדר');
       return { success: false, error: 'שירות מייל לא זמין' };
@@ -484,6 +492,12 @@ class EmailService {
    * שליחת הודעה למנהל על הזמנה חדשה
    */
   async sendAdminNotification(bookingData) {
+    // אם אין transporter, ננסה להגדיר Ethereal
+    if (!this.transporter) {
+      console.log('🔄 מגדיר Ethereal transporter...');
+      await this.setupEtherealTransporter();
+    }
+    
     if (!this.transporter) {
       console.error('❌ Email transporter לא מוגדר');
       return { success: false, error: 'שירות מייל לא זמין' };

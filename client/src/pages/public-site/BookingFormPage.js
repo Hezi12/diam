@@ -9,14 +9,9 @@ import {
   TextField, 
   Button, 
   Stepper, 
-  Step, 
+    Step, 
   StepLabel,
-  FormControl,
-  FormControlLabel,
-  RadioGroup,
-  Radio,
-  Checkbox,
-  FormHelperText,
+
   Alert,
   Card,
   CardMedia,
@@ -24,11 +19,9 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
-  CircularProgress,
-  IconButton
+  CircularProgress
 } from '@mui/material';
 import { 
-  ArrowBack as ArrowBackIcon,
   Payment as PaymentIcon,
   EventAvailable as EventAvailableIcon,
   PersonOutline as PersonOutlineIcon
@@ -74,12 +67,13 @@ const BookingFormPage = () => {
       expiryDate: '',
       cvv: '',
       holderName: ''
-    },
-    agreeToTerms: false
+    }
   });
   
   // מצב שגיאות הטופס
   const [formErrors, setFormErrors] = useState({});
+  
+
   
   // חילוץ פרמטרים מה-URL
   const searchParams = new URLSearchParams(location.search);
@@ -103,6 +97,10 @@ const BookingFormPage = () => {
   const nightsFromUrl = parseInt(nightsStr, 10);
   const nightsFromDates = validParams ? differenceInDays(checkOut, checkIn) : 0;
   const nightsCount = nightsFromUrl && nightsFromUrl > 0 ? nightsFromUrl : nightsFromDates;
+  
+  // חישוב תאריך ביטול (3 ימים לפני צ'ק-אין)
+  const cancellationDate = checkIn ? new Date(checkIn.getTime() - 3 * 24 * 60 * 60 * 1000) : null;
+  const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
   
   /**
    * חישוב מחיר עם אורחים נוספים וסטטוס תייר
@@ -158,11 +156,11 @@ const BookingFormPage = () => {
         checkIn: checkInStr,
         checkOut: checkOutStr,
         isTourist: isTourist,
-        creditCard: bookingData.paymentMethod === 'credit' ? {
+        creditCard: {
           cardNumber: bookingData.creditCard.cardNumber.replace(/\s/g, ''),
           expiryDate: bookingData.creditCard.expiryDate,
           cvv: bookingData.creditCard.cvv
-        } : undefined
+        }
       };
       
       console.log('שולח בקשת הזמנה עם הנתונים:', {
@@ -338,37 +336,35 @@ const BookingFormPage = () => {
   const validatePaymentDetails = () => {
     const errors = {};
     
-    if (bookingData.paymentMethod === 'credit') {
-      if (!bookingData.creditCard.cardNumber.trim()) {
-        errors['creditCard.cardNumber'] = 'מספר כרטיס הוא שדה חובה';
-      } else if (!/^\d{16}$/.test(bookingData.creditCard.cardNumber.replace(/\s/g, ''))) {
-        errors['creditCard.cardNumber'] = 'אנא הזן מספר כרטיס תקין (16 ספרות)';
-      }
+    if (!bookingData.creditCard.cardNumber.trim()) {
+      errors['creditCard.cardNumber'] = 'מספר כרטיס הוא שדה חובה';
+    } else if (!/^\d{16}$/.test(bookingData.creditCard.cardNumber.replace(/\s/g, ''))) {
+      errors['creditCard.cardNumber'] = 'אנא הזן מספר כרטיס תקין (16 ספרות)';
+    }
+    
+    if (!bookingData.creditCard.expiryDate.trim()) {
+      errors['creditCard.expiryDate'] = 'תאריך תפוגה הוא שדה חובה';
+    } else {
+      // בדיקת פורמט תוקף - תמיכה בפורמטים שונים כמו בטופס הרגיל
+      const cleanExpiryDate = bookingData.creditCard.expiryDate.replace(/\s|-/g, '');
+      const isValidFormat = /^(0[1-9]|1[0-2])\/?\d{2}$/.test(cleanExpiryDate) || // MM/YY או MMYY
+                           /^(0[1-9]|1[0-2])\d{2}$/.test(cleanExpiryDate) || // MMYY
+                           /^\d{2}\/\d{2}$/.test(cleanExpiryDate) || // YY/MM (בטעות)
+                           /^\d{4}$/.test(cleanExpiryDate); // MMYY
       
-      if (!bookingData.creditCard.expiryDate.trim()) {
-        errors['creditCard.expiryDate'] = 'תאריך תפוגה הוא שדה חובה';
-      } else {
-        // בדיקת פורמט תוקף - תמיכה בפורמטים שונים כמו בטופס הרגיל
-        const cleanExpiryDate = bookingData.creditCard.expiryDate.replace(/\s|-/g, '');
-        const isValidFormat = /^(0[1-9]|1[0-2])\/?\d{2}$/.test(cleanExpiryDate) || // MM/YY או MMYY
-                             /^(0[1-9]|1[0-2])\d{2}$/.test(cleanExpiryDate) || // MMYY
-                             /^\d{2}\/\d{2}$/.test(cleanExpiryDate) || // YY/MM (בטעות)
-                             /^\d{4}$/.test(cleanExpiryDate); // MMYY
-        
-        if (!isValidFormat) {
-          errors['creditCard.expiryDate'] = 'אנא הזן תאריך תפוגה תקין (MMYY או MM/YY)';
-        }
+      if (!isValidFormat) {
+        errors['creditCard.expiryDate'] = 'אנא הזן תאריך תפוגה תקין (MMYY או MM/YY)';
       }
-      
-      if (!bookingData.creditCard.cvv.trim()) {
-        errors['creditCard.cvv'] = 'קוד אבטחה הוא שדה חובה';
-      } else if (!/^\d{3,4}$/.test(bookingData.creditCard.cvv)) {
-        errors['creditCard.cvv'] = 'אנא הזן קוד אבטחה תקין (3-4 ספרות)';
-      }
-      
-      if (!bookingData.creditCard.holderName.trim()) {
-        errors['creditCard.holderName'] = 'שם בעל הכרטיס הוא שדה חובה';
-      }
+    }
+    
+    if (!bookingData.creditCard.cvv.trim()) {
+      errors['creditCard.cvv'] = 'קוד אבטחה הוא שדה חובה';
+    } else if (!/^\d{3,4}$/.test(bookingData.creditCard.cvv)) {
+      errors['creditCard.cvv'] = 'אנא הזן קוד אבטחה תקין (3-4 ספרות)';
+    }
+    
+    if (!bookingData.creditCard.holderName.trim()) {
+      errors['creditCard.holderName'] = 'שם בעל הכרטיס הוא שדה חובה';
     }
     
     setFormErrors(errors);
@@ -378,10 +374,6 @@ const BookingFormPage = () => {
   // אימות אישור הזמנה
   const validateConfirmation = () => {
     const errors = {};
-    
-    if (!bookingData.agreeToTerms) {
-      errors.agreeToTerms = 'יש לאשר את תנאי השימוש כדי להמשיך';
-    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -440,6 +432,7 @@ const BookingFormPage = () => {
                   error={!!formErrors.firstName}
                   helperText={formErrors.firstName}
                   required
+                  size="small"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -452,6 +445,7 @@ const BookingFormPage = () => {
                   error={!!formErrors.lastName}
                   helperText={formErrors.lastName}
                   required
+                  size="small"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -465,6 +459,7 @@ const BookingFormPage = () => {
                   error={!!formErrors.email}
                   helperText={formErrors.email}
                   required
+                  size="small"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -477,22 +472,7 @@ const BookingFormPage = () => {
                   error={!!formErrors.phone}
                   helperText={formErrors.phone}
                   required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="guests"
-                  label="מספר אורחים"
-                  type="number"
-                  fullWidth
-                  value={bookingData.guests}
-                  onChange={handleChange}
-                  InputProps={{
-                    inputProps: {
-                      min: 1,
-                      max: room?.maxOccupancy || 1
-                    }
-                  }}
+                  size="small"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -500,10 +480,11 @@ const BookingFormPage = () => {
                   name="notes"
                   label="הערות מיוחדות"
                   multiline
-                  rows={3}
+                  rows={2}
                   fullWidth
                   value={bookingData.notes}
                   onChange={handleChange}
+                  size="small"
                 />
               </Grid>
             </Grid>
@@ -513,83 +494,78 @@ const BookingFormPage = () => {
         return (
           <Box sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
-              פרטי תשלום (לפיקדון בלבד)
+              פרטי תשלום
             </Typography>
-            <Alert severity="info" sx={{ mb: 3 }}>
-              נדרשים פרטי כרטיס אשראי לצורך הבטחת ההזמנה (פיקדון). התשלום המלא יתבצע במקום האירוח.
-            </Alert>
-            <FormControl component="fieldset" sx={{ mb: 3 }}>
-              <RadioGroup
-                name="paymentMethod"
-                value={bookingData.paymentMethod}
-                onChange={handleChange}
-              >
-                <FormControlLabel
-                  value="credit"
-                  control={<Radio />}
-                  label="כרטיס אשראי"
-                />
-              </RadioGroup>
-            </FormControl>
             
-            {bookingData.paymentMethod === 'credit' && (
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    name="creditCard.cardNumber"
-                    label="מספר כרטיס"
-                    fullWidth
-                    value={bookingData.creditCard.cardNumber}
-                    onChange={handleChange}
-                    error={!!formErrors['creditCard.cardNumber']}
-                    helperText={formErrors['creditCard.cardNumber']}
-                    required
-                    placeholder="#### #### #### ####"
-                    inputProps={{ maxLength: 19, dir: "ltr", style: { textAlign: 'center' } }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    name="creditCard.expiryDate"
-                    label="תוקף"
-                    fullWidth
-                    value={bookingData.creditCard.expiryDate}
-                    onChange={handleChange}
-                    error={!!formErrors['creditCard.expiryDate']}
-                    helperText={formErrors['creditCard.expiryDate']}
-                    required
-                    placeholder="MMYY או MM/YY"
-                    inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    name="creditCard.cvv"
-                    label="CVV"
-                    fullWidth
-                    value={bookingData.creditCard.cvv}
-                    onChange={handleChange}
-                    error={!!formErrors['creditCard.cvv']}
-                    helperText={formErrors['creditCard.cvv']}
-                    required
-                    placeholder="###"
-                    inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    name="creditCard.holderName"
-                    label="שם בעל הכרטיס"
-                    fullWidth
-                    value={bookingData.creditCard.holderName}
-                    onChange={handleChange}
-                    error={!!formErrors['creditCard.holderName']}
-                    helperText={formErrors['creditCard.holderName']}
-                    required
-                  />
-                </Grid>
+            <Alert severity="info" sx={{ mb: 3, borderRadius: '8px' }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+                הבטחת הזמנה בכרטיס אשראי
+              </Typography>
+              <Typography variant="body2">
+                פרטי הכרטיס נדרשים להבטחת ההזמנה בלבד. התשלום המלא יתבצע עם הגעתך למקום האירוח במזומן או בכרטיס אשראי.
+              </Typography>
+            </Alert>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  name="creditCard.cardNumber"
+                  label="מספר כרטיס"
+                  fullWidth
+                  value={bookingData.creditCard.cardNumber}
+                  onChange={handleChange}
+                  error={!!formErrors['creditCard.cardNumber']}
+                  helperText={formErrors['creditCard.cardNumber']}
+                  required
+                  placeholder="#### #### #### ####"
+                  inputProps={{ maxLength: 19, dir: "ltr", style: { textAlign: 'center' } }}
+                  size="small"
+                />
               </Grid>
-            )}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  name="creditCard.expiryDate"
+                  label="תוקף"
+                  fullWidth
+                  value={bookingData.creditCard.expiryDate}
+                  onChange={handleChange}
+                  error={!!formErrors['creditCard.expiryDate']}
+                  helperText={formErrors['creditCard.expiryDate']}
+                  required
+                  placeholder="MM/YY"
+                  inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  name="creditCard.cvv"
+                  label="CVV"
+                  fullWidth
+                  value={bookingData.creditCard.cvv}
+                  onChange={handleChange}
+                  error={!!formErrors['creditCard.cvv']}
+                  helperText={formErrors['creditCard.cvv']}
+                  required
+                  placeholder="###"
+                  inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="creditCard.holderName"
+                  label="שם בעל הכרטיס"
+                  fullWidth
+                  value={bookingData.creditCard.holderName}
+                  onChange={handleChange}
+                  error={!!formErrors['creditCard.holderName']}
+                  helperText={formErrors['creditCard.holderName']}
+                  required
+                  size="small"
+                />
+              </Grid>
+            </Grid>
           </Box>
         );
       case 2:
@@ -655,21 +631,6 @@ const BookingFormPage = () => {
                 </Grid>
               </Grid>
             </Paper>
-            
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="agreeToTerms"
-                  checked={bookingData.agreeToTerms}
-                  onChange={handleChange}
-                  color="primary"
-                />
-              }
-              label="אני מאשר/ת את תנאי השימוש ומדיניות הביטולים"
-            />
-            {formErrors.agreeToTerms && (
-              <FormHelperText error>{formErrors.agreeToTerms}</FormHelperText>
-            )}
           </Box>
         );
       default:
@@ -711,18 +672,12 @@ const BookingFormPage = () => {
     );
   };
   
+
+  
   return (
     <PublicSiteLayout>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
-          <IconButton 
-            component={Link} 
-            to={`/airport-booking/search-results?checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${urlGuests}&isTourist=${isTourist}`}
-            sx={{ mb: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          
           <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 600 }}>
             הזמנת חדר
           </Typography>
@@ -736,11 +691,21 @@ const BookingFormPage = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Grid container spacing={4}>
+            <Grid container spacing={3}>
               {/* טופס הזמנה */}
-              <Grid item xs={12} md={8}>
-                <Paper elevation={1} sx={{ p: 3, borderRadius: '10px' }}>
-                  <Stepper activeStep={activeStep} alternativeLabel={!isMobile} orientation={isMobile ? 'vertical' : 'horizontal'}>
+              <Grid item xs={12} md={6}>
+                <Paper elevation={1} sx={{ p: 2, borderRadius: '10px' }}>
+                  <Stepper 
+                    activeStep={activeStep} 
+                    alternativeLabel={!isMobile} 
+                    orientation={isMobile ? 'vertical' : 'horizontal'}
+                    connector={null}
+                    sx={{
+                      '& .MuiStepConnector-root': {
+                        display: 'none'
+                      }
+                    }}
+                  >
                     {steps.map((label, index) => {
                       const stepProps = {};
                       const labelProps = {};
@@ -754,23 +719,36 @@ const BookingFormPage = () => {
                   
                   {getStepContent(activeStep)}
                   
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-                    <Button
-                      color="inherit"
-                      disabled={activeStep === 0}
-                      onClick={handleBack}
-                      sx={{ mr: 1 }}
-                    >
-                      חזור
-                    </Button>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                    {activeStep === 0 ? (
+                      <Button
+                        component={Link}
+                        to={`/airport-booking/search-results?checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${urlGuests}&isTourist=${isTourist}`}
+                        color="inherit"
+                        sx={{ mr: 1 }}
+                        size="small"
+                      >
+                        חזרה לתוצאות
+                      </Button>
+                    ) : (
+                      <Button
+                        color="inherit"
+                        onClick={handleBack}
+                        sx={{ mr: 1 }}
+                        size="small"
+                      >
+                        חזור
+                      </Button>
+                    )}
                     <Button
                       variant="contained"
                       onClick={handleNext}
                       disabled={loading}
+                      size="small"
                     >
                       {activeStep === steps.length - 1 ? 'סיים הזמנה' : 'המשך'}
                       {loading && activeStep === steps.length - 1 && (
-                        <CircularProgress size={24} sx={{ ml: 1 }} />
+                        <CircularProgress size={20} sx={{ ml: 1 }} />
                       )}
                     </Button>
                   </Box>
@@ -778,7 +756,7 @@ const BookingFormPage = () => {
               </Grid>
               
               {/* סיכום הזמנה */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={6}>
                 <Card elevation={2} sx={{ borderRadius: '10px', position: 'sticky', top: 20 }}>
                   {roomLoading ? (
                     <Box sx={{ p: 3 }}>
@@ -789,22 +767,19 @@ const BookingFormPage = () => {
                       {renderRoomImage()}
                       
                       <CardContent>
-                        <Typography variant="h6" component="h2" fontWeight={600}>
+                        <Typography variant="h6" component="h2" fontWeight={600} sx={{ fontSize: '1.1rem', mb: 2 }}>
                           {room?.category}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          חדר {room?.roomNumber}
                         </Typography>
                         
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <EventAvailableIcon sx={{ color: 'primary.main', mr: 1, fontSize: 20 }} />
-                          <Typography variant="body2">
+                          <EventAvailableIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                             {formattedCheckIn} - {formattedCheckOut}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <PersonOutlineIcon sx={{ color: 'primary.main', mr: 1, fontSize: 20 }} />
-                          <Typography variant="body2">
+                          <PersonOutlineIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                             עד {room?.maxOccupancy} אורחים
                           </Typography>
                         </Box>
@@ -817,43 +792,49 @@ const BookingFormPage = () => {
                               px: 1, 
                               py: 0.5, 
                               borderRadius: 1,
-                              fontSize: '0.75rem'
+                              fontSize: '0.7rem'
                             }}>
-                              תייר - מחירים ללא מע״מ
+                              תייר - ללא מע״מ
                             </Typography>
                           </Box>
                         )}
                         
-                        <Divider sx={{ mb: 2 }} />
+                        <Divider sx={{ mb: 1.5 }} />
                         
-                        <Box sx={{ mb: 1 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">מחיר בסיס ללילה:</Typography>
-                            <Typography variant="body2">{isTourist ? room?.basePrice : room?.vatPrice} ₪</Typography>
+                        {/* פירוט מחירים בטבלה קומפקטית */}
+                        <Box sx={{ 
+                          bgcolor: '#f8fafc', 
+                          borderRadius: 1, 
+                          p: 1.5, 
+                          mb: 1.5,
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr auto', gap: 1, alignItems: 'center' }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
+                              ₪{roomPricing.pricePerNight}/לילה
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary' }}>×</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
+                              {nightsCount} לילות
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary' }}>×</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
+                              {bookingData.guests} אורחים
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontSize: '1rem', fontWeight: 600, color: 'primary.main' }}>
+                              = ₪{roomPricing.totalPrice}
+                            </Typography>
                           </Box>
                           {roomPricing.extraGuests > 0 && (
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Typography variant="body2">תוספת {roomPricing.extraGuests} אורח{roomPricing.extraGuests > 1 ? 'ים' : ''} נוסף{roomPricing.extraGuests > 1 ? 'ים' : ''}:</Typography>
-                              <Typography variant="body2">{roomPricing.extraCharge} ₪</Typography>
-                            </Box>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'warning.main', mt: 0.5, textAlign: 'center' }}>
+                              כולל תוספת {roomPricing.extraGuests} אורח{roomPricing.extraGuests > 1 ? 'ים' : ''} (+₪{roomPricing.extraCharge})
+                            </Typography>
                           )}
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                            <Typography variant="body2" fontWeight={600}>מחיר ללילה:</Typography>
-                            <Typography variant="body2" fontWeight={600}>{roomPricing.pricePerNight} ₪</Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">מספר לילות:</Typography>
-                            <Typography variant="body2">{nightsCount}</Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2">מספר אורחים:</Typography>
-                            <Typography variant="body2">{bookingData.guests}</Typography>
-                          </Box>
                         </Box>
                         
                         <Divider sx={{ mb: 2 }} />
                         
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                           <Typography variant="body1" fontWeight={600}>
                             סה"כ לתשלום:
                           </Typography>
@@ -861,11 +842,43 @@ const BookingFormPage = () => {
                             {roomPricing.totalPrice} ₪
                           </Typography>
                         </Box>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                          <PaymentIcon sx={{ color: 'success.main', mr: 1, fontSize: 20 }} />
-                          <Typography variant="body2" color="success.main">
-                            תשלום בהגעה למלון
+
+                        <Divider sx={{ mb: 1.5 }} />
+
+                        {/* מדיניות התשלום - קומפקטית */}
+                        <Box sx={{ mb: 1.5 }}>
+                          <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                            <Typography component="span" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.9rem' }}>
+                              💰 פרטי התשלום:
+                            </Typography>
+                            {' '}
+                            <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
+                              המחיר כולל כל המיסים • תשלום בהגעה (מזומן/אשראי)
+                            </Typography>
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ mb: 1.5 }}>
+                          <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                            <Typography component="span" sx={{ fontWeight: 600, color: 'warning.main', fontSize: '0.9rem' }}>
+                              🔄 מדיניות ביטול:
+                            </Typography>
+                            {' '}
+                            <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
+                              ביטול ללא עלות עד {formattedCancellationDate} • לאחר מכן לא ניתן לבטל
+                            </Typography>
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+                            <Typography component="span" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.9rem' }}>
+                              🕐 זמני צ'ק-אין/אאוט:
+                            </Typography>
+                            {' '}
+                            <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
+                              צ'ק-אין: 15:00 • צ'ק-אאוט: 10:00
+                            </Typography>
                           </Typography>
                         </Box>
                       </CardContent>
@@ -876,6 +889,8 @@ const BookingFormPage = () => {
             </Grid>
           )}
         </Box>
+        
+
       </Container>
     </PublicSiteLayout>
   );
