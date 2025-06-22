@@ -112,20 +112,23 @@ class EmailService {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .header { 
-            background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%); 
-            color: white; 
-            padding: 40px 30px; 
+            background: white; 
+            color: #1e293b; 
+            padding: 30px 30px 20px 30px; 
             text-align: center; 
+            border-bottom: 1px solid #e2e8f0;
         }
         .header h1 { 
             margin: 0; 
-            font-size: 28px; 
+            font-size: 26px; 
             font-weight: 600;
+            color: #1e293b;
         }
-        .header p { 
-            margin: 10px 0 0; 
+        .header .subtitle { 
+            margin: 8px 0 0; 
             font-size: 16px; 
-            opacity: 0.9;
+            color: #64748b;
+            font-weight: 400;
         }
         .content { 
             padding: 30px; 
@@ -135,17 +138,18 @@ class EmailService {
             background: #f0f9ff; 
             padding: 20px; 
             border-radius: 8px; 
-            margin-bottom: 30px;
-            border: 2px solid #0071e3;
+            margin-bottom: 25px;
+            border: 1px solid #bfdbfe;
         }
         .booking-number h2 { 
-            color: #0071e3; 
+            color: #1e40af; 
             margin: 0; 
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: 700;
         }
         .details-grid { 
             display: grid; 
-            grid-template-columns: 1fr 1fr; 
+            grid-template-columns: 1fr 1fr 1fr; 
             gap: 20px; 
             margin-bottom: 30px;
         }
@@ -153,16 +157,18 @@ class EmailService {
             background: #f8fafc; 
             padding: 20px; 
             border-radius: 8px; 
-            border-right: 4px solid #0071e3;
+            border-right: 4px solid #1e40af;
         }
         .detail-card h3 { 
             margin: 0 0 10px; 
-            color: #0071e3; 
+            color: #1e40af; 
             font-size: 16px;
+            text-align: right;
         }
         .detail-card p { 
             margin: 5px 0; 
             color: #64748b;
+            text-align: right;
         }
         .price-summary { 
             background: #0071e3; 
@@ -181,15 +187,16 @@ class EmailService {
             font-weight: bold; 
         }
         .instructions { 
-            background: #fef3c7; 
+            background: #f0f9ff; 
             padding: 20px; 
             border-radius: 8px; 
-            border-right: 4px solid #f59e0b;
+            border-right: 4px solid #3b82f6;
             margin: 20px 0;
         }
         .instructions h3 { 
-            color: #92400e; 
+            color: #1e40af; 
             margin: 0 0 10px;
+            text-align: right;
         }
         .contact-info { 
             text-align: center; 
@@ -201,7 +208,7 @@ class EmailService {
             color: #0071e3; 
             text-decoration: none;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .details-grid { grid-template-columns: 1fr; }
             .container { margin: 10px; }
         }
@@ -210,8 +217,9 @@ class EmailService {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎉 ההזמנה אושרה!</h1>
-            <p>Airport Guest House - מלונית שדה התעופה</p>
+            <div style="font-size: 50px; color: #059669; margin-bottom: 15px;">✅</div>
+            <h1>ההזמנה התקבלה בהצלחה!</h1>
+            <p class="subtitle">Airport Guest House</p>
         </div>
         
         <div class="content">
@@ -221,51 +229,54 @@ class EmailService {
             
             <div class="details-grid">
                 <div class="detail-card">
-                    <h3>📅 תאריכי שהייה</h3>
+                    <h3>תאריכי שהייה</h3>
                     <p><strong>צ'ק-אין:</strong> ${checkInFormatted}</p>
                     <p><strong>צ'ק-אאוט:</strong> ${checkOutFormatted}</p>
                     <p><strong>מספר לילות:</strong> ${bookingData.nights}</p>
                 </div>
                 
                 <div class="detail-card">
-                    <h3>🏨 פרטי החדר</h3>
+                    <h3>פרטי החדר</h3>
                     <p><strong>סוג חדר:</strong> ${bookingData.roomType}</p>
                     <p><strong>מספר חדר:</strong> ${bookingData.roomNumber}</p>
                     <p><strong>מספר אורחים:</strong> ${bookingData.guests}</p>
                 </div>
-            </div>
-            
-            <div class="price-summary">
-                <h3>סכום לתשלום במלונית</h3>
-                <div class="amount">${bookingData.price} ₪</div>
+                
+                <div class="detail-card">
+                    <h3>סכום לתשלום</h3>
+                    <p style="color: #1e40af; font-size: 20px; font-weight: bold;">${bookingData.price} ₪</p>
+                </div>
             </div>
             
             <div class="instructions">
-                <h3>⏰ הוראות חשובות</h3>
-                <ul style="margin: 10px 0; padding-right: 20px;">
-                    <li>צ'ק-אין החל מהשעה 14:00</li>
-                    <li>צ'ק-אאוט עד השעה 11:00</li>
-                    <li>התשלום מתבצע בהגעה (מזומן או כרטיס אשראי)</li>
-                    <li>נא להביא תעודת זהות או דרכון</li>
-                    <li>חניה חינם זמינה</li>
+                <h3>הוראות חשובות</h3>
+                <ul style="margin: 10px 0; padding-left: 20px; text-align: right; direction: rtl;">
+                    <li>צ'ק-אין החל מהשעה 15:00</li>
+                    <li>צ'ק-אאוט עד השעה 10:00</li>
+                    <li>יש לנו צ'ק-אין עצמאי - ביום ההגעה נשלח את כל הפרטים והוראות הכניסה באמצעות WhatsApp</li>
                 </ul>
             </div>
             
-            <div style="text-align: center; margin: 30px 0;">
-                <p style="font-size: 18px; color: #0071e3; font-weight: 600;">
-                    מחכים לכם! 🏨
-                </p>
-                <p style="color: #64748b;">
+            <div class="instructions">
+                <h3>מדיניות ביטול</h3>
+                <ul style="margin: 10px 0; padding-left: 20px; text-align: right; direction: rtl;">
+                    <li>ביטול ללא עלות עד 3 ימים לפני הגעה</li>
+                    <li>לאחר מכן לא ניתן לבטל</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 40px 0; padding: 25px; background: #f8fafc; border-radius: 12px; border: 2px solid #e2e8f0;">
+                <p style="color: #1e293b; text-align: center; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
                     אם יש שאלות או צורך בעזרה, אנו כאן בשבילכם
+                </p>
+                <p style="text-align: center; margin: 0;">
+                    📱 <a href="https://wa.me/972506070260" style="color: #25d366; text-decoration: none; font-weight: 700; font-size: 20px;">WhatsApp</a> <span style="font-size: 18px; color: #64748b; font-weight: 600;">- לכל שינוי או ביטול</span>
                 </p>
             </div>
         </div>
         
         <div class="contact-info">
             <p><strong>Airport Guest House</strong></p>
-            <p>📞 <a href="tel:+972506070260">050-607-0260</a></p>
-            <p>📱 <a href="https://wa.me/972506070260">WhatsApp</a></p>
-            <p>🗺️ במרחק 5 דקות מנתב״ג</p>
         </div>
     </div>
 </body>
