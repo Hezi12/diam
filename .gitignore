@@ -68,4 +68,4 @@ dist/
 .eslintcache
 .nyc_output
 .history/
-.vercel 
+.vercel server/gallery_backup.tar.gz
