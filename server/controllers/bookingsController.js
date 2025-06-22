@@ -685,6 +685,8 @@ exports.searchBookings = async (req, res) => {
   }
 };
 
+const emailService = require('../services/emailService');
+
 // יצירת הזמנה מהאתר הציבורי
 exports.createPublicBooking = async (req, res) => {
   try {
@@ -798,55 +800,123 @@ exports.createPublicBooking = async (req, res) => {
           price 
         });
       
-      // יצירת מספר הזמנה רץ באופן atomic
+      // יצירת מספר הזמנה רץ באופן atomic עם retry במקרה של כפילות
       const locationKey = `bookingNumber_${roomData.location}`;
-      const bookingNumber = await Counter.getNextSequence(locationKey);
-      console.log('מספר הזמנה חדש (atomic):', bookingNumber);
+      let bookingNumber;
+      let newBooking;
+      let attempts = 0;
+      const maxAttempts = 5;
       
-      // יצירת ההזמנה החדשה
-      const newBookingData = {
-        firstName,
-        lastName,
-        email,
-        phone,
-        guests: guestsCount,
-        room,
-        roomNumber: roomData.roomNumber,
-        location: roomData.location,
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        nights,
-        price,
-        pricePerNight: pricePerNight,
-        pricePerNightNoVat: pricePerNightNoVat,
-        notes,
-        bookingNumber,
-        source: 'home_website',
-        paymentMethod: creditCard ? 'credit-card' : 'cash',
-        paymentStatus: 'unpaid',
-        status: 'pending',
-        isTourist: isTourist || false,
-        // שמירת נתוני כרטיס האשראי מלאים (כמו בהזמנות רגילות)
-        creditCard: creditCard ? {
-          cardNumber: creditCard.cardNumber,
-          expiryDate: creditCard.expiryDate,
-          cvv: creditCard.cvv
-        } : undefined
-      };
+      while (attempts < maxAttempts) {
+        try {
+          bookingNumber = await Counter.getNextSequence(locationKey);
+          console.log(`מספר הזמנה חדש (ניסיון ${attempts + 1}):`, bookingNumber);
+          
+          // יצירת ההזמנה החדשה
+          const newBookingData = {
+            firstName,
+            lastName,
+            email,
+            phone,
+            guests: guestsCount,
+            room,
+            roomNumber: roomData.roomNumber,
+            location: roomData.location,
+            checkIn: checkInDate,
+            checkOut: checkOutDate,
+            nights,
+            price,
+            pricePerNight: pricePerNight,
+            pricePerNightNoVat: pricePerNightNoVat,
+            notes,
+            bookingNumber,
+            source: 'home_website',
+            paymentMethod: creditCard ? 'credit-card' : 'cash',
+            paymentStatus: 'unpaid',
+            status: 'pending',
+            isTourist: isTourist || false,
+            // שמירת נתוני כרטיס האשראי מלאים (כמו בהזמנות רגילות)
+            creditCard: creditCard ? {
+              cardNumber: creditCard.cardNumber,
+              expiryDate: creditCard.expiryDate,
+              cvv: creditCard.cvv
+            } : undefined
+          };
+          
+          console.log('יוצר הזמנה חדשה עם הנתונים:', {
+            bookingNumber: newBookingData.bookingNumber,
+            roomNumber: newBookingData.roomNumber,
+            guest: `${newBookingData.firstName} ${newBookingData.lastName}`,
+            dates: `${newBookingData.checkIn} - ${newBookingData.checkOut}`,
+            price: newBookingData.price
+          });
+          
+          newBooking = new Booking(newBookingData);
+          await newBooking.save();
+          
+          // אם הגענו לכאן, ההזמנה נשמרה בהצלחה - נצא מהלולאה
+          break;
+          
+        } catch (saveError) {
+          attempts++;
+          console.log(`❌ שגיאה בשמירת הזמנה (ניסיון ${attempts}/${maxAttempts}):`, saveError.message);
+          
+          // אם זו שגיאת מספר הזמנה כפול, ננסה שוב
+          if (saveError.code === 11000 && saveError.message.includes('bookingNumber')) {
+            if (attempts >= maxAttempts) {
+              throw new Error(`נכשל ביצירת הזמנה אחרי ${maxAttempts} ניסיונות - יתכן שיש בעיה במערכת מספרי ההזמנות`);
+            }
+            console.log(`🔄 מנסה שוב עם מספר הזמנה חדש...`);
+            continue;
+          } else {
+            // שגיאה אחרת - זרוק מיד
+            throw saveError;
+          }
+        }
+      }
       
-      console.log('יוצר הזמנה חדשה עם הנתונים:', {
-        bookingNumber: newBookingData.bookingNumber,
-        roomNumber: newBookingData.roomNumber,
-        guest: `${newBookingData.firstName} ${newBookingData.lastName}`,
-        dates: `${newBookingData.checkIn} - ${newBookingData.checkOut}`,
-        price: newBookingData.price
-      });
-      
-      const newBooking = new Booking(newBookingData);
-      
-      await newBooking.save();
+      if (!newBooking) {
+        throw new Error('נכשל ביצירת ההזמנה');
+      }
       
       console.log('הזמנה נשמרה בהצלחה:', newBooking._id);
+      
+      // שליחת מיילים - אישור לאורח והודעה למנהל
+      try {
+        const emailData = {
+          bookingNumber,
+          firstName,
+          lastName,  
+          email,
+          phone,
+          checkIn: newBooking.checkIn,
+          checkOut: newBooking.checkOut,
+          nights: newBooking.nights,
+          price: newBooking.price,
+          roomType: roomData.category,
+          roomNumber: roomData.roomNumber,
+          guests: guestsCount,
+          notes
+        };
+        
+        console.log('📧 שולח מיילים להזמנה:', bookingNumber);
+        
+        // שליחת המיילים ברקע (לא חוסם את התגובה)
+        emailService.sendBookingEmails(emailData)
+          .then(results => {
+            console.log('✅ תוצאות שליחת מיילים:', {
+              guest: results.guest.success ? 'נשלח' : 'נכשל',
+              admin: results.admin.success ? 'נשלח' : 'נכשל'
+            });
+          })
+          .catch(error => {
+            console.error('❌ שגיאה בשליחת מיילים:', error);
+          });
+          
+      } catch (emailError) {
+        console.error('❌ שגיאה במערכת המיילים:', emailError);
+        // לא עוצר את התהליך - ההזמנה נשמרה בהצלחה
+      }
       
       // החזרת אישור יצירת ההזמנה
       res.status(201).json({

@@ -6,12 +6,24 @@ const counterSchema = new mongoose.Schema({
 });
 
 counterSchema.statics.getNextSequence = async function(sequenceName) {
-  const counter = await this.findByIdAndUpdate(
-    sequenceName,
-    { $inc: { sequence_value: 1 } },
-    { new: true, upsert: true }
-  );
-  return counter.sequence_value;
+  // שימוש בsession כדי לוודא atomicity
+  const session = await this.db.startSession();
+  
+  try {
+    let result;
+    await session.withTransaction(async () => {
+      const counter = await this.findByIdAndUpdate(
+        sequenceName,
+        { $inc: { sequence_value: 1 } },
+        { new: true, upsert: true, session }
+      );
+      result = counter.sequence_value;
+    });
+    
+    return result;
+  } finally {
+    await session.endSession();
+  }
 };
 
 module.exports = mongoose.model('Counter', counterSchema); 
