@@ -16,6 +16,11 @@ const ensureDir = async (dirPath) => {
 // הגדרות אחסון בסיסיות
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
+    // בחירת נתיב uploads מתאים לסביבה
+    const baseUploadsPath = process.env.NODE_ENV === 'production' 
+      ? '/opt/render/project/src/uploads'
+      : path.join(__dirname, '../uploads');
+    
     // קביעת היעד לפי סוג ההעלאה ומיקום
     let uploadPath;
     
@@ -29,29 +34,29 @@ const storage = multer.diskStorage({
       try {
         const room = await Room.findById(roomId);
         if (room && room.location) {
-          uploadPath = path.join(__dirname, `../uploads/rooms/${room.location}`);
+          uploadPath = path.join(baseUploadsPath, `rooms/${room.location}`);
         } else {
           console.error('לא נמצא חדר או מיקום לא מוגדר');
-          uploadPath = path.join(__dirname, '../uploads/temp');
+          uploadPath = path.join(baseUploadsPath, 'temp');
         }
       } catch (error) {
         console.error('שגיאה בחיפוש חדר:', error);
-        uploadPath = path.join(__dirname, '../uploads/temp');
+        uploadPath = path.join(baseUploadsPath, 'temp');
       }
     }
     // העלאת תמונה בודדת לחדר (נתיב ישן)
     else if (req.params.roomId) {
       const { location } = req.body;
-      uploadPath = path.join(__dirname, `../uploads/rooms/${location}`);
+      uploadPath = path.join(baseUploadsPath, `rooms/${location}`);
     } 
     // העלאת תמונה לגלריית מיקום
     else if (req.params.location) {
       const { location } = req.params;
-      uploadPath = path.join(__dirname, `../uploads/gallery/${location}`);
+      uploadPath = path.join(baseUploadsPath, `gallery/${location}`);
     } 
     // יעד ברירת מחדל
     else {
-      uploadPath = path.join(__dirname, '../uploads/temp');
+      uploadPath = path.join(baseUploadsPath, 'temp');
     }
     
     // וידוא שהתיקייה קיימת

@@ -12,19 +12,25 @@ dotenv.config();
 // יצירת תיקיות uploads אם לא קיימות
 (async () => {
   try {
+    // בחירת נתיב uploads מתאים לסביבה
+    const baseUploadsPath = process.env.NODE_ENV === 'production' 
+      ? '/opt/render/project/src/uploads'
+      : path.join(__dirname, 'uploads');
+    
     // וידוא שכל תיקיות ההעלאות קיימות
-    await fs.ensureDir(path.join(__dirname, 'uploads'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/temp'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/invoices'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/rooms'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/rooms/airport'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/rooms/rothschild'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/gallery'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/gallery/airport'));
-    await fs.ensureDir(path.join(__dirname, 'uploads/gallery/rothschild'));
-    console.log('✓ תיקיות ההעלאות נוצרו בהצלחה');
+    await fs.ensureDir(baseUploadsPath);
+    await fs.ensureDir(path.join(baseUploadsPath, 'temp'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'invoices'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'rooms'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'rooms/airport'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'rooms/rothschild'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'gallery'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'gallery/airport'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'gallery/rothschild'));
+    console.log('✓ תיקיות ההעלאות נוצרו בהצלחה ב:', baseUploadsPath);
   } catch (err) {
     console.error('שגיאה ביצירת תיקיות העלאה:', err);
+    console.error('נתיב שנוסה:', process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : path.join(__dirname, 'uploads'));
   }
 })();
 
@@ -90,8 +96,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// הגדרת נתיב גישה לתמונות - חדש!
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// הגדרת נתיב גישה לתמונות - מותאם לסביבה
+const uploadsPath = process.env.NODE_ENV === 'production' 
+  ? '/opt/render/project/src/uploads'
+  : path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsPath));
 
 // חיבור למסד נתונים MongoDB
 mongoose.connect(process.env.MONGODB_URI)

@@ -373,8 +373,11 @@ exports.getGalleryImages = async (req, res) => {
     
     // אם אין תמונות במסד הנתונים, ננסה לקרוא מהתיקייה (לתאימות לאחור)
     if (galleryImages.length === 0) {
-      // נתיב תיקיית הגלריה
-      const galleryPath = path.join(__dirname, `../uploads/gallery/${location}`);
+      // נתיב תיקיית הגלריה - מותאם לסביבה
+      const baseUploadsPath = process.env.NODE_ENV === 'production' 
+        ? '/opt/render/project/src/uploads'
+        : path.join(__dirname, '../uploads');
+      const galleryPath = path.join(baseUploadsPath, `gallery/${location}`);
       
       // בדיקה אם התיקייה קיימת
       if (await fs.pathExists(galleryPath)) {
