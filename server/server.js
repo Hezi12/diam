@@ -122,6 +122,7 @@ const capitalRoutes = require('./routes/capital');
 const financialRoutes = require('./routes/financial');
 const documentsRoutes = require('./routes/documents');
 const icountRoutes = require('./routes/icount');
+const icalRoutes = require('./routes/ical');
 
 // הגדרת נתיבים
 app.use('/api/bookings', bookingsRoutes);
@@ -134,6 +135,7 @@ app.use('/api/capital', capitalRoutes);
 app.use('/api/financial', financialRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/icount', icountRoutes);
+app.use('/api/ical', icalRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {
@@ -151,9 +153,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'שגיאת שרת פנימית' });
 });
 
+// הפעלת שירות הסנכרון האוטומטי
+const cronService = require('./services/cronService');
+cronService.start().catch(error => {
+  console.error('שגיאה בהפעלת שירות הסנכרון האוטומטי:', error);
+});
+
 // הפעלת השרת עם טיפול בשגיאות
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`iCal Export URLs:`);
+  console.log(`- Airport: http://localhost:${PORT}/api/ical/export/airport/{roomId}`);
+  console.log(`- Rothschild: http://localhost:${PORT}/api/ical/export/rothschild/{roomId}`);
 });
 
 // טיפול בשגיאות בשרת
