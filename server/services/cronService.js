@@ -20,8 +20,8 @@ class CronService {
 
         console.log('מתחיל שירות סנכרון אוטומטי עם בוקינג...');
 
-        // סנכרון כל שעתיים (0 */2 * * *)
-        const syncJob = cron.schedule('0 */2 * * *', async () => {
+        // סנכרון דינמי לפי הגדרות (ברירת מחדל: כל שעתיים)
+        const syncJob = cron.schedule('*/30 * * * *', async () => {
             await this.performAutoSync();
         }, {
             scheduled: false,
@@ -45,7 +45,7 @@ class CronService {
 
         this.isRunning = true;
         console.log('שירות הסנכרון האוטומטי הופעל בהצלחה');
-        console.log('- סנכרון כל שעתיים: פעיל');
+        console.log('- סנכרון אוטומטי: פעיל (בודק כל 30 דקות)');
         console.log('- סנכרון יומי בשעה 6:00: פעיל');
     }
 
@@ -92,7 +92,17 @@ class CronService {
             const syncResults = [];
 
             for (const settings of allSettings) {
-                console.log(`מסנכרן מיקום: ${settings.location}`);
+                // בדיקה אם הגיע הזמן לסנכרון לפי ההגדרות
+                const syncInterval = settings.globalSettings.syncInterval || 120; // ברירת מחדל: 120 דקות
+                const lastSyncTime = settings.updatedAt || settings.createdAt;
+                const minutesSinceLastSync = (Date.now() - lastSyncTime.getTime()) / (1000 * 60);
+                
+                if (minutesSinceLastSync < syncInterval) {
+                    console.log(`מיקום ${settings.location}: עדיין לא הגיע הזמן לסנכרון (${Math.round(minutesSinceLastSync)}/${syncInterval} דקות)`);
+                    continue;
+                }
+                
+                console.log(`מסנכרן מיקום: ${settings.location} (${Math.round(minutesSinceLastSync)} דקות מהסנכרון האחרון)`);
                 
                 const enabledRooms = settings.getEnabledRooms();
                 if (enabledRooms.length === 0) {

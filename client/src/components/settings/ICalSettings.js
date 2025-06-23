@@ -301,6 +301,19 @@ const ICalSettings = () => {
                         
                         <Grid item xs={12} md={6}>
                             <TextField
+                                label="תדירות סנכרון (דקות)"
+                                fullWidth
+                                type="number"
+                                value={settings?.globalSettings?.syncInterval || 120}
+                                onChange={(e) => updateGlobalSetting('syncInterval', parseInt(e.target.value) || 120)}
+                                placeholder="120"
+                                helperText="כמה דקות בין כל סנכרון אוטומטי (ברירת מחדל: 120)"
+                                inputProps={{ min: 15, max: 1440 }}
+                            />
+                        </Grid>
+                        
+                        <Grid item xs={12} md={6}>
+                            <TextField
                                 label="כתובת מייל להתראות"
                                 fullWidth
                                 value={settings?.globalSettings?.notifications?.email || ''}
@@ -398,11 +411,12 @@ const ICalSettings = () => {
                                         
                                         <Grid item xs={12} md={2}>
                                             <Box display="flex" gap={1}>
-                                                <Tooltip title="סנכרון ידני">
+                                                <Tooltip title="ייבוא מבוקינג (סנכרון ידני)">
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => syncRoom(room.roomId)}
                                                         disabled={!room.enabled || !room.bookingIcalUrl || syncing}
+                                                        color="primary"
                                                     >
                                                         <Sync />
                                                     </IconButton>
