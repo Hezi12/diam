@@ -238,7 +238,9 @@ class CronService {
             newBookings.forEach((booking, index) => {
                 message += `${index + 1}. הזמנה #${booking.bookingNumber}\n`;
                 message += `   אורח: ${booking.guestName}\n`;
-                message += `   תאריכים: ${booking.checkInDate.toLocaleDateString('he-IL')} - ${booking.checkOutDate.toLocaleDateString('he-IL')}\n`;
+                const checkIn = new Date(booking.checkInDate || booking.checkIn);
+                const checkOut = new Date(booking.checkOutDate || booking.checkOut);
+                message += `   תאריכים: ${checkIn.toLocaleDateString('he-IL')} - ${checkOut.toLocaleDateString('he-IL')}\n`;
                 message += `   חדר: ${roomConfig.roomName}\n\n`;
             });
 

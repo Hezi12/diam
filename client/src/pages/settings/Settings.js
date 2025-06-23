@@ -3,6 +3,8 @@ import { Box, Typography, Paper, Button, Grid, Container } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import FlightIcon from '@mui/icons-material/Flight';
+import SyncIcon from '@mui/icons-material/Sync';
+import ICalSettings from '../../components/settings/ICalSettings';
 
 /**
  * עמוד הגדרות מרכזי
@@ -104,6 +106,14 @@ const Settings = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* הגדרות סנכרון iCal עם Booking.com */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, fontWeight: 'bold' }}>
+          סנכרון עם Booking.com
+        </Typography>
+        <ICalSettings />
+      </Box>
     </Container>
   );
 };

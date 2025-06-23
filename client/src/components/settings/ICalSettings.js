@@ -33,7 +33,7 @@ import {
     Schedule,
     ContentCopy,
     Visibility,
-    TestTube,
+    Science,
     Refresh,
     Save,
     NotificationsActive
@@ -446,7 +446,7 @@ const ICalSettings = () => {
                 <Button
                     variant="outlined"
                     onClick={() => setTestUrlDialog(true)}
-                    startIcon={<TestTube />}
+                                            startIcon={<Science />}
                 >
                     בדוק קישור iCal
                 </Button>
@@ -506,7 +506,7 @@ const ICalSettings = () => {
                         onClick={testICalUrl} 
                         disabled={!testUrl || testing}
                         variant="contained"
-                        startIcon={testing ? <CircularProgress size={20} /> : <TestTube />}
+                        startIcon={testing ? <CircularProgress size={20} /> : <Science />}
                     >
                         {testing ? 'בודק...' : 'בדוק קישור'}
                     </Button>
