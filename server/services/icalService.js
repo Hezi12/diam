@@ -20,10 +20,11 @@ class ICalService {
             // יצירת לוח שנה חדש
             const calendar = ical({
                 domain: 'diam-hotels.com',
-                name: `DIAM ${location.toUpperCase()} - Room ${roomId}`,
-                description: `זמינות חדר ${roomId} במתחם ${location}`,
+                name: `DIAM-${location.toUpperCase()}-Room-${roomId}`,
+                description: `זמינות חדר ${roomId} במתחם ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`,
                 timezone: 'Asia/Jerusalem',
-                ttl: 3600 // עדכון כל שעה
+                ttl: 3600, // עדכון כל שעה
+                prodId: `//DIAM Hotels//Room ${roomId} ${location}//HE`
             });
 
             // שליפת כל ההזמנות לחדר זה
