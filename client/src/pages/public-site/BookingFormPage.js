@@ -26,7 +26,7 @@ import {
   EventAvailable as EventAvailableIcon,
   PersonOutline as PersonOutlineIcon
 } from '@mui/icons-material';
-import { parseISO, format, differenceInDays } from 'date-fns';
+import { parseISO, format, differenceInDays, addDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
@@ -60,6 +60,7 @@ const BookingFormPage = () => {
     email: '',
     phone: '',
     guests: 1,
+    code: '',
     notes: '',
     paymentMethod: 'credit',
     creditCard: {
@@ -72,8 +73,6 @@ const BookingFormPage = () => {
   
   // מצב שגיאות הטופס
   const [formErrors, setFormErrors] = useState({});
-  
-
   
   // חילוץ פרמטרים מה-URL
   const searchParams = new URLSearchParams(location.search);
@@ -103,41 +102,89 @@ const BookingFormPage = () => {
   const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
   
   /**
-   * חישוב מחיר עם אורחים נוספים וסטטוס תייר
+   * חישוב מחיר עם אורחים נוספים וסטטוס תייר וימים מיוחדים
    * @param {Object} room - נתוני החדר
    * @param {number} guests - מספר אורחים
    * @param {number} nights - מספר לילות
    * @param {boolean} isTourist - האם תייר
+   * @param {Date} checkIn - תאריך כניסה
+   * @param {Date} checkOut - תאריך יציאה
    * @returns {Object} - אובייקט עם המחירים המחושבים
    */
-  const calculateRoomPrice = (room, guests, nights, isTourist) => {
+  const calculateRoomPrice = (room, guests, nights, isTourist, checkIn = null, checkOut = null) => {
     if (!room) return { pricePerNight: 0, totalPrice: 0 };
     
-    // מחיר בסיס לפי סטטוס תייר
-    const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+    let totalPrice = 0;
     
-    // חישוב תוספת לאורחים נוספים
-    const baseOccupancy = room.baseOccupancy || 2;
-    const extraGuestCharge = room.extraGuestCharge || 0;
-    const extraGuests = Math.max(0, guests - baseOccupancy);
-    const extraCharge = extraGuests * extraGuestCharge;
-    
-    // מחיר סופי ללילה
-    const pricePerNight = basePricePerNight + extraCharge;
-    
-    // מחיר כולל
-    const totalPrice = pricePerNight * nights;
-    
-    return {
-      pricePerNight,
-      totalPrice,
-      extraGuests,
-      extraCharge
-    };
+    // אם יש תאריכי כניסה ויציאה, נחשב מחיר מדויק לכל יום
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      
+      // מעבר על כל יום בתקופת השהייה
+      for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
+        const dayOfWeek = date.getDay();
+        let dailyBasePrice;
+        
+        if (dayOfWeek === 5) { // יום שישי
+          dailyBasePrice = isTourist ? 
+            (room.fridayPrice || room.basePrice || 0) : 
+            (room.fridayVatPrice || room.vatPrice || 0);
+        } else if (dayOfWeek === 6) { // יום שבת
+          dailyBasePrice = isTourist ? 
+            (room.saturdayPrice || room.basePrice || 0) : 
+            (room.saturdayVatPrice || room.vatPrice || 0);
+        } else { // שאר הימים
+          dailyBasePrice = isTourist ? 
+            (room.basePrice || 0) : 
+            (room.vatPrice || 0);
+        }
+        
+        // הוספת תוספת לאורחים נוספים
+        const baseOccupancy = room.baseOccupancy || 2;
+        const extraGuestCharge = room.extraGuestCharge || 0;
+        const extraGuests = Math.max(0, guests - baseOccupancy);
+        const extraCharge = extraGuests * extraGuestCharge;
+        
+        totalPrice += dailyBasePrice + extraCharge;
+      }
+      
+      // חישוב מחיר ממוצע ללילה
+      const avgPricePerNight = nights > 0 ? totalPrice / nights : 0;
+      
+      return {
+        pricePerNight: parseFloat(avgPricePerNight.toFixed(2)),
+        totalPrice: parseFloat(totalPrice.toFixed(2)),
+        extraGuests: Math.max(0, guests - (room.baseOccupancy || 2)),
+        extraCharge: Math.max(0, guests - (room.baseOccupancy || 2)) * (room.extraGuestCharge || 0)
+      };
+    } else {
+      // חישוב פשוט ללא תאריכים מדויקים - משתמש במחיר בסיס
+      const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+      
+      // חישוב תוספת לאורחים נוספים
+      const baseOccupancy = room.baseOccupancy || 2;
+      const extraGuestCharge = room.extraGuestCharge || 0;
+      const extraGuests = Math.max(0, guests - baseOccupancy);
+      const extraCharge = extraGuests * extraGuestCharge;
+      
+      // מחיר סופי ללילה
+      const pricePerNight = basePricePerNight + extraCharge;
+      
+      // מחיר כולל
+      const totalPrice = pricePerNight * nights;
+      
+      return {
+        pricePerNight,
+        totalPrice,
+        extraGuests,
+        extraCharge
+      };
+    }
   };
   
-  // מחיר סופי מחושב
-  const roomPricing = room ? calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist) : { pricePerNight: 0, totalPrice: 0 };
+  // מחיר סופי מחושב עם התאריכים
+  const roomPricing = room ? calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist, checkIn, checkOut) : { pricePerNight: 0, totalPrice: 0 };
   
   // עדכון הפונקציה submitBooking
   const submitBooking = async () => {
@@ -151,6 +198,7 @@ const BookingFormPage = () => {
         email: bookingData.email,
         phone: bookingData.phone,
         guests: parseInt(bookingData.guests, 10),
+        code: bookingData.code || '',
         notes: bookingData.notes,
         room: roomId,
         checkIn: checkInStr,
@@ -266,10 +314,10 @@ const BookingFormPage = () => {
   // עדכון המחיר כשמספר האורחים משתנה
   useEffect(() => {
     if (room && bookingData.guests) {
-      const newPricing = calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist);
+      const newPricing = calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist, checkIn, checkOut);
       // כאן אפשר להוסיף לוגיקה נוספת אם נדרש
     }
-  }, [bookingData.guests, room, nightsCount, isTourist]);
+  }, [bookingData.guests, room, nightsCount, isTourist, checkIn, checkOut]);
   
   // פורמט תאריכים לתצוגה
   const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
@@ -472,6 +520,22 @@ const BookingFormPage = () => {
                   error={!!formErrors.phone}
                   helperText={formErrors.phone}
                   required
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  name="code"
+                  label="קוד (אופציונלי)"
+                  fullWidth
+                  value={bookingData.code}
+                  onChange={handleChange}
+                  inputProps={{ 
+                    maxLength: 4, 
+                    style: { textAlign: 'center' },
+                    pattern: "[0-9]{4}"
+                  }}
+                  placeholder="0000"
                   size="small"
                 />
               </Grid>

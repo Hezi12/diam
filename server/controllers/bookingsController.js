@@ -153,7 +153,9 @@ exports.createBooking = async (req, res) => {
       paymentStatus,
       creditCard,
       status,
-      notes
+      notes,
+      code,
+      reviewHandled
     } = req.body;
     
     // בדיקה אם החדר קיים
@@ -251,7 +253,9 @@ exports.createBooking = async (req, res) => {
       notes,
       bookingNumber,
       source: req.body.source || 'direct',
-      externalBookingNumber: req.body.externalBookingNumber || ''
+      externalBookingNumber: req.body.externalBookingNumber || '',
+      code: code || '',
+      reviewHandled: reviewHandled || false
     });
     
     await newBooking.save();
@@ -775,20 +779,39 @@ exports.createPublicBooking = async (req, res) => {
         basePrice: roomData.basePrice
       });
       
-      // חישוב מספר הלילות ומחיר סופי עם אורחים נוספים
+      // חישוב מספר הלילות ומחיר סופי עם אורחים נוספים וימים מיוחדים
       const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
       const guestsCount = parseInt(guests, 10) || 2;
       
-      // חישוב מחיר עם אורחים נוספים
-      const baseOccupancy = roomData.baseOccupancy || 2;
-      const extraGuestCharge = roomData.extraGuestCharge || 0;
-      const extraGuests = Math.max(0, guestsCount - baseOccupancy);
-      const extraCharge = extraGuests * extraGuestCharge;
+      // חישוב מחיר מדויק עם ימים מיוחדים
+      let totalPrice = 0;
       
-      // מחיר ללילה כולל תוספת אורחים
-      const pricePerNight = roomData.vatPrice + extraCharge;
-      const pricePerNightNoVat = roomData.basePrice + extraCharge;
-      const price = nights * pricePerNight;
+      // מעבר על כל יום בתקופת השהייה
+      for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
+        const dayOfWeek = date.getDay();
+        let dailyBasePrice;
+        
+        if (dayOfWeek === 5) { // יום שישי
+          dailyBasePrice = roomData.fridayVatPrice || roomData.vatPrice || 0;
+        } else if (dayOfWeek === 6) { // יום שבת
+          dailyBasePrice = roomData.saturdayVatPrice || roomData.vatPrice || 0;
+        } else { // שאר הימים
+          dailyBasePrice = roomData.vatPrice || 0;
+        }
+        
+        // חישוב תוספת לאורחים נוספים
+        const baseOccupancy = roomData.baseOccupancy || 2;
+        const extraGuestCharge = roomData.extraGuestCharge || 0;
+        const extraGuests = Math.max(0, guestsCount - baseOccupancy);
+        const extraCharge = extraGuests * extraGuestCharge;
+        
+        totalPrice += dailyBasePrice + extraCharge;
+      }
+      
+      // חישוב מחיר ממוצע ללילה
+      const pricePerNight = nights > 0 ? parseFloat((totalPrice / nights).toFixed(2)) : 0;
+      const pricePerNightNoVat = parseFloat((pricePerNight / 1.18).toFixed(2)); // מחיר ללא מע"מ
+      const price = parseFloat(totalPrice.toFixed(2));
       
               console.log('חישוב תמחור:', { 
           nights, 

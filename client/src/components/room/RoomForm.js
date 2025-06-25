@@ -194,12 +194,13 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
     basePriceWithVat: '',
     fridayPriceNoVat: '',
     fridayPriceWithVat: '',
+    saturdayPriceNoVat: '',
+    saturdayPriceWithVat: '',
     baseOccupancy: 2,
     maxOccupancy: 2,
     extraGuestCharge: 0,
     description: '',
     amenities: '',
-    images: [],
     status: true
   });
   
@@ -207,28 +208,30 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
   const [imagePreview, setImagePreview] = useState([]);
   
   useEffect(() => {
-    if (room) {
-      // המרת הנתונים מהחדר לפורמט של הטופס
-      const expanded = {
+    if (room && isEdit) {
+      setFormData({
         roomNumber: room.roomNumber || '',
         category: room.category || 'Simple',
         basePriceNoVat: room.basePrice || '',
         basePriceWithVat: room.vatPrice || '',
         fridayPriceNoVat: room.fridayPrice || room.basePrice || '',
         fridayPriceWithVat: room.fridayVatPrice || room.vatPrice || '',
+        saturdayPriceNoVat: room.saturdayPrice || room.basePrice || '',
+        saturdayPriceWithVat: room.saturdayVatPrice || room.vatPrice || '',
         baseOccupancy: room.baseOccupancy || 2,
         maxOccupancy: room.maxOccupancy || 2,
         extraGuestCharge: room.extraGuestCharge || 0,
         description: room.description || '',
-        amenities: room.amenities ? (Array.isArray(room.amenities) ? room.amenities.join(', ') : room.amenities) : '',
-        images: room.images || [],
+        amenities: Array.isArray(room.amenities) ? room.amenities.join(', ') : (room.amenities || ''),
         status: room.status !== undefined ? room.status : true
-      };
+      });
       
-      setFormData(expanded);
-      setImagePreview(room.images || []);
+      // טעינת תמונות קיימות
+      if (room.images && room.images.length > 0) {
+        setImagePreview(room.images);
+      }
     }
-  }, [room]);
+  }, [room, isEdit]);
   
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target;
@@ -249,6 +252,12 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
     } else if (name === 'fridayPriceWithVat') {
       const noVat = parseFloat((parseFloat(value || 0) / 1.18).toFixed(2));
       setFormData((prev) => ({ ...prev, fridayPriceNoVat: noVat || '' }));
+    } else if (name === 'saturdayPriceNoVat') {
+      const withVat = parseFloat((parseFloat(value || 0) * 1.18).toFixed(2));
+      setFormData((prev) => ({ ...prev, saturdayPriceWithVat: withVat || '' }));
+    } else if (name === 'saturdayPriceWithVat') {
+      const noVat = parseFloat((parseFloat(value || 0) / 1.18).toFixed(2));
+      setFormData((prev) => ({ ...prev, saturdayPriceNoVat: noVat || '' }));
     }
   };
   
@@ -278,11 +287,13 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
       vatPrice: parseFloat(formData.basePriceWithVat) || 0,
       fridayPrice: parseFloat(formData.fridayPriceNoVat) || 0,
       fridayVatPrice: parseFloat(formData.fridayPriceWithVat) || 0,
+      saturdayPrice: parseFloat(formData.saturdayPriceNoVat) || 0,
+      saturdayVatPrice: parseFloat(formData.saturdayPriceWithVat) || 0,
       baseOccupancy: parseInt(formData.baseOccupancy, 10) || 2,
       maxOccupancy: parseInt(formData.maxOccupancy, 10) || 2,
       extraGuestCharge: parseInt(formData.extraGuestCharge, 10) || 0,
       description: formData.description,
-      amenities: formData.amenities.split(',').map(item => item.trim()).filter(item => item),
+      amenities: (formData.amenities || '').split(',').map(item => item.trim()).filter(item => item),
       images: imagePreview,
       imageFiles: imageFiles, // הוספת הקבצים עצמם
       status: formData.status

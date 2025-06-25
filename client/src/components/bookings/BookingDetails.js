@@ -16,7 +16,9 @@ import {
   MenuItem,
   Select,
   CircularProgress,
-  Tooltip
+  Tooltip,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -227,6 +229,12 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
     } catch (error) {
       return dateString || 'תאריך לא זמין';
     }
+  };
+
+  const getSourceLabel = (source) => {
+    // Implement the logic to return the appropriate label based on the source
+    // This is a placeholder and should be replaced with the actual implementation
+    return source || 'לא מסומן';
   };
 
   return (
@@ -523,6 +531,80 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
                   </>
                 )}
               </Paper>
+            </Grid>
+
+            {/* מידע בסיסי על ההזמנה */}
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={6} sm={3}>
+                <Typography variant="body2" color="text.secondary">
+                  תאריכי שהייה
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sm={2}>
+                <Typography variant="body2" color="text.secondary">
+                  לילות
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {booking.nights}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sm={2}>
+                <Typography variant="body2" color="text.secondary">
+                  אורחים
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {booking.guests}
+                </Typography>
+              </Grid>
+              {booking.code && (
+                <Grid item xs={6} sm={2}>
+                  <Typography variant="body2" color="text.secondary">
+                    קוד
+                  </Typography>
+                  <Typography variant="body1" fontWeight={500}>
+                    {booking.code}
+                  </Typography>
+                </Grid>
+              )}
+              <Grid item xs={6} sm={3}>
+                <Typography variant="body2" color="text.secondary">
+                  מקור הזמנה
+                </Typography>
+                <Typography variant="body1" fontWeight={500}>
+                  {getSourceLabel(booking.source)}
+                </Typography>
+              </Grid>
+            </Grid>
+
+            {/* מעקב חוות דעת */}
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={booking.reviewHandled || false}
+                      readOnly
+                      sx={{
+                        color: booking.reviewHandled ? '#06a271' : 'text.secondary',
+                        '&.Mui-checked': {
+                          color: '#06a271',
+                        }
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ 
+                      color: booking.reviewHandled ? '#06a271' : 'text.secondary',
+                      fontWeight: booking.reviewHandled ? 'bold' : 'normal'
+                    }}>
+                      טופל בחוות דעת
+                    </Typography>
+                  }
+                />
+              </Grid>
             </Grid>
           </Grid>
         </DialogContent>

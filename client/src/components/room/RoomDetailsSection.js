@@ -62,12 +62,9 @@ const RoomDetailsSection = ({ formData, onChange, viewOnly }) => {
       <Grid item xs={12}>
         <TextField
           label="מתקנים זמינים"
-          name="facilities"
-          value={(formData.facilities || []).join(', ')}
-          onChange={(e) => {
-            const facilities = e.target.value.split(',').map(f => f.trim()).filter(f => f);
-            onChange({ target: { name: 'facilities', value: facilities } });
-          }}
+          name="amenities"
+          value={formData.amenities || ''}
+          onChange={onChange}
           helperText="הפרד מתקנים באמצעות פסיקים"
           fullWidth
           margin="dense"

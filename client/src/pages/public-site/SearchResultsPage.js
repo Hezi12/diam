@@ -358,37 +358,85 @@ const SearchResultsPage = () => {
   };
   
   /**
-   * חישוב מחיר עם אורחים נוספים וסטטוס תייר
+   * חישוב מחיר עם אורחים נוספים וסטטוס תייר וימים מיוחדים
    * @param {Object} room - נתוני החדר
    * @param {number} guests - מספר אורחים
    * @param {number} nights - מספר לילות
    * @param {boolean} isTourist - האם תייר
+   * @param {Date} checkIn - תאריך כניסה
+   * @param {Date} checkOut - תאריך יציאה
    * @returns {Object} - אובייקט עם המחירים המחושבים
    */
-  const calculateRoomPrice = (room, guests, nights, isTourist) => {
+  const calculateRoomPrice = (room, guests, nights, isTourist, checkIn = null, checkOut = null) => {
     if (!room) return { pricePerNight: 0, totalPrice: 0 };
     
-    // מחיר בסיס לפי סטטוס תייר
-    const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+    let totalPrice = 0;
     
-    // חישוב תוספת לאורחים נוספים
-    const baseOccupancy = room.baseOccupancy || 2;
-    const extraGuestCharge = room.extraGuestCharge || 0;
-    const extraGuests = Math.max(0, guests - baseOccupancy);
-    const extraCharge = extraGuests * extraGuestCharge;
-    
-    // מחיר סופי ללילה
-    const pricePerNight = basePricePerNight + extraCharge;
-    
-    // מחיר כולל
-    const totalPrice = pricePerNight * nights;
-    
-    return {
-      pricePerNight,
-      totalPrice,
-      extraGuests,
-      extraCharge
-    };
+    // אם יש תאריכי כניסה ויציאה, נחשב מחיר מדויק לכל יום
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      
+      // מעבר על כל יום בתקופת השהייה
+      for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
+        const dayOfWeek = date.getDay();
+        let dailyBasePrice;
+        
+        if (dayOfWeek === 5) { // יום שישי
+          dailyBasePrice = isTourist ? 
+            (room.fridayPrice || room.basePrice || 0) : 
+            (room.fridayVatPrice || room.vatPrice || 0);
+        } else if (dayOfWeek === 6) { // יום שבת
+          dailyBasePrice = isTourist ? 
+            (room.saturdayPrice || room.basePrice || 0) : 
+            (room.saturdayVatPrice || room.vatPrice || 0);
+        } else { // שאר הימים
+          dailyBasePrice = isTourist ? 
+            (room.basePrice || 0) : 
+            (room.vatPrice || 0);
+        }
+        
+        // הוספת תוספת לאורחים נוספים
+        const baseOccupancy = room.baseOccupancy || 2;
+        const extraGuestCharge = room.extraGuestCharge || 0;
+        const extraGuests = Math.max(0, guests - baseOccupancy);
+        const extraCharge = extraGuests * extraGuestCharge;
+        
+        totalPrice += dailyBasePrice + extraCharge;
+      }
+      
+      // חישוב מחיר ממוצע ללילה
+      const avgPricePerNight = nights > 0 ? totalPrice / nights : 0;
+      
+      return {
+        pricePerNight: parseFloat(avgPricePerNight.toFixed(2)),
+        totalPrice: parseFloat(totalPrice.toFixed(2)),
+        extraGuests: Math.max(0, guests - (room.baseOccupancy || 2)),
+        extraCharge: Math.max(0, guests - (room.baseOccupancy || 2)) * (room.extraGuestCharge || 0)
+      };
+    } else {
+      // חישוב פשוט ללא תאריכים מדויקים - משתמש במחיר בסיס
+      const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+      
+      // חישוב תוספת לאורחים נוספים
+      const baseOccupancy = room.baseOccupancy || 2;
+      const extraGuestCharge = room.extraGuestCharge || 0;
+      const extraGuests = Math.max(0, guests - baseOccupancy);
+      const extraCharge = extraGuests * extraGuestCharge;
+      
+      // מחיר סופי ללילה
+      const pricePerNight = basePricePerNight + extraCharge;
+      
+      // מחיר כולל
+      const totalPrice = pricePerNight * nights;
+      
+      return {
+        pricePerNight,
+        totalPrice,
+        extraGuests,
+        extraCharge
+      };
+    }
   };
   
   return (
@@ -444,7 +492,7 @@ const SearchResultsPage = () => {
         ) : (
           <Grid container spacing={3}>
             {availableRooms.map((room) => {
-              const roomPricing = calculateRoomPrice(room, guests, nightsCount, isTourist);
+              const roomPricing = calculateRoomPrice(room, guests, nightsCount, isTourist, checkIn, checkOut);
               
               return (
                 <Grid item xs={12} md={6} lg={4} key={room._id}>

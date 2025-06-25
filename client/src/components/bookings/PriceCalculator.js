@@ -1,5 +1,5 @@
-import React from 'react';
-import { Grid, TextField, InputAdornment, IconButton, Box, Tooltip } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Grid, TextField, InputAdornment, IconButton, Box, Tooltip, Typography, FormControlLabel, Switch, Divider } from '@mui/material';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 
@@ -10,13 +10,66 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 const PriceCalculator = ({
   formData,
   setFormData,
-  lockedField,
-  setLockedField,
-  errors,
-  setErrors
+  onPriceChange,
+  isTourist,
+  nights,
+  checkInDate,
+  checkOutDate,
+  selectedRoom,
+  priceDetails = null
 }) => {
+  const [lockedField, setLockedField] = useState(null);
+
   // קבוע שיעור המע"מ
   const VAT_RATE = 1.18;
+
+  // פונקציה לחישוב מחיר בהתאם לימי שישי ושבת
+  const calculateSpecialDaysPricing = (room, checkIn, checkOut, isTourist) => {
+    if (!room || !checkIn || !checkOut) return 0;
+    
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    let totalPrice = 0;
+    
+    // מחיר בסיס לפי סטטוס תייר
+    const basePrice = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
+    const fridayPrice = isTourist ? (room.fridayPrice || room.basePrice || 0) : (room.fridayVatPrice || room.vatPrice || 0);
+    const saturdayPrice = isTourist ? (room.saturdayPrice || room.basePrice || 0) : (room.saturdayVatPrice || room.vatPrice || 0);
+    
+    // מעבר על כל יום בתקופת השהייה
+    for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
+      const dayOfWeek = date.getDay();
+      
+      if (dayOfWeek === 5) { // יום שישי
+        totalPrice += fridayPrice;
+      } else if (dayOfWeek === 6) { // יום שבת
+        totalPrice += saturdayPrice;
+      } else { // שאר הימים
+        totalPrice += basePrice;
+      }
+    }
+    
+    return totalPrice;
+  };
+
+  // חישוב מחיר אוטומטי כאשר יש כל הפרטים הנדרשים
+  useEffect(() => {
+    if (selectedRoom && checkInDate && checkOutDate && nights > 0 && !lockedField) {
+      const specialPrice = calculateSpecialDaysPricing(selectedRoom, checkInDate, checkOutDate, isTourist);
+      
+      if (specialPrice > 0) {
+        const pricePerNight = specialPrice / nights;
+        const pricePerNightNoVat = isTourist ? pricePerNight : (pricePerNight / VAT_RATE);
+        
+        setFormData(prev => ({
+          ...prev,
+          price: specialPrice,
+          pricePerNight: pricePerNight,
+          pricePerNightNoVat: parseFloat(pricePerNightNoVat.toFixed(2))
+        }));
+      }
+    }
+  }, [selectedRoom, checkInDate, checkOutDate, nights, isTourist, lockedField, setFormData]);
 
   // טיפול בשינוי מחיר ללילה (כולל מע"מ)
   const handlePricePerNightChange = (e) => {
@@ -36,29 +89,24 @@ const PriceCalculator = ({
     }
 
     // חישוב מחיר ללא מע"מ
-    let priceNoVat;
-    if (formData.isTourist) {
+    let pricePerNightNoVat;
+    if (isTourist) {
       // לתיירים, המחיר ללא מע"מ זהה למחיר עם מע"מ
-      priceNoVat = value;
+      pricePerNightNoVat = value;
     } else {
       // ישראלים, מחשבים את המחיר ללא מע"מ
-      priceNoVat = +(value / VAT_RATE).toFixed(2);
+      pricePerNightNoVat = parseFloat((value / VAT_RATE).toFixed(2));
     }
 
     // חישוב מחיר כולל להזמנה
-    const totalPrice = value * formData.nights;
+    const totalPrice = value * nights;
 
     setFormData(prev => ({
       ...prev,
       pricePerNight: value,
-      pricePerNightNoVat: priceNoVat,
+      pricePerNightNoVat: pricePerNightNoVat,
       price: totalPrice
     }));
-
-    // ניקוי שגיאות
-    if (value > 0) {
-      setErrors(prev => ({ ...prev, pricePerNight: undefined }));
-    }
   };
 
   // טיפול בשינוי מחיר ללילה (ללא מע"מ)
@@ -80,7 +128,7 @@ const PriceCalculator = ({
 
     // חישוב מחיר כולל מע"מ
     let priceWithVat;
-    if (formData.isTourist) {
+    if (isTourist) {
       // לתיירים, המחיר עם מע"מ זהה למחיר ללא מע"מ
       priceWithVat = value;
     } else {
@@ -89,7 +137,7 @@ const PriceCalculator = ({
     }
 
     // חישוב מחיר כולל להזמנה
-    const totalPrice = priceWithVat * formData.nights;
+    const totalPrice = priceWithVat * nights;
 
     setFormData(prev => ({
       ...prev,
@@ -117,11 +165,11 @@ const PriceCalculator = ({
     }
 
     // חישוב מחיר ללילה
-    let pricePerNight = formData.nights > 0 ? value / formData.nights : 0;
+    let pricePerNight = nights > 0 ? value / nights : 0;
     
     // חישוב מחיר ללא מע"מ
     let pricePerNightNoVat;
-    if (formData.isTourist) {
+    if (isTourist) {
       // לתיירים, המחיר ללא מע"מ זהה למחיר עם מע"מ
       pricePerNightNoVat = pricePerNight;
     } else {
@@ -163,62 +211,91 @@ const PriceCalculator = ({
     </InputAdornment>
   );
 
+  // פונקציה לספירת ימי שישי ושבת בתקופה
+  const countSpecialDays = (checkIn, checkOut) => {
+    if (!checkIn || !checkOut) return { fridays: 0, saturdays: 0 };
+    
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    let fridays = 0;
+    let saturdays = 0;
+    
+    for (let date = new Date(start); date < end; date.setDate(date.getDate() + 1)) {
+      const dayOfWeek = date.getDay();
+      if (dayOfWeek === 5) fridays++;
+      if (dayOfWeek === 6) saturdays++;
+    }
+    
+    return { fridays, saturdays };
+  };
+
+  const specialDays = countSpecialDays(checkInDate, checkOutDate);
+
   return (
-    <>
-      <Grid item xs={12} md={4}>
-        <TextField
-          name="price"
-          label="סה״כ להזמנה (₪)"
-          fullWidth
-          type="number"
-          value={formData.price}
-          onChange={handlePriceChange}
-          error={!!errors.price}
-          helperText={errors.price}
-          InputProps={{
-            startAdornment: <InputAdornment position="start">₪</InputAdornment>,
-            endAdornment: <LockButton fieldName="price" />,
-            inputProps: { min: 0, step: "10" }
-          }}
-        />
+    <Box sx={{ mt: 4 }}>
+      <Grid container spacing={1}>
+        <Grid item xs={12} sm={12} md={4}>
+          <TextField
+            label="מחיר ללילה (ללא מע״מ)"
+            type="number"
+            value={formData.pricePerNightNoVat || ''}
+            onChange={handlePricePerNightNoVatChange}
+            fullWidth
+            size="small"
+            InputProps={{
+              endAdornment: <LockButton fieldName="pricePerNightNoVat" />
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                backgroundColor: lockedField === 'pricePerNightNoVat' ? 'rgba(255, 193, 7, 0.1)' : 'transparent'
+              }
+            }}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={12} md={4}>
+          <TextField
+            label="מחיר ללילה (כולל מע״מ)"
+            type="number"
+            value={formData.pricePerNight || ''}
+            onChange={handlePricePerNightChange}
+            fullWidth
+            size="small"
+            InputProps={{
+              endAdornment: <LockButton fieldName="pricePerNight" />
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                backgroundColor: lockedField === 'pricePerNight' ? 'rgba(255, 193, 7, 0.1)' : 'transparent'
+              }
+            }}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={12} md={4}>
+          <TextField
+            label="סך כל הזמנה (₪)"
+            type="number"
+            value={formData.price || ''}
+            onChange={handlePriceChange}
+            fullWidth
+            size="small"
+            InputProps={{
+              endAdornment: <LockButton fieldName="price" />
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                backgroundColor: lockedField === 'price' ? 'rgba(255, 193, 7, 0.1)' : 'transparent',
+                fontWeight: 600
+              }
+            }}
+          />
+        </Grid>
       </Grid>
-
-      <Grid item xs={12} md={4}>
-        <TextField
-          name="pricePerNight"
-          label={`מחיר ללילה ${!formData.isTourist ? '(כולל מע״מ)' : ''} (₪)`}
-          fullWidth
-          type="number"
-          value={formData.pricePerNight}
-          onChange={handlePricePerNightChange}
-          error={!!errors.pricePerNight}
-          helperText={errors.pricePerNight}
-          InputProps={{
-            startAdornment: <InputAdornment position="start">₪</InputAdornment>,
-            endAdornment: <LockButton fieldName="pricePerNight" />,
-            inputProps: { min: 0, step: "10" }
-          }}
-        />
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <TextField
-          name="pricePerNightNoVat"
-          label={`מחיר ללילה ${!formData.isTourist ? '(ללא מע״מ)' : ''} (₪)`}
-          fullWidth
-          type="number"
-          value={formData.pricePerNightNoVat}
-          onChange={handlePricePerNightNoVatChange}
-          error={!!errors.pricePerNightNoVat}
-          helperText={errors.pricePerNightNoVat}
-          InputProps={{
-            startAdornment: <InputAdornment position="start">₪</InputAdornment>,
-            endAdornment: <LockButton fieldName="pricePerNightNoVat" />,
-            inputProps: { min: 0, step: "0.1" }
-          }}
-        />
-      </Grid>
-    </>
+    </Box>
   );
 };
 

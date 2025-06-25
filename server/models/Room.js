@@ -36,6 +36,14 @@ const RoomSchema = new mongoose.Schema(
       type: Number,
       default: function() { return this.vatPrice; }
     },
+    saturdayPrice: {
+      type: Number,
+      default: function() { return this.basePrice; }
+    },
+    saturdayVatPrice: {
+      type: Number,
+      default: function() { return this.vatPrice; }
+    },
     
     // פרטי תפוסה
     baseOccupancy: {
@@ -92,6 +100,10 @@ RoomSchema.pre('save', function(next) {
   
   if (this.fridayPrice && !this.fridayVatPrice) {
     this.fridayVatPrice = parseFloat((this.fridayPrice * 1.18).toFixed(2));
+  }
+  
+  if (this.saturdayPrice && !this.saturdayVatPrice) {
+    this.saturdayVatPrice = parseFloat((this.saturdayPrice * 1.18).toFixed(2));
   }
   
   next();

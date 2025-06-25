@@ -17,6 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import RoomForm from './RoomForm';
 import GalleryManager from '../gallery/GalleryManager';
+import PricelistModal from './PricelistModal';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 const RoomManagement = ({ location }) => {
@@ -28,6 +29,7 @@ const RoomManagement = ({ location }) => {
   const [isEdit, setIsEdit] = useState(false);
   const [viewOnly, setViewOnly] = useState(false);
   const [openGallery, setOpenGallery] = useState(false);
+  const [openPricelist, setOpenPricelist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -162,6 +164,14 @@ const RoomManagement = ({ location }) => {
     setOpenGallery(false);
   };
   
+  const handlePricelistOpen = () => {
+    setOpenPricelist(true);
+  };
+  
+  const handlePricelistClose = () => {
+    setOpenPricelist(false);
+  };
+  
   // שינוי שמות המיקומים
   const getLocationName = () => {
     return location === 'airport' ? 'Airport Guest House' : 'רוטשילד';
@@ -261,6 +271,21 @@ const RoomManagement = ({ location }) => {
             }}
           >
             גלריה
+          </Button>
+          
+          <Button 
+            variant="outlined"
+            onClick={handlePricelistOpen}
+            sx={{ 
+              color: locationColors.main,
+              borderColor: locationColors.main,
+              '&:hover': {
+                backgroundColor: locationColors.bgLight,
+                borderColor: locationColors.main
+              }
+            }}
+          >
+            מחירון
           </Button>
           
           <Button 
@@ -445,6 +470,14 @@ const RoomManagement = ({ location }) => {
         location={location}
         open={openGallery}
         onClose={handleCloseGallery}
+      />
+      
+      <PricelistModal
+        open={openPricelist}
+        onClose={handlePricelistClose}
+        rooms={rooms}
+        location={location}
+        onRoomsUpdate={fetchRooms}
       />
     </Box>
   );

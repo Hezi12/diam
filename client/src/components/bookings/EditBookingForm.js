@@ -22,7 +22,8 @@ import {
   Divider,
   CircularProgress,
   InputAdornment,
-  Switch
+  Switch,
+  Tooltip
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -97,6 +98,13 @@ const EditBookingForm = ({
     notes: '',
     source: 'direct',
     externalBookingNumber: '',
+    code: '',
+    reviewHandled: false,
+    creditCard: {
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+    },
   });
 
   // מצב שדות תיקוף
@@ -141,6 +149,13 @@ const EditBookingForm = ({
         notes: booking.notes || '',
         source: booking.source || 'direct',
         externalBookingNumber: booking.externalBookingNumber || '',
+        code: booking.code || '',
+        reviewHandled: booking.reviewHandled || false,
+        creditCard: booking.creditCard || {
+          cardNumber: '',
+          expiryDate: '',
+          cvv: '',
+        },
       });
     }
   }, [booking]);
@@ -157,7 +172,9 @@ const EditBookingForm = ({
             selectedRoom, 
             formData.guests, 
             formData.isTourist, 
-            formData.nights
+            formData.nights,
+            formData.checkIn,
+            formData.checkOut
           );
           
           setFormData(prev => ({
@@ -184,7 +201,9 @@ const EditBookingForm = ({
             selectedRoom, 
             formData.guests, 
             formData.isTourist, 
-            nights
+            nights,
+            formData.checkIn,
+            formData.checkOut
           );
           
           setFormData(prev => ({
@@ -239,7 +258,9 @@ const EditBookingForm = ({
           selectedRoom, 
           prev.guests, 
           prev.isTourist, 
-          nights
+          nights,
+          prev.checkIn,
+          newCheckOut
         );
         
         return {
@@ -288,7 +309,9 @@ const EditBookingForm = ({
           selectedRoom, 
           prev.guests, 
           prev.isTourist, 
-          newNights
+          newNights,
+          prev.checkIn,
+          date
         );
         
         return {
@@ -447,7 +470,9 @@ const EditBookingForm = ({
         location,
         room: formData.room,
         checkIn: checkInDate,
-        checkOut: checkOutDate
+        checkOut: checkOutDate,
+        code: formData.code || '',
+        reviewHandled: formData.reviewHandled || false
       });
       
       // סגירת הטופס
@@ -492,41 +517,91 @@ const EditBookingForm = ({
   ].includes(formData.paymentStatus);
 
   /**
-   * חישוב מחיר עם אורחים נוספים
-   * @param {Object} roomData - נתוני החדר
+   * חישוב מחיר עם אורחים נוספים וימים מיוחדים (שישי ושבת)
+   * @param {Object} roomData - נתוני החדר 
    * @param {number} guests - מספר אורחים
    * @param {boolean} isTourist - האם תייר
    * @param {number} nights - מספר לילות
+   * @param {Date} checkIn - תאריך כניסה
+   * @param {Date} checkOut - תאריך יציאה
    * @returns {Object} - אובייקט עם המחירים המחושבים
    */
-  const calculatePriceWithExtraGuests = (roomData, guests, isTourist, nights) => {
+  const calculatePriceWithExtraGuests = (roomData, guests, isTourist, nights, checkIn = null, checkOut = null) => {
     if (!roomData) return { pricePerNight: 0, pricePerNightNoVat: 0, totalPrice: 0 };
     
-    // מחיר בסיס לפי סטטוס תייר
-    const baseVatPrice = roomData.vatPrice || 0;
-    const baseNoVatPrice = roomData.basePrice || 0;
-    const basePricePerNight = isTourist ? baseNoVatPrice : baseVatPrice;
+    let totalPrice = 0;
     
-    // חישוב תוספת לאורחים נוספים
-    const baseOccupancy = roomData.baseOccupancy || 2;
-    const extraGuestCharge = roomData.extraGuestCharge || 0;
-    const extraGuests = Math.max(0, guests - baseOccupancy);
-    const extraCharge = extraGuests * extraGuestCharge;
-    
-    // מחיר סופי ללילה
-    const pricePerNight = basePricePerNight + extraCharge;
-    const pricePerNightNoVat = baseNoVatPrice + extraCharge;
-    
-    // מחיר כולל
-    const totalPrice = parseFloat((pricePerNight * nights).toFixed(2));
-    
-    return {
-      pricePerNight,
-      pricePerNightNoVat,
-      totalPrice,
-      extraGuests,
-      extraCharge
-    };
+    // אם יש תאריכי כניסה ויציאה, נחשב מחיר מדויק לכל יום
+    if (checkIn && checkOut) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      
+      // מעבר על כל יום בתקופת השהייה
+      for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
+        const dayOfWeek = date.getDay();
+        let dailyBasePrice;
+        
+        if (dayOfWeek === 5) { // יום שישי
+          dailyBasePrice = isTourist ? 
+            (roomData.fridayPrice || roomData.basePrice || 0) : 
+            (roomData.fridayVatPrice || roomData.vatPrice || 0);
+        } else if (dayOfWeek === 6) { // יום שבת
+          dailyBasePrice = isTourist ? 
+            (roomData.saturdayPrice || roomData.basePrice || 0) : 
+            (roomData.saturdayVatPrice || roomData.vatPrice || 0);
+        } else { // שאר הימים
+          dailyBasePrice = isTourist ? 
+            (roomData.basePrice || 0) : 
+            (roomData.vatPrice || 0);
+        }
+        
+        // הוספת תוספת לאורחים נוספים
+        const baseOccupancy = roomData.baseOccupancy || 2;
+        const extraGuestCharge = roomData.extraGuestCharge || 0;
+        const extraGuests = Math.max(0, guests - baseOccupancy);
+        const extraCharge = extraGuests * extraGuestCharge;
+        
+        totalPrice += dailyBasePrice + extraCharge;
+      }
+      
+      // חישוב מחיר ממוצע ללילה
+      const avgPricePerNight = nights > 0 ? totalPrice / nights : 0;
+      const avgPricePerNightNoVat = isTourist ? avgPricePerNight : (avgPricePerNight / 1.18);
+      
+      return {
+        pricePerNight: parseFloat(avgPricePerNight.toFixed(2)),
+        pricePerNightNoVat: parseFloat(avgPricePerNightNoVat.toFixed(2)),
+        totalPrice: parseFloat(totalPrice.toFixed(2)),
+        extraGuests: Math.max(0, guests - (roomData.baseOccupancy || 2)),
+        extraCharge: Math.max(0, guests - (roomData.baseOccupancy || 2)) * (roomData.extraGuestCharge || 0)
+      };
+    } else {
+      // חישוב פשוט ללא תאריכים מדויקים - משתמש במחיר בסיס
+      const simpleBaseVatPrice = roomData.vatPrice || 0;
+      const simpleBaseNoVatPrice = roomData.basePrice || 0;
+      const simpleBasePricePerNight = isTourist ? simpleBaseNoVatPrice : simpleBaseVatPrice;
+      
+      // חישוב תוספת לאורחים נוספים
+      const simpleBaseOccupancy = roomData.baseOccupancy || 2;
+      const simpleExtraGuestCharge = roomData.extraGuestCharge || 0;
+      const simpleExtraGuests = Math.max(0, guests - simpleBaseOccupancy);
+      const simpleExtraCharge = simpleExtraGuests * simpleExtraGuestCharge;
+      
+      // מחיר סופי ללילה
+      const simplePricePerNight = simpleBasePricePerNight + simpleExtraCharge;
+      const simplePricePerNightNoVat = simpleBaseNoVatPrice + simpleExtraCharge;
+      
+      // מחיר כולל
+      const simpleTotalPrice = parseFloat((simplePricePerNight * nights).toFixed(2));
+      
+      return {
+        pricePerNight: simplePricePerNight,
+        pricePerNightNoVat: simplePricePerNightNoVat,
+        totalPrice: simpleTotalPrice,
+        extraGuests: simpleExtraGuests,
+        extraCharge: simpleExtraCharge
+      };
+    }
   };
 
   return (
@@ -554,6 +629,38 @@ const EditBookingForm = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* מעקב חוות דעת */}
+          <Tooltip title="טופל בחוות דעת">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.reviewHandled || false}
+                  onChange={(e) => setFormData({...formData, reviewHandled: e.target.checked})}
+                  size="small"
+                  sx={{
+                    color: currentColors.main,
+                    '&.Mui-checked': {
+                      color: '#06a271',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      fontSize: '1.2rem'
+                    }
+                  }}
+                />
+              }
+              label={
+                <Box sx={{ 
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  color: formData.reviewHandled ? '#06a271' : currentColors.main
+                }}>
+                  חוות דעת
+                </Box>
+              }
+              sx={{ mr: 1 }}
+            />
+          </Tooltip>
+
           <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
             <InputLabel>סטטוס תשלום</InputLabel>
             <Select
@@ -787,14 +894,15 @@ const EditBookingForm = ({
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <PriceCalculator
-                      pricePerNight={formData.pricePerNight}
-                      pricePerNightNoVat={formData.pricePerNightNoVat}
-                      nights={formData.nights}
-                      totalPrice={formData.price}
-                      isTourist={formData.isTourist}
+                      formData={formData}
                       setFormData={setFormData}
                       lockedField={lockedField}
                       setLockedField={setLockedField}
+                      isTourist={formData.isTourist}
+                      nights={formData.nights}
+                      checkInDate={formData.checkIn}
+                      checkOutDate={formData.checkOut}
+                      selectedRoom={rooms.find(room => room._id === formData.room)}
                     />
                   </Grid>
                 </Grid>
@@ -816,8 +924,8 @@ const EditBookingForm = ({
                   </Typography>
                 </Box>
               
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={1.5}>
+                <Grid container spacing={1}>
+                  <Grid item xs={12} sm={6} md={1.7}>
                     <FormControl 
                       fullWidth 
                       error={!!errors.room} 
@@ -842,9 +950,9 @@ const EditBookingForm = ({
                     </FormControl>
                   </Grid>
                   
-                  <Grid item xs={12} sm={6} md={2.5}>
+                  <Grid item xs={12} sm={6} md={2.1}>
                     <DatePicker
-                      label="צ׳ק-אין"
+                      label="כניסה"
                       value={formData.checkIn}
                       onChange={handleCheckInChange}
                       slotProps={{
@@ -860,9 +968,9 @@ const EditBookingForm = ({
                     />
                   </Grid>
                   
-                  <Grid item xs={12} sm={6} md={2.5}>
+                  <Grid item xs={12} sm={6} md={2.1}>
                     <DatePicker
-                      label="צ׳ק-אאוט"
+                      label="יציאה"
                       value={formData.checkOut}
                       onChange={handleCheckOutChange}
                       slotProps={{
@@ -878,7 +986,7 @@ const EditBookingForm = ({
                     />
                   </Grid>
                   
-                  <Grid item xs={12} sm={3} md={1}>
+                  <Grid item xs={12} sm={3} md={1.2}>
                     <TextField
                       label="לילות"
                       type="number"
@@ -886,14 +994,14 @@ const EditBookingForm = ({
                       value={formData.nights}
                       onChange={handleNightsChange}
                       InputProps={{
-                        inputProps: { min: 1 }
+                        inputProps: { min: 1, style: { textAlign: 'center' } }
                       }}
                       size="small"
                       sx={formStyles.textField}
                     />
                   </Grid>
                   
-                  <Grid item xs={12} sm={3} md={1}>
+                  <Grid item xs={12} sm={3} md={1.2}>
                     <TextField
                       label="אורחים"
                       name="guests"
@@ -902,32 +1010,49 @@ const EditBookingForm = ({
                       value={formData.guests}
                       onChange={handleChange}
                       InputProps={{
-                        inputProps: { min: 1 }
+                        inputProps: { min: 1, style: { textAlign: 'center' } }
                       }}
                       size="small"
                       sx={formStyles.textField}
                     />
                   </Grid>
                   
-                  <Grid item xs={12} sm={6} md={3.5}>
+                  <Grid item xs={12} sm={3} md={1.2}>
+                    <TextField
+                      name="code"
+                      label="קוד"
+                      fullWidth
+                      value={formData.code}
+                      onChange={handleChange}
+                      inputProps={{ 
+                        maxLength: 4, 
+                        style: { textAlign: 'center' },
+                        pattern: "[0-9]{4}"
+                      }}
+                      size="small"
+                      sx={formStyles.textField}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={2.5}>
                     <FormControl 
                       fullWidth 
                       size="small"
                       sx={formStyles.select}
                     >
-                      <InputLabel>מקור ההזמנה</InputLabel>
+                      <InputLabel>מקור</InputLabel>
                       <Select
                         name="source"
                         value={formData.source || 'direct'}
                         onChange={handleChange}
-                        label="מקור ההזמנה"
+                        label="מקור"
                       >
                         <MenuItem value="direct">ישיר</MenuItem>
-                        <MenuItem value="home_website">אתר הבית (Home Website)</MenuItem>
+                        <MenuItem value="home_website">אתר</MenuItem>
                         <MenuItem value="diam">Diam</MenuItem>
-                        <MenuItem value="airport_stay">Airport Stay</MenuItem>
-                        <MenuItem value="rothschild_stay">Rothschild Stay</MenuItem>
-                        <MenuItem value="booking">Booking.com</MenuItem>
+                        <MenuItem value="airport_stay">Airport</MenuItem>
+                        <MenuItem value="rothschild_stay">Rothschild</MenuItem>
+                        <MenuItem value="booking">Booking</MenuItem>
                         <MenuItem value="expedia">Expedia</MenuItem>
                         <MenuItem value="airbnb">Airbnb</MenuItem>
                         <MenuItem value="agoda">Agoda</MenuItem>
