@@ -129,7 +129,7 @@ const deleteBookingImages = async (images) => {
 };
 
 module.exports = {
-  upload: upload.array('bookingImages', 2), // מקסימום 2 תמונות
+  upload: upload.array('images', 2), // מקסימום 2 תמונות
   handleUploadErrors,
   deleteBookingImages,
   getUploadsPath
