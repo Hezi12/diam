@@ -20,7 +20,11 @@ export const STYLE_CONSTANTS = {
       red: '#e34a6f',
       orange: '#f7971e',
       blue: '#4285F4',
-      mint: '#73C5A0'
+      mint: '#73C5A0',
+      darkYellow: '#e6a700',
+      purple: '#8e44ad',
+      teal: '#16a085',
+      navy: '#2c3e50'
     },
     text: {
       primary: '#121212',
@@ -34,7 +38,11 @@ export const STYLE_CONSTANTS = {
   accentColors: {
     green: '#06a271',
     red: '#e34a6f',
-    orange: '#f7971e'
+    orange: '#f7971e',
+    darkYellow: '#e6a700',
+    purple: '#8e44ad',
+    teal: '#16a085',
+    navy: '#2c3e50'
   },
   style: {
     card: {

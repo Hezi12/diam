@@ -2,6 +2,8 @@ const Booking = require('../models/Booking');
 const Room = require('../models/Room');
 const Counter = require('../models/Counter');
 const capitalController = require('./capitalController');
+const { deleteBookingImages } = require('../middleware/bookingImageUpload');
+const path = require('path');
 
 // קבלת כל ההזמנות
 exports.getAllBookings = async (req, res) => {
@@ -967,5 +969,221 @@ exports.createPublicBooking = async (req, res) => {
   } catch (error) {
     console.error('שגיאה כללית ביצירת הזמנה:', error);
     res.status(500).json({ message: 'שגיאה ביצירת ההזמנה', error: error.message });
+  }
+};
+
+// הוספת תמונות להזמנה קיימת
+exports.uploadBookingImages = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const uploadedFiles = req.files;
+    
+    console.log(`📸 מעלה ${uploadedFiles?.length || 0} תמונות להזמנה ${id}`);
+    
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      return res.status(400).json({ 
+        error: 'לא נבחרו קבצים להעלאה' 
+      });
+    }
+    
+    // חיפוש ההזמנה
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      // מחיקת הקבצים שהועלו כי ההזמנה לא נמצאה
+      await deleteBookingImages(uploadedFiles.map(file => ({
+        path: file.path,
+        filename: file.filename
+      })));
+      
+      return res.status(404).json({ 
+        error: 'הזמנה לא נמצאה' 
+      });
+    }
+    
+    // בדיקה שלא יהיו יותר מ-2 תמונות בסך הכל
+    const currentImagesCount = booking.attachedImages?.length || 0;
+    const newImagesCount = uploadedFiles.length;
+    const totalImages = currentImagesCount + newImagesCount;
+    
+    if (totalImages > 2) {
+      // מחיקת הקבצים החדשים
+      await deleteBookingImages(uploadedFiles.map(file => ({
+        path: file.path,
+        filename: file.filename
+      })));
+      
+      return res.status(400).json({ 
+        error: `ניתן להעלות מקסימום 2 תמונות. כרגע יש ${currentImagesCount} תמונות קיימות` 
+      });
+    }
+    
+    // הכנת מערך התמונות החדשות
+    const newImages = uploadedFiles.map(file => ({
+      filename: file.filename,
+      originalName: file.originalname,
+      path: file.path,
+      size: file.size,
+      mimetype: file.mimetype,
+      uploadedAt: new Date()
+    }));
+    
+    // הוספת התמונות להזמנה
+    if (!booking.attachedImages) {
+      booking.attachedImages = [];
+    }
+    booking.attachedImages.push(...newImages);
+    
+    await booking.save();
+    
+    console.log(`✅ הועלו ${newImages.length} תמונות להזמנה ${id}`);
+    
+    res.json({
+      success: true,
+      message: `הועלו ${newImages.length} תמונות בהצלחה`,
+      images: newImages.map(img => ({
+        filename: img.filename,
+        originalName: img.originalName,
+        size: img.size,
+        mimetype: img.mimetype,
+        uploadedAt: img.uploadedAt
+      }))
+    });
+  } catch (error) {
+    console.error('❌ שגיאה בהעלאת תמונות:', error);
+    
+    // מחיקת קבצים במקרה של שגיאה
+    if (req.files) {
+      await deleteBookingImages(req.files.map(file => ({
+        path: file.path,
+        filename: file.filename
+      })));
+    }
+    
+    res.status(500).json({ 
+      error: 'שגיאה בהעלאת התמונות',
+      details: error.message 
+    });
+  }
+};
+
+// מחיקת תמונה מהזמנה
+exports.deleteBookingImage = async (req, res) => {
+  try {
+    const { id, imageIndex } = req.params;
+    const imageIndexNum = parseInt(imageIndex);
+    
+    console.log(`🗑️ מוחק תמונה ${imageIndexNum} מהזמנה ${id}`);
+    
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ 
+        error: 'הזמנה לא נמצאה' 
+      });
+    }
+    
+    if (!booking.attachedImages || booking.attachedImages.length === 0) {
+      return res.status(400).json({ 
+        error: 'אין תמונות מצורפות להזמנה זו' 
+      });
+    }
+    
+    if (imageIndexNum < 0 || imageIndexNum >= booking.attachedImages.length) {
+      return res.status(400).json({ 
+        error: 'אינדקס תמונה לא תקין' 
+      });
+    }
+    
+    // שמירת נתוני התמונה למחיקה
+    const imageToDelete = booking.attachedImages[imageIndexNum];
+    
+    // הסרת התמונה מהמערך
+    booking.attachedImages.splice(imageIndexNum, 1);
+    
+    await booking.save();
+    
+    // מחיקת הקובץ מהדיסק
+    await deleteBookingImages([imageToDelete]);
+    
+    console.log(`✅ נמחקה תמונה ${imageToDelete.filename} מהזמנה ${id}`);
+    
+    res.json({
+      success: true,
+      message: 'התמונה נמחקה בהצלחה',
+      remainingImages: booking.attachedImages.length
+    });
+  } catch (error) {
+    console.error('❌ שגיאה במחיקת תמונה:', error);
+    res.status(500).json({ 
+      error: 'שגיאה במחיקת התמונה',
+      details: error.message 
+    });
+  }
+};
+
+// קבלת תמונה להורדה
+exports.getBookingImage = async (req, res) => {
+  try {
+    const { id, imageIndex } = req.params;
+    const imageIndexNum = parseInt(imageIndex);
+    
+    console.log(`🖼️ בקשה לתמונה: הזמנה ${id}, אינדקס ${imageIndex}`);
+    console.log(`🖼️ Query params:`, req.query);
+    console.log(`🖼️ Headers:`, req.headers.authorization ? 'Has auth header' : 'No auth header');
+    
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      console.log(`❌ הזמנה לא נמצאה: ${id}`);
+      return res.status(404).json({ 
+        error: 'הזמנה לא נמצאה' 
+      });
+    }
+    
+    if (!booking.attachedImages || booking.attachedImages.length === 0) {
+      return res.status(404).json({ 
+        error: 'אין תמונות מצורפות להזמנה זו' 
+      });
+    }
+    
+    if (imageIndexNum < 0 || imageIndexNum >= booking.attachedImages.length) {
+      return res.status(400).json({ 
+        error: 'אינדקס תמונה לא תקין' 
+      });
+    }
+    
+    const image = booking.attachedImages[imageIndexNum];
+    const fs = require('fs');
+    
+    // בדיקה שהקובץ קיים
+    if (!fs.existsSync(image.path)) {
+      console.log(`❌ קובץ לא נמצא: ${image.path}`);
+      return res.status(404).json({ 
+        error: 'קובץ התמונה לא נמצא' 
+      });
+    }
+    
+    // בדיקה אם זו בקשת הורדה
+    const isDownload = req.query.download === 'true';
+    
+    // החזרת הקובץ
+    res.setHeader('Content-Type', image.mimetype);
+    
+    if (isDownload) {
+      // הורדה - הכרח להוריד את הקובץ
+      res.setHeader('Content-Disposition', `attachment; filename="${image.originalName}"`);
+      console.log(`⬇️ מוריד קובץ: ${image.originalName}`);
+    } else {
+      // תצוגה - הצגה בדפדפן
+      res.setHeader('Content-Disposition', `inline; filename="${image.originalName}"`);
+      console.log(`👁️ מציג קובץ: ${image.originalName}`);
+    }
+    
+    res.sendFile(path.resolve(image.path));
+    
+  } catch (error) {
+    console.error('❌ שגיאה בהורדת תמונה:', error);
+    res.status(500).json({ 
+      error: 'שגיאה בהורדת התמונה',
+      details: error.message 
+    });
   }
 };

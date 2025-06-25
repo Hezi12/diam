@@ -27,6 +27,9 @@ dotenv.config();
     await fs.ensureDir(path.join(baseUploadsPath, 'gallery'));
     await fs.ensureDir(path.join(baseUploadsPath, 'gallery/airport'));
     await fs.ensureDir(path.join(baseUploadsPath, 'gallery/rothschild'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'bookings'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'bookings/airport'));
+    await fs.ensureDir(path.join(baseUploadsPath, 'bookings/rothschild'));
     console.log('✓ תיקיות ההעלאות נוצרו בהצלחה ב:', baseUploadsPath);
   } catch (err) {
     console.error('שגיאה ביצירת תיקיות העלאה:', err);

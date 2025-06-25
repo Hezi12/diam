@@ -187,12 +187,50 @@ const BookingSchema = new mongoose.Schema(
     externalBookingNumber: {
       type: String,
       trim: true
-    }
+    },
+    
+    // תמונות מצורפות (עד 2 תמונות)
+    attachedImages: [{
+      filename: {
+        type: String,
+        required: true
+      },
+      originalName: {
+        type: String,
+        required: true
+      },
+      path: {
+        type: String,
+        required: true
+      },
+      size: {
+        type: Number,
+        required: true
+      },
+      mimetype: {
+        type: String,
+        required: true
+      },
+      uploadedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
   },
   {
     timestamps: true
   }
 );
+
+// וידוא שלא יועלו יותר מ-2 תמונות
+BookingSchema.pre('save', function(next) {
+  if (this.attachedImages && this.attachedImages.length > 2) {
+    const error = new Error('לא ניתן להעלות יותר מ-2 תמונות להזמנה');
+    error.name = 'ValidationError';
+    return next(error);
+  }
+  next();
+});
 
 // וידוא שאין התנגשות בהזמנות באותו חדר
 BookingSchema.statics.checkRoomAvailability = async function(

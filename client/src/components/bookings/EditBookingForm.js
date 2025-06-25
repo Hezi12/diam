@@ -920,7 +920,7 @@ const EditBookingForm = ({
                   />
                 </Box>
                 
-                <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <PriceCalculator
                       formData={formData}
@@ -953,7 +953,7 @@ const EditBookingForm = ({
                   </Typography>
                 </Box>
               
-                <Grid container spacing={1}>
+                <Grid container spacing={2}>
                   <Grid item xs={12} sm={6} md={1.7}>
                     <FormControl 
                       fullWidth 

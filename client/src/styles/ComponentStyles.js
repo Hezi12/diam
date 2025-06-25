@@ -74,7 +74,7 @@ export const formStyles = {
   sectionTitle: {
     display: 'flex',
     alignItems: 'center',
-    mb: 1
+    mb: 0.5
   },
 
   // סגנון לאייקונים בטופס

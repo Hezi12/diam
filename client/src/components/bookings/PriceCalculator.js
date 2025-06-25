@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Grid, TextField, InputAdornment, IconButton, Box, Tooltip, Typography, FormControlLabel, Switch, Divider } from '@mui/material';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
+import BookingImagesMini from './BookingImagesMini';
 
 /**
  * רכיב לחישוב מחירים אוטומטי עבור טופס הזמנה
@@ -16,7 +17,12 @@ const PriceCalculator = ({
   checkInDate,
   checkOutDate,
   selectedRoom,
-  priceDetails = null
+  priceDetails = null,
+  // פרופס עבור תמונות
+  bookingId = null,
+  attachedImages = [],
+  onImagesUpdate = null,
+  disabled = false
 }) => {
   const [lockedField, setLockedField] = useState(null);
 
@@ -232,7 +238,7 @@ const PriceCalculator = ({
   const specialDays = countSpecialDays(checkInDate, checkOutDate);
 
   return (
-    <Box sx={{ mt: 4 }}>
+    <Box sx={{ mt: 2 }}>
       <Grid container spacing={1}>
         <Grid item xs={12} sm={12} md={4}>
           <TextField
@@ -275,24 +281,36 @@ const PriceCalculator = ({
         </Grid>
         
         <Grid item xs={12} sm={12} md={4}>
-          <TextField
-            label="סך כל הזמנה (₪)"
-            type="number"
-            value={formData.price || ''}
-            onChange={handlePriceChange}
-            fullWidth
-            size="small"
-            InputProps={{
-              endAdornment: <LockButton fieldName="price" />
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
-                backgroundColor: lockedField === 'price' ? 'rgba(255, 193, 7, 0.1)' : 'transparent',
-                fontWeight: 600
-              }
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label="סך כל הזמנה (₪)"
+              type="number"
+              value={formData.price || ''}
+              onChange={handlePriceChange}
+              fullWidth
+              size="small"
+              InputProps={{
+                endAdornment: <LockButton fieldName="price" />
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  backgroundColor: lockedField === 'price' ? 'rgba(255, 193, 7, 0.1)' : 'transparent',
+                  fontWeight: 600
+                }
+              }}
+            />
+            
+            {/* קומפוננט תמונות מיני - רק במצב עריכה */}
+            {bookingId && (
+              <BookingImagesMini
+                bookingId={bookingId}
+                currentImages={attachedImages}
+                onImagesUpdate={onImagesUpdate}
+                disabled={disabled}
+              />
+            )}
+          </Box>
         </Grid>
       </Grid>
     </Box>

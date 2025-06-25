@@ -67,6 +67,9 @@ import PriceCalculator from './PriceCalculator';
 // רכיב דיאלוג סליקת אשראי וחשבוניות
 import CreditCardChargeDialog from '../payment/CreditCardChargeDialog';
 
+// רכיב העלאת תמונות מיני
+import BookingImagesMini from './BookingImagesMini';
+
 // פונקציה לסינון חדרים מקטגוריית "Not for Sale"
 const filterNotForSaleRooms = (rooms) => {
   return rooms.filter(room => room.category !== 'Not for Sale');
@@ -227,6 +230,9 @@ const NewBookingForm = ({
   // מצב תהליך שליחת הטופס
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // מצב תמונות מצורפות
+  const [attachedImages, setAttachedImages] = useState([]);
+
   // מטווח תאריכים לבחירה
   const [dateRange, setDateRange] = useState([
     {
@@ -382,6 +388,11 @@ const NewBookingForm = ({
           setIsExistingBooking(true);
           
           setFormData(editFormData);
+
+          // טעינת התמונות המצורפות
+          if (editBooking.attachedImages) {
+            setAttachedImages(editBooking.attachedImages);
+          }
 
           // בדיקה אם קיימת חשבונית להזמנה
           checkIfInvoiceExists(editBooking._id);
@@ -971,6 +982,29 @@ const NewBookingForm = ({
         price: parseFloat(((pricePerNight || prev.pricePerNight) * prev.nights).toFixed(2))
       };
     });
+  };
+
+  // פונקציה לעדכון התמונות לאחר שינוי
+  const handleImagesUpdate = () => {
+    if (editBooking && editBooking._id) {
+      // טעינה מחדש של התמונות המעודכנות
+      // בקשה מהשרת לקבלת הנתונים העדכניים של ההזמנה
+      fetchUpdatedBookingImages(editBooking._id);
+    }
+  };
+
+  // פונקציה לטעינת תמונות מעודכנות מהשרת
+  const fetchUpdatedBookingImages = async (bookingId) => {
+    try {
+      const response = await axios.get(`/api/bookings/single/${bookingId}`);
+      if (response.data && response.data.attachedImages) {
+        setAttachedImages(response.data.attachedImages);
+      } else {
+        setAttachedImages([]);
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בטעינת תמונות מעודכנות:', error);
+    }
   };
 
   // פונקציה להצגת הודעות
@@ -1635,7 +1669,7 @@ const NewBookingForm = ({
               </Typography>
                 </Box>
               
-              <Grid container spacing={1}>
+              <Grid container spacing={2}>
                   <Grid item xs={12} sm={6} md={1.7}>
                     <FormControl fullWidth error={!!errors.room} required size="small" sx={{
                       '& .MuiOutlinedInput-root': {
@@ -1863,10 +1897,10 @@ const NewBookingForm = ({
                 p: 3, 
                 borderRadius: style.card.borderRadius,
                 boxShadow: style.card.boxShadow,
-                borderTop: `3px solid ${accentColors.green}`
+                borderTop: `3px solid ${accentColors.purple}`
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <ReceiptIcon sx={{ color: accentColors.green, marginRight: '10px' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                  <ReceiptIcon sx={{ color: accentColors.purple, marginRight: '10px' }} />
                   <Typography variant="h6" sx={{ fontWeight: 500 }}>
                     פרטי מחיר
                   </Typography>
@@ -1878,10 +1912,10 @@ const NewBookingForm = ({
                         color="primary"
                         sx={{
                           '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: accentColors.green,
+                            color: accentColors.purple,
                           },
                           '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: accentColors.green,
+                            backgroundColor: accentColors.purple,
                           },
                         }}
                       />
@@ -1892,7 +1926,7 @@ const NewBookingForm = ({
                   />
                 </Box>
               
-                <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid container spacing={2}>
                   {/* רכיב חישוב מחירים */}
                   <PriceCalculator 
                     formData={formData}
@@ -1904,6 +1938,11 @@ const NewBookingForm = ({
                     checkInDate={formData.checkIn}
                     checkOutDate={formData.checkOut}
                     selectedRoom={rooms.find(room => room._id === formData.room)}
+                    // פרופס עבור תמונות מיני
+                    bookingId={isEditMode ? editBooking?._id : null}
+                    attachedImages={attachedImages}
+                    onImagesUpdate={handleImagesUpdate}
+                    disabled={isSubmitting}
                   />
                 </Grid>
               </Paper>
@@ -1952,6 +1991,8 @@ const NewBookingForm = ({
                 />
               </Paper>
             </Grid>
+
+
           </Grid>
         </LocalizationProvider>
       </DialogContent>
