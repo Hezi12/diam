@@ -1196,28 +1196,40 @@ const NewBookingForm = ({
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton 
-            onClick={handleChargeClick} 
-            size="small" 
-            sx={{ color: currentColors.main, mr: 1 }}
-            title="סליקת אשראי וחשבוניות"
-          >
-            <CreditCard />
-          </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
+          {/* אייקון סליקת אשראי */}
+          <Tooltip title="סליקת אשראי וחשבוניות">
+            <IconButton 
+              onClick={handleChargeClick} 
+              size="small" 
+              sx={{ 
+                color: currentColors.main,
+                bgcolor: 'rgba(25, 118, 210, 0.08)',
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.15)',
+                }
+              }}
+            >
+              <CreditCard />
+            </IconButton>
+          </Tooltip>
           
-          {/* אייקון המציין שקיימת חשבונית */}
+          {/* אייקון חשבונית קיימת */}
           {hasInvoice && (
             <Tooltip title="קיימת חשבונית להזמנה זו">
               <Box sx={{ 
-                color: '#06a271', 
                 display: 'flex', 
-                alignItems: 'center', 
-                mr: 1,
+                alignItems: 'center',
+                bgcolor: 'rgba(6, 162, 113, 0.1)',
+                border: '1px solid rgba(6, 162, 113, 0.3)',
+                borderRadius: '8px',
+                px: 1.5,
+                py: 0.5,
+                color: '#06a271',
                 fontSize: '0.75rem',
                 fontWeight: 'bold'
               }}>
-                <CheckCircleIcon sx={{ fontSize: '1.2rem', mr: 0.5 }} />
+                <CheckCircleIcon sx={{ fontSize: '1.1rem', mr: 0.5 }} />
                 חשבונית
               </Box>
             </Tooltip>
@@ -1225,38 +1237,44 @@ const NewBookingForm = ({
           
           {/* מעקב חוות דעת */}
           <Tooltip title="טופל בחוות דעת">
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.reviewHandled || false}
-                  onChange={(e) => setFormData({...formData, reviewHandled: e.target.checked})}
-                  size="small"
-                  sx={{
-                    color: currentColors.main,
-                    '&.Mui-checked': {
-                      color: '#06a271',
-                    },
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1.2rem'
-                    }
-                  }}
-                />
-              }
-              label={
-                <Box sx={{ 
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  color: formData.reviewHandled ? '#06a271' : currentColors.main
-                }}>
-                  חוות דעת
-                </Box>
-              }
-              sx={{ mr: 1 }}
-            />
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              bgcolor: formData.reviewHandled ? 'rgba(6, 162, 113, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+              border: formData.reviewHandled ? '1px solid rgba(6, 162, 113, 0.3)' : '1px solid rgba(25, 118, 210, 0.2)',
+              borderRadius: '8px',
+              px: 1,
+              py: 0.5,
+            }}>
+              <Checkbox
+                checked={formData.reviewHandled || false}
+                onChange={(e) => setFormData({...formData, reviewHandled: e.target.checked})}
+                size="small"
+                sx={{
+                  color: currentColors.main,
+                  '&.Mui-checked': {
+                    color: '#06a271',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.1rem'
+                  },
+                  p: 0.5
+                }}
+              />
+              <Typography sx={{ 
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                color: formData.reviewHandled ? '#06a271' : currentColors.main,
+                ml: 0.5
+              }}>
+                חוות דעת
+              </Typography>
+            </Box>
           </Tooltip>
           
-          <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
-            <InputLabel>סטטוס תשלום</InputLabel>
+          {/* בחירת סטטוס תשלום */}
+          <FormControl sx={{ minWidth: 150 }} size="small">
+            <InputLabel sx={{ fontSize: '0.875rem' }}>סטטוס תשלום</InputLabel>
             <Select
               name="paymentStatus"
               value={formData.paymentStatus}
@@ -1265,7 +1283,8 @@ const NewBookingForm = ({
               size="small"
               sx={{
                 '& .MuiSelect-select': {
-                  paddingRight: '20px'
+                  paddingRight: '20px',
+                  fontSize: '0.875rem'
                 },
                 bgcolor: 'white',
                 borderRadius: '8px',
@@ -1316,9 +1335,22 @@ const NewBookingForm = ({
             </Select>
           </FormControl>
 
-          <IconButton onClick={onClose} size="small" sx={{ marginRight: 0, color: accentColors.red }}>
-            <CloseIcon />
-          </IconButton>
+          {/* כפתור סגירה */}
+          <Tooltip title="סגירה">
+            <IconButton 
+              onClick={onClose} 
+              size="small" 
+              sx={{ 
+                color: accentColors.red,
+                bgcolor: 'rgba(227, 74, 111, 0.08)',
+                '&:hover': {
+                  bgcolor: 'rgba(227, 74, 111, 0.15)',
+                }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </DialogTitle>
       
@@ -1833,7 +1865,7 @@ const NewBookingForm = ({
                 boxShadow: style.card.boxShadow,
                 borderTop: `3px solid ${accentColors.green}`
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <ReceiptIcon sx={{ color: accentColors.green, marginRight: '10px' }} />
                   <Typography variant="h6" sx={{ fontWeight: 500 }}>
                     פרטי מחיר
@@ -1860,7 +1892,7 @@ const NewBookingForm = ({
                   />
                 </Box>
               
-              <Grid container spacing={2}>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
                   {/* רכיב חישוב מחירים */}
                   <PriceCalculator 
                     formData={formData}

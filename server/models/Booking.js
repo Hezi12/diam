@@ -172,6 +172,12 @@ const BookingSchema = new mongoose.Schema(
       trim: true
     },
     
+    // מעקב חוות דעת
+    reviewHandled: {
+      type: Boolean,
+      default: false
+    },
+    
     // מקור ההזמנה
     source: {
       type: String,

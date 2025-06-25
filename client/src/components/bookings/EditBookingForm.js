@@ -628,41 +628,49 @@ const EditBookingForm = ({
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
           {/* מעקב חוות דעת */}
-          <Tooltip title="טופל בחוות דעת">
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.reviewHandled || false}
-                  onChange={(e) => setFormData({...formData, reviewHandled: e.target.checked})}
-                  size="small"
-                  sx={{
-                    color: currentColors.main,
-                    '&.Mui-checked': {
-                      color: '#06a271',
-                    },
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1.2rem'
-                    }
-                  }}
-                />
-              }
-              label={
-                <Box sx={{ 
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  color: formData.reviewHandled ? '#06a271' : currentColors.main
-                }}>
-                  חוות דעת
-                </Box>
-              }
-              sx={{ mr: 1 }}
-            />
+          <Tooltip title="סמן כאשר טופל בחוות דעת">
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              bgcolor: formData.reviewHandled ? 'rgba(6, 162, 113, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: formData.reviewHandled ? 'rgba(6, 162, 113, 0.3)' : 'rgba(0, 0, 0, 0.12)',
+              px: 1,
+              py: 0.5
+            }}>
+              <Checkbox
+                checked={formData.reviewHandled || false}
+                onChange={(e) => setFormData({...formData, reviewHandled: e.target.checked})}
+                size="small"
+                sx={{
+                  p: 0.5,
+                  color: currentColors.main,
+                  '&.Mui-checked': {
+                    color: '#06a271',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.1rem'
+                  }
+                }}
+              />
+              <Typography sx={{ 
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: formData.reviewHandled ? '#06a271' : 'text.secondary',
+                ml: 0.5,
+                userSelect: 'none'
+              }}>
+                חוות דעת
+              </Typography>
+            </Box>
           </Tooltip>
 
-          <FormControl sx={{ minWidth: 170, mr: 1 }} size="small">
-            <InputLabel>סטטוס תשלום</InputLabel>
+          {/* סטטוס תשלום */}
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel sx={{ fontSize: '0.85rem' }}>סטטוס תשלום</InputLabel>
             <Select
               name="paymentStatus"
               value={formData.paymentStatus}
@@ -670,15 +678,12 @@ const EditBookingForm = ({
               label="סטטוס תשלום"
               size="small"
               sx={{
-                '& .MuiSelect-select': {
-                  paddingRight: '20px'
-                },
+                fontSize: '0.85rem',
                 bgcolor: 'white',
                 borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  boxShadow: '0 3px 6px rgba(0,0,0,0.1)'
+                '& .MuiSelect-select': {
+                  py: 1,
+                  pr: 2
                 },
                 ...(formData.paymentStatus === 'unpaid' ? paymentStatusStyles.unpaid : {}),
                 ...(isPaidStatus ? paymentStatusStyles.paid : {})
@@ -698,15 +703,39 @@ const EditBookingForm = ({
             </Select>
           </FormControl>
 
-          <IconButton 
-            onClick={handleDeleteClick}
-            sx={{ color: accentColors.red, mr: 1 }}
-          >
-            <DeleteIcon />
-          </IconButton>
-          <IconButton onClick={onClose} size="small" sx={{ marginRight: 0, color: accentColors.red }}>
-            <CloseIcon />
-          </IconButton>
+          {/* כפתור מחיקה */}
+          <Tooltip title="מחק הזמנה">
+            <IconButton 
+              onClick={handleDeleteClick}
+              size="small"
+              sx={{ 
+                color: accentColors.red,
+                bgcolor: 'rgba(227, 74, 111, 0.08)',
+                '&:hover': {
+                  bgcolor: 'rgba(227, 74, 111, 0.15)',
+                }
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+
+          {/* כפתור סגירה */}
+          <Tooltip title="סגור">
+            <IconButton 
+              onClick={onClose} 
+              size="small" 
+              sx={{ 
+                color: accentColors.red,
+                bgcolor: 'rgba(227, 74, 111, 0.08)',
+                '&:hover': {
+                  bgcolor: 'rgba(227, 74, 111, 0.15)',
+                }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </DialogTitle>
       
@@ -891,7 +920,7 @@ const EditBookingForm = ({
                   />
                 </Box>
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid item xs={12}>
                     <PriceCalculator
                       formData={formData}

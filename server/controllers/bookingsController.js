@@ -405,6 +405,11 @@ exports.updateBooking = async (req, res) => {
       console.log('📋 נתונים שיעודכנו (ללא מחיר):', Object.keys(updateData));
     }
 
+    // הוספת שדות שצריכים להתעדכן במפורש
+    if (updateData.reviewHandled !== undefined) {
+      console.log('🔄 עדכון מעקב חוות דעת:', updateData.reviewHandled);
+    }
+
     // עדכון ההזמנה
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
