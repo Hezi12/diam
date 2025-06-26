@@ -32,15 +32,15 @@ class ICalService {
                 roomNumber: roomId,
                 location: location,
                 status: { $in: ['confirmed', 'checked-in'] },
-                checkInDate: { $gte: new Date() } // רק הזמנות עתידיות
-            }).sort({ checkInDate: 1 });
+                checkIn: { $gte: new Date() } // תוקן: checkInDate → checkIn
+            }).sort({ checkIn: 1 }); // תוקן: checkInDate → checkIn
 
             // הוספת כל הזמנה כאירוע חסום
             for (const booking of bookings) {
                 const event = calendar.createEvent({
-                    start: moment(booking.checkInDate).startOf('day').toDate(),
-                    end: moment(booking.checkOutDate).startOf('day').toDate(),
-                    summary: `חסום - ${booking.guestName || 'אורח'}`,
+                    start: moment(booking.checkIn).startOf('day').toDate(), // תוקן: checkInDate → checkIn
+                    end: moment(booking.checkOut).startOf('day').toDate(),   // תוקן: checkOutDate → checkOut
+                    summary: `חסום - ${booking.firstName || 'אורח'}`,
                     description: `הזמנה #${booking.bookingNumber}\nמקור: ${booking.source || 'diam'}\nסטטוס: ${booking.status}`,
                     location: `DIAM ${location.toUpperCase()}`,
                     busyStatus: 'BUSY',
