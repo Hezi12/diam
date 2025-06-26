@@ -20,16 +20,9 @@ import {
   FormHelperText,
   InputAdornment,
   CircularProgress,
-  Alert,
   DialogContentText,
   Tooltip,
   Checkbox,
-  TableContainer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -44,20 +37,14 @@ import {
   WhatsApp as WhatsAppIcon,
   Delete as DeleteIcon,
   CheckCircle as CheckCircleIcon,
-  ViewQuilt as ViewQuiltIcon,
-  CheckBox as CheckBoxIcon,
-  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
-  CreditCard as CreditCard
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { he } from 'date-fns/locale';
-import { addDays, differenceInDays, format, parse, parseISO } from 'date-fns';
+import { addDays, differenceInDays } from 'date-fns';
 import axios from 'axios';
-import { DateRange } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
 
@@ -67,8 +54,7 @@ import PriceCalculator from './PriceCalculator';
 // רכיב דיאלוג סליקת אשראי וחשבוניות
 import CreditCardChargeDialog from '../payment/CreditCardChargeDialog';
 
-// רכיב העלאת תמונות מיני
-import BookingImagesMini from './BookingImagesMini';
+
 
 // פונקציה לסינון חדרים מקטגוריית "Not for Sale"
 const filterNotForSaleRooms = (rooms) => {
@@ -1245,7 +1231,7 @@ const NewBookingForm = ({
                 }
               }}
             >
-              <CreditCard />
+              <CreditCardIcon />
             </IconButton>
           </Tooltip>
           
