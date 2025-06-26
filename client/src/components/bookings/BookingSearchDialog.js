@@ -12,11 +12,6 @@ import {
   Box,
   Divider,
   CircularProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Paper,
   Card,
   FormGroup,
   FormControlLabel,
@@ -32,18 +27,14 @@ import {
 import { 
   Close as CloseIcon,
   Search as SearchIcon,
-  Person as PersonIcon,
   Phone as PhoneIcon,
   CalendarToday as CalendarTodayIcon,
-  Hotel as HotelIcon,
-  Info as InfoIcon,
   ErrorOutline as ErrorOutlineIcon,
   DateRange as DateRangeIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { format, isValid } from 'date-fns';
-import axios from 'axios';
 import bookingService from '../../services/bookingService';
 
 /**

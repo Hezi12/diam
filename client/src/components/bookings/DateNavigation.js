@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip, Divider } from '@mui/material';
+import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import TodayIcon from '@mui/icons-material/Today';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
-import { DateRange, Calendar } from 'react-date-range';
+import { Calendar } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { he } from 'date-fns/locale';
