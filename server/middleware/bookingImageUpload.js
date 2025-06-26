@@ -45,6 +45,14 @@ const fileFilter = (req, file, cb) => {
     size: file.size
   });
 
+  // בדיקת path traversal באמצעות originalname
+  const sanitizedName = path.basename(file.originalname);
+  if (sanitizedName !== file.originalname || file.originalname.includes('..')) {
+    const error = new Error('שם קובץ לא תקין - זוהה ניסיון path traversal');
+    error.code = 'INVALID_FILENAME';
+    return cb(error, false);
+  }
+
   // סוגי קבצים מותרים
   const allowedMimeTypes = [
     'image/jpeg',
@@ -99,6 +107,12 @@ const handleUploadErrors = (error, req, res, next) => {
   }
 
   if (error.code === 'INVALID_FILE_TYPE') {
+    return res.status(400).json({
+      error: error.message
+    });
+  }
+
+  if (error.code === 'INVALID_FILENAME') {
     return res.status(400).json({
       error: error.message
     });

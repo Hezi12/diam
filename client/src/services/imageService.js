@@ -19,21 +19,26 @@ const imageService = {
       
       // הוספת הקבצים ל-FormData
       for (let i = 0; i < Math.min(files.length, 2); i++) {
-        formData.append('bookingImages', files[i]);
+        formData.append('images', files[i]);
       }
       
       // בדיקת טוקן לפני שליחה
       const token = localStorage.getItem('token');
       console.log('🔑 Token exists:', !!token);
       console.log('🔑 Axios default auth header:', axios.defaults.headers.common['Authorization']);
+      console.log('🌐 Base URL:', axios.defaults.baseURL);
       
       if (!token) {
         throw new Error('אין הרשאה - נדרשת התחברות מחדש');
       }
       
+      // יצירת URL מלא למניעת בעיות routing
+      const uploadUrl = `/api/bookings/${bookingId}/images`;
+      console.log('📤 Upload URL:', uploadUrl);
+      
       // שליחת הבקשה עם הטוקן בכותרות
       const response = await axios.post(
-        `/api/bookings/${bookingId}/images`,
+        uploadUrl,
         formData,
         {
           headers: {
@@ -46,7 +51,9 @@ const imageService = {
               (progressEvent.loaded * 100) / progressEvent.total
             );
             console.log(`📊 התקדמות העלאה: ${progress}%`);
-          }
+          },
+          // timeout מוגדל לקבצים גדולים
+          timeout: 60000 // 60 שניות
         }
       );
       
@@ -54,10 +61,29 @@ const imageService = {
       return response.data;
     } catch (error) {
       console.error('❌ שגיאה בהעלאת תמונות:', error);
+      console.error('🔍 Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        baseURL: axios.defaults.baseURL
+      });
       
       let errorMessage = 'שגיאה בהעלאת התמונות';
       
-      if (error.response?.data?.error) {
+      if (error.response?.status === 413) {
+        errorMessage = 'הקבצים גדולים מדי. נסה קבצים קטנים יותר';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data?.error || 'בקשה לא תקינה';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'אין הרשאה - נדרשת התחברות מחדש';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'אין הרשאה לפעולה זו';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'הזמנה לא נמצאה';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'הזמן הקצוב עבר - נסה קבצים קטנים יותר';
+      } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
@@ -116,6 +142,8 @@ const imageService = {
    */
   getBookingImageUrl: (bookingId, imageIndex) => {
     const token = localStorage.getItem('token');
+    
+    // בניית URL בסיסי
     const baseUrl = `/api/bookings/${bookingId}/images/${imageIndex}`;
     
     console.log('🔗 Creating image URL:', {
@@ -123,11 +151,24 @@ const imageService = {
       imageIndex,
       hasToken: !!token,
       tokenStart: token ? token.substring(0, 10) + '...' : 'none',
-      baseUrl
+      baseUrl,
+      axiosBaseURL: window.axios?.defaults?.baseURL || 'undefined'
     });
     
-    // הוספת טוקן ל-URL כ-query parameter כי img tags לא יכולים לשלוח headers
-    const finalUrl = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
+    // בפרודקשן, ננסה לבנות URL מלא
+    let fullUrl;
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      // בפרודקשן - השתמש ב-API URL מהקונפיג
+      const apiUrl = window.axios?.defaults?.baseURL || 'https://diam-loy6.onrender.com';
+      fullUrl = `${apiUrl}${baseUrl}`;
+    } else {
+      // במקומי - השתמש בנתיב יחסי
+      fullUrl = baseUrl;
+    }
+    
+    // הוספת טוקן ל-URL כ-query parameter (עדיין לא אידיאלי אבל עובד)
+    const finalUrl = token ? `${fullUrl}?token=${encodeURIComponent(token)}` : fullUrl;
+    
     console.log('🔗 Final URL:', finalUrl);
     
     return finalUrl;
@@ -148,8 +189,22 @@ const imageService = {
         throw new Error('אין הרשאה - נדרשת התחברות מחדש');
       }
 
+      // בניית URL להורדה
+      const downloadUrl = `/api/bookings/${bookingId}/images/${imageIndex}?download=true`;
+      
+      // בפרודקשן, בנה URL מלא
+      let fullDownloadUrl;
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        const apiUrl = window.axios?.defaults?.baseURL || 'https://diam-loy6.onrender.com';
+        fullDownloadUrl = `${apiUrl}${downloadUrl}`;
+      } else {
+        fullDownloadUrl = downloadUrl;
+      }
+
+      console.log('⬇️ Download URL:', fullDownloadUrl);
+
       // שליחת בקשה עם הרשאה מלאה
-      const response = await fetch(`/api/bookings/${bookingId}/images/${imageIndex}?download=true`, {
+      const response = await fetch(fullDownloadUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -158,11 +213,25 @@ const imageService = {
       });
 
       if (!response.ok) {
-        throw new Error(`שגיאה בהורדת התמונה: ${response.status} ${response.statusText}`);
+        let errorMessage = `שגיאה בהורדת התמונה: ${response.status} ${response.statusText}`;
+        
+        if (response.status === 401) {
+          errorMessage = 'אין הרשאה - נדרשת התחברות מחדש';
+        } else if (response.status === 404) {
+          errorMessage = 'התמונה לא נמצאה';
+        } else if (response.status === 403) {
+          errorMessage = 'אין הרשאה לגשת לתמונה זו';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       // המרת התגובה ל-blob
       const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('התמונה ריקה או לא נמצאה');
+      }
       
       // יצירת URL זמני לblob
       const blobUrl = window.URL.createObjectURL(blob);
@@ -172,7 +241,11 @@ const imageService = {
       link.href = blobUrl;
       link.download = filename || `booking-${bookingId}-image-${imageIndex + 1}`;
       
-      console.log('🔗 Created download link:', { download: link.download, blobSize: blob.size });
+      console.log('🔗 Created download link:', { 
+        download: link.download, 
+        blobSize: blob.size,
+        blobType: blob.type 
+      });
       
       // הוספה לדום, לחיצה והסרה
       document.body.appendChild(link);
@@ -185,6 +258,12 @@ const imageService = {
       console.log('✅ תמונה הורדה בהצלחה');
     } catch (error) {
       console.error('❌ שגיאה בהורדת תמונה:', error);
+      console.error('🔍 Download error details:', {
+        message: error.message,
+        bookingId,
+        imageIndex,
+        filename
+      });
       throw error;
     }
   },
