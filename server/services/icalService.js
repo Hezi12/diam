@@ -31,7 +31,7 @@ class ICalService {
             const bookings = await Booking.find({
                 roomNumber: roomId,
                 location: location,
-                status: { $in: ['confirmed', 'checked-in'] },
+                status: { $in: ['confirmed', 'checked-in', 'pending'] },
                 checkIn: { $gte: new Date() } // תוקן: checkInDate → checkIn
             }).sort({ checkIn: 1 }); // תוקן: checkInDate → checkIn
 
@@ -83,50 +83,50 @@ class ICalService {
             // פיענוח קובץ iCal
             const events = this.parseICalData(icalData);
             
+            // **שלב 1: מחיקת כל ההזמנות הישנות מבוקינג לחדר זה**
+            console.log(`מוחק הזמנות ישנות מבוקינג עבור חדר ${roomId}...`);
+            const deletedBookings = await Booking.deleteMany({
+                roomNumber: roomId,
+                location: location,
+                source: 'booking'
+            });
+            console.log(`נמחקו ${deletedBookings.deletedCount} הזמנות ישנות מבוקינג`);
+            
             const newBookings = [];
             
+            // **שלב 2: הוספת כל ההזמנות הנוכחיות מבוקינג**
             for (const event of events) {
-                // בדיקה אם ההזמנה כבר קיימת
-                const existingBooking = await Booking.findOne({
+                // חיפוש החדר כדי לקבל את ה-ObjectId
+                const room = await Room.findOne({ roomNumber: roomId, location: location });
+                if (!room) {
+                    console.error(`החדר ${roomId} במיקום ${location} לא נמצא`);
+                    continue;
+                }
+
+                // יצירת הזמנה חדשה מבוקינג
+                const bookingNumber = await this.generateBookingNumber();
+                const newBooking = new Booking({
+                    bookingNumber: parseInt(bookingNumber.replace('BK', '')), // המודל מצפה למספר
+                    firstName: event.summary || 'אורח מבוקינג',
+                    room: room._id, // ObjectId של החדר
                     roomNumber: roomId,
                     location: location,
                     checkIn: event.start,
                     checkOut: event.end,
-                    source: 'booking'
+                    price: 0, // לא ידוע מהקובץ
+                    status: 'confirmed',
+                    source: 'booking',
+                    paymentStatus: 'other', // בוקינג מטפל בתשלום
+                    notes: `יובא מבוקינג.קום\nפרטי אירוע: ${event.description || ''}`
                 });
 
-                if (!existingBooking) {
-                    // חיפוש החדר כדי לקבל את ה-ObjectId
-                    const room = await Room.findOne({ roomNumber: roomId, location: location });
-                    if (!room) {
-                        console.error(`החדר ${roomId} במיקום ${location} לא נמצא`);
-                        continue;
-                    }
-
-                    // יצירת הזמנה חדשה מבוקינג
-                    const bookingNumber = await this.generateBookingNumber();
-                    const newBooking = new Booking({
-                        bookingNumber: parseInt(bookingNumber.replace('BK', '')), // המודל מצפה למספר
-                        firstName: event.summary || 'אורח מבוקינג',
-                        room: room._id, // ObjectId של החדר
-                        roomNumber: roomId,
-                        location: location,
-                        checkIn: event.start,
-                        checkOut: event.end,
-                        price: 0, // לא ידוע מהקובץ
-                        status: 'confirmed',
-                        source: 'booking',
-                        paymentStatus: 'other', // בוקינג מטפל בתשלום
-                        notes: `יובא מבוקינג.קום\nפרטי אירוע: ${event.description || ''}`
-                    });
-
-                    await newBooking.save();
-                    newBookings.push(newBooking);
-                    
-                    console.log(`נוצרה הזמנה חדשה מבוקינג: ${newBooking.bookingNumber}`);
-                }
+                await newBooking.save();
+                newBookings.push(newBooking);
+                
+                console.log(`נוצרה הזמנה חדשה מבוקינג: ${newBooking.bookingNumber}`);
             }
 
+            console.log(`סנכרון הושלם: ${deletedBookings.deletedCount} נמחקו, ${newBookings.length} נוספו`);
             return newBookings;
 
         } catch (error) {
