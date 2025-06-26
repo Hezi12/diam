@@ -17,6 +17,7 @@ const PriceCalculator = ({
   checkInDate,
   checkOutDate,
   selectedRoom,
+  isExistingBooking = false,
   priceDetails = null,
   // פרופס עבור תמונות
   bookingId = null,
@@ -58,9 +59,10 @@ const PriceCalculator = ({
     return totalPrice;
   };
 
-  // חישוב מחיר אוטומטי כאשר יש כל הפרטים הנדרשים
+  // חישוב מחיר אוטומטי כאשר יש כל הפרטים הנדרשים (רק להזמנות חדשות)
   useEffect(() => {
-    if (selectedRoom && checkInDate && checkOutDate && nights > 0 && !lockedField) {
+    if (selectedRoom && checkInDate && checkOutDate && nights > 0 && !lockedField && !isExistingBooking) {
+      console.log('🔄 PriceCalculator: מחשב מחיר אוטומטי - הזמנה חדשה');
       const specialPrice = calculateSpecialDaysPricing(selectedRoom, checkInDate, checkOutDate, isTourist);
       
       if (specialPrice > 0) {
@@ -74,8 +76,10 @@ const PriceCalculator = ({
           pricePerNightNoVat: parseFloat(pricePerNightNoVat.toFixed(2))
         }));
       }
+    } else if (isExistingBooking) {
+      console.log('💰 PriceCalculator: דילוג על חישוב אוטומטי - הזמנה בעריכה');
     }
-  }, [selectedRoom, checkInDate, checkOutDate, nights, isTourist, lockedField, setFormData]);
+  }, [selectedRoom, checkInDate, checkOutDate, nights, isTourist, lockedField, isExistingBooking, setFormData]);
 
   // טיפול בשינוי מחיר ללילה (כולל מע"מ)
   const handlePricePerNightChange = (e) => {

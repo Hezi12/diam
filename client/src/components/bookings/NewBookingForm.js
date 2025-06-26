@@ -707,7 +707,7 @@ const NewBookingForm = ({
     }
   }, [formData.checkIn, formData.checkOut, formData.room, formData.isTourist, isExistingBooking]);
 
-  // מעקב אחר שינויים בחדר הנבחר
+  // מעקב אחר שינויים בחדר הנבחר (רק להזמנות חדשות)
   useEffect(() => {
     // שמירת המצב הקודם לשימוש בהשוואה
     if (!prevFormState.current) {
@@ -728,16 +728,14 @@ const NewBookingForm = ({
       return;
     }
     
-    // אם הוחלף החדר, נטען את פרטי המחיר של החדר החדש
+    // אם הוחלף החדר, נטען את פרטי המחיר של החדר החדש (רק להזמנות חדשות)
     if (formData.room && prevFormState.current.room !== formData.room) {
       console.log('חדר השתנה:', prevFormState.current.room, '->', formData.room);
       
-      // אם זו הזמנה קיימת בעריכה ועדיין לא שינו את החדר, נדלג על טעינת המחיר הסטנדרטי
-      if (isExistingBooking && !prevFormState.current.hasRoomBeenChanged) {
-        console.log('דילוג על עדכון מחיר להזמנה קיימת');
-        prevFormState.current.hasRoomBeenChanged = true;
+      if (isExistingBooking) {
+        console.log('💰 דילוג על עדכון מחיר - הזמנה בעריכה משתמשת במחיר הקיים');
       } else {
-        console.log('טעינת מחיר חדר חדש');
+        console.log('🔄 טעינת מחיר חדר חדש');
         fetchRoomData(formData.room);
       }
     }
@@ -761,7 +759,8 @@ const NewBookingForm = ({
     const guestsChanged = formData.guests !== prevFormState.current.guests;
     
     if ((checkInChanged || checkOutChanged || isTouristChanged || guestsChanged) && !isExistingBooking && formData.room) {
-      // חישוב מחיר מחדש עם הפרמטרים החדשים
+      // חישוב מחיר מחדש עם הפרמטרים החדשים (רק להזמנות חדשות)
+      console.log('🔄 עדכון מחיר בגלל שינוי פרמטרים - הזמנה חדשה');
       const selectedRoom = rooms.find(room => room._id === formData.room);
       if (selectedRoom) {
         const priceCalculation = calculatePriceWithExtraGuests(
@@ -780,6 +779,8 @@ const NewBookingForm = ({
           price: priceCalculation.totalPrice
         }));
       }
+    } else if ((checkInChanged || checkOutChanged || isTouristChanged || guestsChanged) && isExistingBooking) {
+      console.log('💰 דילוג על עדכון מחיר - הזמנה בעריכה משתמשת במחיר הקיים');
     }
     
     // עדכון המצב הקודם
@@ -1938,6 +1939,7 @@ const NewBookingForm = ({
                     checkInDate={formData.checkIn}
                     checkOutDate={formData.checkOut}
                     selectedRoom={rooms.find(room => room._id === formData.room)}
+                    isExistingBooking={isExistingBooking}
                     // פרופס עבור תמונות מיני
                     bookingId={isEditMode ? editBooking?._id : null}
                     attachedImages={attachedImages}
