@@ -480,4 +480,47 @@ router.get('/status/:location', auth, async (req, res) => {
     }
 });
 
+// מחיקת כל ההזמנות המיובאות
+router.delete('/imported-bookings/:location', auth, async (req, res) => {
+    try {
+        const { location } = req.params;
+        const Booking = require('../models/Booking');
+        
+        console.log(`מתחיל מחיקת כל ההזמנות המיובאות במיקום ${location}`);
+        
+        // מחיקת כל ההזמנות שמקורן booking (מיובאות מ-iCal)
+        const deleteResult = await Booking.deleteMany({
+            location: location,
+            source: 'booking'
+        });
+        
+        console.log(`נמחקו ${deleteResult.deletedCount} הזמנות מיובאות`);
+        
+        // איפוס מונה ההזמנות המיובאות בהגדרות
+        const settings = await ICalSettings.findOne({ location });
+        if (settings) {
+            settings.rooms.forEach(room => {
+                room.importedBookings = 0;
+                room.syncStatus = 'never';
+                room.lastSync = null;
+                room.syncError = null;
+            });
+            await settings.save();
+        }
+        
+        res.json({
+            success: true,
+            message: `נמחקו ${deleteResult.deletedCount} הזמנות מיובאות`,
+            deletedCount: deleteResult.deletedCount
+        });
+        
+    } catch (error) {
+        console.error('שגיאה במחיקת הזמנות מיובאות:', error);
+        res.status(500).json({ 
+            error: 'שגיאה במחיקת ההזמנות',
+            details: error.message 
+        });
+    }
+});
+
 module.exports = router; 

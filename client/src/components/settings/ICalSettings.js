@@ -36,7 +36,8 @@ import {
     Science,
     Refresh,
     Save,
-    NotificationsActive
+    NotificationsActive,
+    Delete
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import axios from 'axios';
@@ -84,6 +85,8 @@ const ICalSettings = () => {
     const [testing, setTesting] = useState(false);
     const [viewExportDialog, setViewExportDialog] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
+    const [deleteDialog, setDeleteDialog] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         loadSettings();
@@ -182,6 +185,28 @@ const ICalSettings = () => {
         navigator.clipboard.writeText(text);
         setSuccess('הקישור הועתק ללוח!');
         setTimeout(() => setSuccess(''), 2000);
+    };
+
+    const deleteImportedBookings = async () => {
+        try {
+            setDeleting(true);
+            setError('');
+            
+            const response = await axios.delete(`/api/ical/imported-bookings/${selectedLocation}`);
+            
+            if (response.data.success) {
+                setSuccess(`נמחקו ${response.data.deletedCount} הזמנות מיובאות בהצלחה!`);
+                await loadSettings(); // רענון הגדרות
+                setDeleteDialog(false);
+            }
+            
+            setTimeout(() => setSuccess(''), 5000);
+        } catch (error) {
+            console.error('שגיאה במחיקת הזמנות מיובאות:', error);
+            setError(error.response?.data?.error || 'שגיאה במחיקת ההזמנות');
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const updateRoomSetting = (roomId, field, value) => {
@@ -342,8 +367,19 @@ const ICalSettings = () => {
                             onClick={syncAllRooms}
                             disabled={syncing}
                             startIcon={syncing ? <CircularProgress size={20} /> : <Sync />}
+                            sx={{ mr: 2 }}
                         >
                             {syncing ? 'מסנכרן...' : 'סנכרן כל החדרים'}
+                        </Button>
+                        
+                        <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => setDeleteDialog(true)}
+                            disabled={deleting}
+                            startIcon={<Delete />}
+                        >
+                            מחק הזמנות מיובאות
                         </Button>
                     </Box>
                 </CardContent>
@@ -560,6 +596,44 @@ const ICalSettings = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setViewExportDialog(false)}>סגור</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* דיאלוג אישור מחיקת הזמנות מיובאות */}
+            <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ color: 'error.main' }}>
+                    ⚠️ מחיקת כל ההזמנות המיובאות
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                        האם אתה בטוח שברצונך למחוק את <strong>כל ההזמנות שיובאו מבוקינג.קום</strong> במיקום {selectedLocation.toUpperCase()}?
+                    </Typography>
+                    
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        <Typography variant="body2">
+                            פעולה זו תמחק את כל ההזמנות עם מקור "booking" ותאפס את מוני הסנכרון.
+                            <br />
+                            לאחר המחיקה תוכל לבצע סנכרון מחדש כדי לקבל את כל ההזמנות בצורה חדשה.
+                        </Typography>
+                    </Alert>
+                    
+                    <Typography variant="body2" color="text.secondary">
+                        זוהי פעולה בלתי הפיכה. ההזמנות הרגילות (לא מיובאות) לא יושפעו.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleteDialog(false)} disabled={deleting}>
+                        ביטול
+                    </Button>
+                    <Button 
+                        onClick={deleteImportedBookings}
+                        disabled={deleting}
+                        variant="contained"
+                        color="error"
+                        startIcon={deleting ? <CircularProgress size={20} /> : <Delete />}
+                    >
+                        {deleting ? 'מוחק...' : 'מחק הזמנות מיובאות'}
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>
