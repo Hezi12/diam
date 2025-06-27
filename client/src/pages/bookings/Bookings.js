@@ -317,6 +317,7 @@ const Bookings = () => {
       const startStr = format(dateRange.startDate, 'yyyy-MM-dd');
       const endStr = format(dateRange.endDate, 'yyyy-MM-dd');
       
+      console.log('🔄 מבצע רענון הזמנות...');
       const response = await axios.get(`/api/bookings/date-range`, {
         params: {
           startDate: startStr,
@@ -325,9 +326,12 @@ const Bookings = () => {
         }
       });
       
+      console.log('✅ רענון הזמנות הושלם בהצלחה');
       setBookings(response.data);
     } catch (error) {
-      console.error('Error refreshing bookings:', error);
+      console.error('❌ שגיאה ברענון הזמנות:', error);
+      // זורק את השגיאה הלאה כדי שהפונקציה הקוראת תוכל לטפל בה
+      throw error;
     } finally {
       setLoading(prev => ({ ...prev, bookings: false }));
     }
@@ -600,8 +604,8 @@ const Bookings = () => {
             loading={loading.bookings}
             onBookingClick={handleBookingClick}
             onCreateBooking={handleCreateBookingFromCell}
-            onBookingUpdate={handleDragBookingUpdate}
-            onRefreshBookings={refreshBookings}
+            onBookingUpdate={refreshBookings}
+            onDragBookingUpdate={handleDragBookingUpdate}
             location={location}
           />
         </Box>

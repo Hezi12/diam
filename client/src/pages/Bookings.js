@@ -619,7 +619,6 @@ const Bookings = () => {
             onBookingClick={handleBookingClick}
             onCreateBooking={handleCreateBookingFromCell}
             onBookingUpdate={handleDragBookingUpdate}
-            onRefreshBookings={refreshBookings}
             location={location}
           />
         </Box>

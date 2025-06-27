@@ -15,11 +15,12 @@ import {
   Divider,
   Chip
 } from '@mui/material';
-import { format, eachDayOfInterval, isSameDay, addDays, subDays, differenceInDays } from 'date-fns';
+import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import InfoIcon from '@mui/icons-material/Info';
-
+import MoneyOffIcon from '@mui/icons-material/MoneyOff';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
@@ -91,8 +92,8 @@ const BookingsCalendar = ({
   onBookingClick,
   location,
   onCreateBooking,
-  onBookingUpdate, // פונקציה חדשה לעדכון הזמנה
-  onRefreshBookings // פונקציה חדשה לרענון ההזמנות
+  onBookingUpdate, // פונקציה לרענון נתונים (למחיקה)
+  onDragBookingUpdate // פונקציה לעדכון הזמנה בגרירה
 }) => {
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
@@ -247,8 +248,8 @@ const BookingsCalendar = ({
       };
 
       // קריאה לפונקציית העדכון
-      if (onBookingUpdate) {
-        await onBookingUpdate(booking._id, updatedBooking);
+      if (onDragBookingUpdate) {
+        await onDragBookingUpdate(booking._id, updatedBooking);
         
         // הודעת הצלחה
         let message = '';
@@ -316,14 +317,19 @@ const BookingsCalendar = ({
       console.log('📡 תגובת שרת:', response.status, response.statusText);
 
       if (response.ok) {
+        console.log('✅ הזמנה נמחקה בהצלחה בשרת');
         showNotification(`הזמנה ${booking.bookingNumber} נמחקה בהצלחה`, 'success');
         
-        // עדכון מיידי של רשימת ההזמנות
-        if (onRefreshBookings) {
-          onRefreshBookings();
-        } else if (onBookingUpdate) {
-          // fallback למקרה שלא הועברה פונקציית רענון מיוחדת
-          window.location.reload();
+        // רענון הנתונים עם טיפול בשגיאות
+        if (onBookingUpdate) {
+          try {
+            console.log('🔄 מרענן נתונים...');
+            await onBookingUpdate();
+            console.log('✅ נתונים רוענו בהצלחה');
+          } catch (refreshError) {
+            console.error('❌ שגיאה ברענון הנתונים:', refreshError);
+            // לא מציגים שגיאה למשתמש כי המחיקה עצמה הצליחה
+          }
         }
       } else {
         const errorText = await response.text();
@@ -394,7 +400,13 @@ const BookingsCalendar = ({
     dateToIndex[dateStr] = index;
   });
 
-
+  // פונקציה להמרת תאריך לפורמט אחיד ללא שעות
+  const normalizeDate = (date) => {
+    if (!date) return null;
+    const dateObj = new Date(date);
+    // החזר תאריך בפורמט yyyy-MM-dd
+    return format(dateObj, 'yyyy-MM-dd');
+  };
 
   // טיפול בלחיצה על תא ריק בלוח
   const handleEmptyCellClick = (roomId, day) => {
@@ -982,7 +994,16 @@ const BookingsCalendar = ({
     }
   };
 
-
+  const handleCellClick = (date, room) => {
+    if (!date || !room) return;
+    
+    // מעבירים את כל המידע הרלוונטי ליצירת הזמנה
+    onCreateBooking(
+      date,
+      room._id,
+      room.location
+    );
+  };
 
   return (
     <Box sx={{ overflowX: 'auto' }}>
