@@ -106,163 +106,43 @@ class ICalService {
                 // יצירת הזמנה חדשה מבוקינג
                 const bookingNumber = await this.generateBookingNumber();
                 
-                // ניסיון לחלץ שם האורח ממקורות שונים
+                // ניסיון לחלץ שם מה-SUMMARY (לעיתים יש שם אורח)
                 let firstName = 'אורח מבוקינג';
-                let lastName = '';
-                let guestNameFound = false;
+                let lastName = 'Booking.com';
                 
-                // פונקציה לחלץ שם מטקסט
-                const extractNameFromText = (text) => {
-                    if (!text) return null;
+                if (event.summary) {
+                    // סינון טקסטים לא רלוונטיים מבוקינג
+                    const cleanSummary = event.summary
+                        .replace(/CLOSED\s*-?\s*/gi, '') // הסרת "CLOSED -"
+                        .replace(/Not\s+available/gi, '') // הסרת "Not available"
+                        .replace(/Unavailable/gi, '') // הסרת "Unavailable"
+                        .replace(/Blocked/gi, '') // הסרת "Blocked"
+                        .replace(/Reserved/gi, '') // הסרת "Reserved"
+                        .replace(/Maintenance/gi, '') // הסרת "Maintenance"
+                        .replace(/Out\s+of\s+order/gi, '') // הסרת "Out of order"
+                        .replace(/^\s*-\s*/, '') // הסרת מקף בתחילת השורה
+                        .replace(/\s*-\s*$/, '') // הסרת מקף בסוף השורה
+                        .replace(/\s+/g, ' ') // החלפת רווחים מרובים ברווח יחיד
+                        .trim();
                     
-                    // דפוסים לחיפוש שם (באנגלית ועברית)
-                    const namePatterns = [
-                        // שם מלא עם רווח
-                        /(?:guest|name|אורח|שם)[:\s]*([A-Za-z\u0590-\u05FF]+)\s+([A-Za-z\u0590-\u05FF]+)/i,
-                        // שם בתחילת השורה
-                        /^([A-Za-z\u0590-\u05FF]{2,})\s+([A-Za-z\u0590-\u05FF]{2,})/,
-                        // שם אחרי "for" או "עבור"
-                        /(?:for|עבור)\s+([A-Za-z\u0590-\u05FF]+)\s+([A-Za-z\u0590-\u05FF]+)/i,
-                        // שם בין מירכאות
-                        /"([A-Za-z\u0590-\u05FF]+)\s+([A-Za-z\u0590-\u05FF]+)"/,
-                        // שם אחרי נקודותיים
-                        /:\s*([A-Za-z\u0590-\u05FF]+)\s+([A-Za-z\u0590-\u05FF]+)/
-                    ];
+                    console.log(`🔍 מעבד SUMMARY: "${event.summary}" -> "${cleanSummary}"`);
                     
-                    for (const pattern of namePatterns) {
-                        const match = text.match(pattern);
-                        if (match && match[1] && match[2]) {
-                            // בדיקה שזה לא מילים כמו "not available"
-                            const firstWord = match[1].toLowerCase();
-                            const secondWord = match[2].toLowerCase();
-                            
-                            if (!['not', 'available', 'closed', 'blocked', 'maintenance'].includes(firstWord) &&
-                                !['not', 'available', 'closed', 'blocked', 'maintenance'].includes(secondWord)) {
-                                return { firstName: match[1], lastName: match[2] };
-                            }
-                        }
+                    if (cleanSummary && cleanSummary.length > 0) {
+                        // אם יש שם נקי, נשתמש בו כשם פרטי
+                        // ונשאיר "Booking.com" כשם משפחה לזיהוי
+                        firstName = cleanSummary;
+                        lastName = 'Booking.com';
+                        
+                        console.log(`✅ שם נמצא: "${firstName}" "${lastName}"`);
+                    } else {
+                        // אם לא נמצא שם, נשתמש בברירת מחדל
+                        firstName = 'אורח מבוקינג';
+                        lastName = 'Booking.com';
+                        
+                        console.log(`⚠️ לא נמצא שם, משתמש בברירת מחדל: "${firstName}" "${lastName}"`);
                     }
-                    
-                    // אם לא נמצא שם מלא, חפש שם בודד
-                    const singleNamePatterns = [
-                        /(?:guest|name|אורח|שם)[:\s]*([A-Za-z\u0590-\u05FF]{2,})/i,
-                        /^([A-Za-z\u0590-\u05FF]{2,})(?:\s|$)/,
-                        /"([A-Za-z\u0590-\u05FF]{2,})"/
-                    ];
-                    
-                    for (const pattern of singleNamePatterns) {
-                        const match = text.match(pattern);
-                        if (match && match[1]) {
-                            const word = match[1].toLowerCase();
-                            if (!['not', 'available', 'closed', 'blocked', 'maintenance', 'booking', 'reservation'].includes(word)) {
-                                return { firstName: match[1], lastName: '' };
-                            }
-                        }
-                    }
-                    
-                    return null;
-                };
-                
-                // 1. ניסיון לחלץ שם מה-DESCRIPTION (המקום הכי סביר)
-                if (event.description && !guestNameFound) {
-                    const nameFromDesc = extractNameFromText(event.description);
-                    if (nameFromDesc) {
-                        firstName = nameFromDesc.firstName;
-                        lastName = nameFromDesc.lastName;
-                        guestNameFound = true;
-                        console.log('🎯 נמצא שם אורח בתיאור:', firstName, lastName);
-                    }
-                }
-                
-                // 2. ניסיון לחלץ שם מה-ORGANIZER
-                if (event.organizer && !guestNameFound) {
-                    // חילוץ שם מכתובת אימייל או מהפורמט CN=Name
-                    const organizerPatterns = [
-                        /CN=([^:;]+)/i, // Common Name in ORGANIZER field
-                        /mailto:([^@]+)@/i, // Email username
-                        /([A-Za-z\u0590-\u05FF]+)\s+([A-Za-z\u0590-\u05FF]+)/ // Regular name
-                    ];
-                    
-                    for (const pattern of organizerPatterns) {
-                        const match = event.organizer.match(pattern);
-                        if (match && match[1]) {
-                            if (match[2]) {
-                                firstName = match[1];
-                                lastName = match[2];
-                            } else {
-                                // אם יש רק שם אחד, נבדוק אם זה שם מלא
-                                const fullName = match[1].trim();
-                                const nameParts = fullName.split(/\s+/);
-                                if (nameParts.length >= 2) {
-                                    firstName = nameParts[0];
-                                    lastName = nameParts.slice(1).join(' ');
-                                } else {
-                                    firstName = fullName;
-                                    lastName = '';
-                                }
-                            }
-                            guestNameFound = true;
-                            console.log('🎯 נמצא שם אורח ב-ORGANIZER:', firstName, lastName);
-                            break;
-                        }
-                    }
-                }
-                
-                // 3. ניסיון לחלץ שם מה-ATTENDEE
-                if (event.attendee && !guestNameFound) {
-                    const nameFromAttendee = extractNameFromText(event.attendee);
-                    if (nameFromAttendee) {
-                        firstName = nameFromAttendee.firstName;
-                        lastName = nameFromAttendee.lastName;
-                        guestNameFound = true;
-                        console.log('🎯 נמצא שם אורח ב-ATTENDEE:', firstName, lastName);
-                    }
-                }
-                
-                // 4. רק אם לא נמצא כלום, ננסה את ה-SUMMARY (למקרה שיש שם בכל זאת)
-                if (!guestNameFound && event.summary) {
-                    const nameFromSummary = extractNameFromText(event.summary);
-                    if (nameFromSummary) {
-                        firstName = nameFromSummary.firstName;
-                        lastName = nameFromSummary.lastName;
-                        guestNameFound = true;
-                        console.log('🎯 נמצא שם אורח ב-SUMMARY:', firstName, lastName);
-                    }
-                }
-                
-                // 5. ניסיון לחלץ שם משדות מותאמים אישית (X-properties)
-                if (!guestNameFound && event.customGuestField) {
-                    const nameFromCustom = extractNameFromText(event.customGuestField);
-                    if (nameFromCustom) {
-                        firstName = nameFromCustom.firstName;
-                        lastName = nameFromCustom.lastName;
-                        guestNameFound = true;
-                        console.log('🎯 נמצא שם אורח בשדה מותאם:', firstName, lastName);
-                    }
-                }
-                
-                // 6. אם עדיין לא נמצא שם, ננסה לחלץ מה-UID
-                if (!guestNameFound && event.uid) {
-                    // לפעמים ה-UID מכיל מידע על האורח
-                    const nameFromUid = extractNameFromText(event.uid);
-                    if (nameFromUid) {
-                        firstName = nameFromUid.firstName;
-                        lastName = nameFromUid.lastName;
-                        guestNameFound = true;
-                        console.log('🎯 נמצא שם אורח ב-UID:', firstName, lastName);
-                    }
-                }
-                
-                if (!guestNameFound) {
-                    console.log('⚠️ לא נמצא שם אורח בשום מקום, משתמש בברירת מחדל');
-                    console.log('📋 נתונים זמינים:', {
-                        summary: event.summary || 'ריק',
-                        description: event.description || 'ריק',
-                        organizer: event.organizer || 'ריק',
-                        attendee: event.attendee || 'ריק',
-                        uid: event.uid || 'ריק',
-                        customGuestField: event.customGuestField || 'ריק'
-                    });
+                } else {
+                    console.log('⚠️ אין SUMMARY, משתמש בברירת מחדל');
                 }
                 
                 // ניסיון לחלץ מספר הזמנה מבוקינג מה-UID או מה-DESCRIPTION
@@ -359,7 +239,6 @@ class ICalService {
                         url: currentEvent.url,
                         categories: currentEvent.categories,
                         class: currentEvent.class,
-                        customGuestField: currentEvent.customGuestField,
                         rawLines: currentEvent.rawData.length > 0 ? currentEvent.rawData : 'לא נשמר'
                     });
                     events.push(currentEvent);
@@ -396,21 +275,6 @@ class ICalService {
                     currentEvent.categories = line.replace('CATEGORIES:', '');
                 } else if (line.startsWith('CLASS:')) {
                     currentEvent.class = line.replace('CLASS:', '');
-                } else if (line.startsWith('X-')) {
-                    // שדות מותאמים אישית (X-properties) שעלולים להכיל מידע על האורח
-                    const xProperty = line.split(':');
-                    if (xProperty.length >= 2) {
-                        const propertyName = xProperty[0].toLowerCase();
-                        const propertyValue = xProperty.slice(1).join(':');
-                        
-                        // שמירת שדות X- שעלולים להכיל שם אורח
-                        if (propertyName.includes('guest') || 
-                            propertyName.includes('name') || 
-                            propertyName.includes('customer') ||
-                            propertyName.includes('client')) {
-                            currentEvent.customGuestField = propertyValue;
-                        }
-                    }
                 }
             }
         }
