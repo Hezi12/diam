@@ -391,6 +391,27 @@ const BookingsCalendar = ({
     }
   };
 
+  // צבעים מיוחדים להזמנות מבוקינג - גווני ירוק
+  const bookingSourceColors = {
+    booking: {
+      confirmed: {
+        bgColor: `rgba(39, 174, 96, 0.2)`, // ירוק עמוק
+        borderColor: `#27ae60`,
+        textColor: `#186a3b`
+      },
+      pending: {
+        bgColor: `rgba(46, 204, 113, 0.2)`, // ירוק בהיר
+        borderColor: `#2ecc71`,
+        textColor: `#1e8449`
+      },
+      cancelled: {
+        bgColor: `rgba(88, 214, 141, 0.2)`, // ירוק בהיר יותר
+        borderColor: `#58d68d`,
+        textColor: `#229954`
+      }
+    }
+  };
+
   // יצירת קישור לוואטסאפ
   const createWhatsAppLink = (phoneNumber) => {
     if (!phoneNumber) return null;
@@ -683,7 +704,15 @@ const BookingsCalendar = ({
         bookingWidth: `${bookingWidth}%`
       });
       
-      const statusColors = bookingStatusColors[booking.status] || bookingStatusColors.pending;
+      // בחירת צבע בהתאם למקור ההזמנה
+      let statusColors;
+      if (booking.source === 'booking' && bookingSourceColors.booking[booking.status]) {
+        // הזמנה מבוקינג - צבע ירוק
+        statusColors = bookingSourceColors.booking[booking.status];
+      } else {
+        // הזמנה רגילה - צבע כחול
+        statusColors = bookingStatusColors[booking.status] || bookingStatusColors.pending;
+      }
       
       // בדיקה האם תאריך הצ'ק-אין רלוונטי (אתמול, היום או מחר)
       const isRelevantDate = isCheckInRelevant(checkInDate);
