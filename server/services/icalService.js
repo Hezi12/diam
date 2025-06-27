@@ -27,7 +27,7 @@ class ICalService {
                 prodId: `//DIAM Hotels//Room ${roomId} ${location}//HE`
             });
 
-            // שליפת כל ההזמנות לחדר זה (כולל היום)
+            // שליפת כל ההזמנות הפעילות לחדר זה (שעדיין לא נגמרו)
             const today = new Date();
             today.setHours(0, 0, 0, 0); // תחילת היום
             
@@ -35,7 +35,7 @@ class ICalService {
                 roomNumber: roomId,
                 location: location,
                 status: { $in: ['confirmed', 'checked-in', 'pending'] },
-                checkIn: { $gte: today } // מתחילת היום ואילך
+                checkOut: { $gt: today } // כל הזמנה שעדיין לא נגמרה
             }).sort({ checkIn: 1 });
 
             // הוספת כל הזמנה כאירוע חסום
