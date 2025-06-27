@@ -27,13 +27,16 @@ class ICalService {
                 prodId: `//DIAM Hotels//Room ${roomId} ${location}//HE`
             });
 
-            // שליפת כל ההזמנות לחדר זה
+            // שליפת כל ההזמנות לחדר זה (כולל היום)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // תחילת היום
+            
             const bookings = await Booking.find({
                 roomNumber: roomId,
                 location: location,
                 status: { $in: ['confirmed', 'checked-in', 'pending'] },
-                checkIn: { $gte: new Date() } // תוקן: checkInDate → checkIn
-            }).sort({ checkIn: 1 }); // תוקן: checkInDate → checkIn
+                checkIn: { $gte: today } // מתחילת היום ואילך
+            }).sort({ checkIn: 1 });
 
             // הוספת כל הזמנה כאירוע חסום
             for (const booking of bookings) {
@@ -91,6 +94,9 @@ class ICalService {
                 source: 'booking'
             });
             console.log(`נמחקו ${deletedBookings.deletedCount} הזמנות ישנות מבוקינג`);
+            
+            // המתנה קצרה למניעת race conditions
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             const newBookings = [];
             
@@ -171,6 +177,20 @@ class ICalService {
                 if (event.organizer) notes += `\nארגן: ${event.organizer}`;
                 if (event.contact) notes += `\nיצירת קשר: ${event.contact}`;
                 
+                // בדיקה אם ההזמנה כבר קיימת (מניעת כפילויות)
+                const existingBooking = await Booking.findOne({
+                    roomNumber: roomId,
+                    location: location,
+                    checkIn: event.start,
+                    checkOut: event.end,
+                    source: 'booking'
+                });
+                
+                if (existingBooking) {
+                    console.log(`⚠️ הזמנה כבר קיימת עבור תאריכים ${event.start.toLocaleDateString()} - ${event.end.toLocaleDateString()}, מדלג...`);
+                    continue;
+                }
+
                 const newBooking = new Booking({
                     bookingNumber: parseInt(bookingNumber.replace('BK', '')), // המודל מצפה למספר
                     firstName: firstName,
