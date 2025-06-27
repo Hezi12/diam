@@ -8,7 +8,12 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
-  Alert
+  Alert,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  Chip
 } from '@mui/material';
 import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -402,11 +407,113 @@ const BookingsCalendar = ({
     return `https://wa.me/${formattedNumber}`;
   };
 
+  // פונקציה לזיהוי הזמנות חופפות
+  const findOverlappingBookings = (currentBooking, roomBookings) => {
+    const currentStart = new Date(currentBooking.checkIn);
+    const currentEnd = new Date(currentBooking.checkOut);
+    
+    return roomBookings.filter(booking => {
+      if (booking._id === currentBooking._id) return false;
+      
+      const bookingStart = new Date(booking.checkIn);
+      const bookingEnd = new Date(booking.checkOut);
+      
+      // בדיקת חפיפה: הזמנות חופפות אם יש חפיפה של לפחות יום אחד
+      return (
+        (currentStart >= bookingStart && currentStart < bookingEnd) ||
+        (currentEnd > bookingStart && currentEnd <= bookingEnd) ||
+        (currentStart <= bookingStart && currentEnd >= bookingEnd)
+      );
+    });
+  };
+
+  // יצירת tooltip עבור הזמנות חופפות
+  const createOverlappingTooltip = (mainBooking, overlappingBookings) => {
+    const allBookings = [mainBooking, ...overlappingBookings];
+    
+    return (
+      <Box sx={{ maxWidth: 350, p: 1 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, color: '#e74c3c', fontWeight: 'bold' }}>
+          ⚠️ {allBookings.length} הזמנות חופפות
+        </Typography>
+        <List dense sx={{ py: 0 }}>
+          {allBookings.map((booking, index) => (
+            <React.Fragment key={booking._id}>
+              <ListItem 
+                sx={{ 
+                  px: 0, 
+                  py: 1,
+                  cursor: 'pointer',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: 'rgba(0,0,0,0.04)'
+                  }
+                }}
+                onClick={() => onBookingClick(booking._id)}
+              >
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {booking.firstName} {booking.lastName}
+                      </Typography>
+                      {booking.source && (
+                        <Chip 
+                          label={booking.source} 
+                          size="small" 
+                          variant="outlined"
+                          sx={{ height: 16, fontSize: '0.7rem' }}
+                        />
+                      )}
+                    </Box>
+                  }
+                  secondary={
+                    <Box>
+                      <Typography variant="caption" display="block">
+                        📅 {format(new Date(booking.checkIn), 'dd/MM')} - {format(new Date(booking.checkOut), 'dd/MM')}
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        💰 ₪{booking.totalPrice?.toLocaleString()} • {booking.nights} לילות
+                      </Typography>
+                      {booking.phone && (
+                        <Typography variant="caption" display="block">
+                          📞 {booking.phone}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+              {index < allBookings.length - 1 && <Divider />}
+            </React.Fragment>
+          ))}
+        </List>
+        <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary', fontStyle: 'italic' }}>
+          לחץ על הזמנה לפתיחה
+        </Typography>
+      </Box>
+    );
+  };
+
   const renderBooking = (booking, room) => {
     // המרת תאריכים למבנה אחיד ובדיקת תקינות
     try {
+      // בדיקת הזמנות חופפות לחדר זה
+      const roomBookings = bookings.filter(b => {
+        const bookingRoomId = b.room && typeof b.room === 'object' && b.room._id ? 
+          b.room._id.toString() : 
+          (b.room ? b.room.toString() : '');
+        return bookingRoomId === room._id.toString();
+      });
+      
+      const overlappingBookings = findOverlappingBookings(booking, roomBookings);
+      const hasOverlap = overlappingBookings.length > 0;
+      
       // תיעוד התאריכים המקוריים
       console.log(`עיבוד הזמנה מספר ${booking.bookingNumber || booking._id} - ${booking.firstName} ${booking.lastName || ''}:`);
+      if (hasOverlap) {
+        console.log(`🔄 נמצאו ${overlappingBookings.length} הזמנות חופפות`);
+      }
       console.log('תאריכי הזמנה מקוריים:', {
         checkIn: booking.checkIn,
         checkOut: booking.checkOut,
@@ -596,7 +703,8 @@ const BookingsCalendar = ({
         isPastOrTodayAndNotPaid
       });
       
-      return (
+      // יצירת הרכיב עם או בלי tooltip בהתאם לחפיפה
+      const bookingComponent = (
         <GanttBar
           key={booking._id}
           status={booking.status}
@@ -745,6 +853,50 @@ const BookingsCalendar = ({
           </Box>
         </GanttBar>
       );
+
+      // החזרת הרכיב עם או בלי tooltip
+      if (hasOverlap) {
+        return (
+          <Tooltip
+            key={booking._id}
+            title={createOverlappingTooltip(booking, overlappingBookings)}
+            arrow
+            placement="top"
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  maxWidth: 'none',
+                  bgcolor: 'white',
+                  color: 'black',
+                  boxShadow: 3,
+                  border: '1px solid #e0e0e0',
+                  '& .MuiTooltip-arrow': {
+                    color: 'white',
+                    '&:before': {
+                      border: '1px solid #e0e0e0'
+                    }
+                  }
+                }
+              }
+            }}
+          >
+            {React.cloneElement(bookingComponent, {
+              sx: {
+                ...bookingComponent.props.sx,
+                // סימון חזותי להזמנות חופפות
+                border: '2px solid #e74c3c',
+                boxShadow: '0 0 0 2px rgba(231, 76, 60, 0.2)',
+                '&:hover': {
+                  ...bookingComponent.props.sx['&:hover'],
+                  boxShadow: '0 4px 8px rgba(231, 76, 60, 0.3)'
+                }
+              }
+            })}
+          </Tooltip>
+        );
+      }
+
+      return bookingComponent;
     } catch (error) {
       console.error('שגיאה בעיבוד הזמנה:', error, booking);
       return null;

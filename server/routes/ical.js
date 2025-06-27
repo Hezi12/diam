@@ -80,10 +80,19 @@ router.get('/settings/:location', auth, async (req, res) => {
             settings = new ICalSettings({
                 location,
                 rooms: rooms.map(room => ({
-                    roomId: room.roomId,
-                    roomName: room.name || `חדר ${room.roomId}`,
+                    roomId: room.roomNumber,
+                    roomName: `חדר ${room.roomNumber}`,
                     enabled: false
-                }))
+                })),
+                globalSettings: {
+                    autoSyncEnabled: false,
+                    syncInterval: 30,
+                    notifications: {
+                        email: 'diamshotels@gmail.com',
+                        onNewBooking: true,
+                        onSyncError: true
+                    }
+                }
             });
             
             await settings.save();
@@ -94,6 +103,67 @@ router.get('/settings/:location', auth, async (req, res) => {
         console.error('שגיאה בקבלת הגדרות למיקום:', error);
         res.status(500).json({ 
             error: 'שגיאה בקבלת ההגדרות',
+            details: error.message 
+        });
+    }
+});
+
+// רענון הגדרות - יצירת חדרים חסרים
+router.post('/settings/:location/refresh', auth, async (req, res) => {
+    try {
+        const { location } = req.params;
+        
+        // שליפת כל החדרים במיקום
+        const rooms = await Room.find({ location });
+        
+        let settings = await ICalSettings.findOne({ location });
+        
+        if (!settings) {
+            // יצירת הגדרות חדשות
+            settings = new ICalSettings({
+                location,
+                rooms: [],
+                globalSettings: {
+                    autoSyncEnabled: false,
+                    syncInterval: 30,
+                    notifications: {
+                        email: 'diamshotels@gmail.com',
+                        onNewBooking: true,
+                        onSyncError: true
+                    }
+                }
+            });
+        }
+        
+        // הוספת חדרים חסרים
+        let addedRooms = 0;
+        for (const room of rooms) {
+            const exists = settings.rooms.some(r => r.roomId === room.roomNumber);
+            if (!exists) {
+                settings.rooms.push({
+                    roomId: room.roomNumber,
+                    roomName: `חדר ${room.roomNumber}`,
+                    enabled: false,
+                    bookingIcalUrl: '',
+                    syncStatus: 'never',
+                    importedBookings: 0
+                });
+                addedRooms++;
+            }
+        }
+        
+        await settings.save();
+        
+        res.json({
+            success: true,
+            message: `רענון הושלם. נוספו ${addedRooms} חדרים חדשים`,
+            settings
+        });
+        
+    } catch (error) {
+        console.error('שגיאה ברענון הגדרות:', error);
+        res.status(500).json({ 
+            error: 'שגיאה ברענון ההגדרות',
             details: error.message 
         });
     }
@@ -195,6 +265,52 @@ router.post('/sync/:location/:roomId', auth, async (req, res) => {
 });
 
 // סנכרון כל החדרים במיקום
+// בדיקת תקינות קישור iCal
+router.post('/test-url', auth, async (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ 
+                error: 'נדרש קישור iCal' 
+            });
+        }
+        
+        console.log(`בודק קישור iCal: ${url}`);
+        
+        // ניסיון הורדת הקובץ
+        const axios = require('axios');
+        const response = await axios.get(url, {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'DIAM-Hotels-Test/1.0'
+            }
+        });
+        
+        // פיענוח בסיסי של הקובץ
+        const icalData = response.data;
+        const events = icalService.parseICalData(icalData);
+        
+        res.json({
+            success: true,
+            message: 'הקישור תקין',
+            events: events.length,
+            sample: events.slice(0, 3).map(event => ({
+                summary: event.summary,
+                start: event.start,
+                end: event.end
+            }))
+        });
+        
+    } catch (error) {
+        console.error('שגיאה בבדיקת קישור:', error);
+        res.status(400).json({
+            success: false,
+            error: error.code === 'ECONNABORTED' ? 'זמן קשר פג' : error.message
+        });
+    }
+});
+
 router.post('/sync/:location', auth, async (req, res) => {
     try {
         const { location } = req.params;
