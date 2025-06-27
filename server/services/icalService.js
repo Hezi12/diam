@@ -105,9 +105,52 @@ class ICalService {
 
                 // יצירת הזמנה חדשה מבוקינג
                 const bookingNumber = await this.generateBookingNumber();
+                
+                // ניסיון לחלץ שם מה-SUMMARY (לעיתים יש שם אורח)
+                let firstName = 'אורח מבוקינג';
+                let lastName = '';
+                
+                if (event.summary) {
+                    // אם יש שם באנגלית או עברית
+                    const nameMatch = event.summary.match(/^([A-Za-z\u0590-\u05FF]+)\s+([A-Za-z\u0590-\u05FF]+)/);
+                    if (nameMatch) {
+                        firstName = nameMatch[1];
+                        lastName = nameMatch[2];
+                    } else {
+                        firstName = event.summary;
+                    }
+                }
+                
+                // ניסיון לחלץ מספר הזמנה מבוקינג מה-UID או מה-DESCRIPTION
+                let externalBookingNumber = '';
+                if (event.uid) {
+                    const bookingMatch = event.uid.match(/(\d+)/);
+                    if (bookingMatch) {
+                        externalBookingNumber = bookingMatch[1];
+                    }
+                }
+                
+                // חיפוש מספר הזמנה בתיאור
+                if (!externalBookingNumber && event.description) {
+                    const descBookingMatch = event.description.match(/booking[:\s]*(\d+)/i);
+                    if (descBookingMatch) {
+                        externalBookingNumber = descBookingMatch[1];
+                    }
+                }
+                
+                // יצירת הערות מפורטות
+                let notes = 'יובא מבוקינג.קום';
+                if (event.description) notes += `\nתיאור: ${event.description}`;
+                if (event.uid) notes += `\nUID: ${event.uid}`;
+                if (event.status) notes += `\nסטטוס: ${event.status}`;
+                if (event.location) notes += `\nמיקום: ${event.location}`;
+                if (event.organizer) notes += `\nארגן: ${event.organizer}`;
+                if (event.contact) notes += `\nיצירת קשר: ${event.contact}`;
+                
                 const newBooking = new Booking({
                     bookingNumber: parseInt(bookingNumber.replace('BK', '')), // המודל מצפה למספר
-                    firstName: event.summary || 'אורח מבוקינג',
+                    firstName: firstName,
+                    lastName: lastName,
                     room: room._id, // ObjectId של החדר
                     roomNumber: roomId,
                     location: location,
@@ -117,7 +160,8 @@ class ICalService {
                     status: 'confirmed',
                     source: 'booking',
                     paymentStatus: 'other', // בוקינג מטפל בתשלום
-                    notes: `יובא מבוקינג.קום\nפרטי אירוע: ${event.description || ''}`
+                    externalBookingNumber: externalBookingNumber,
+                    notes: notes
                 });
 
                 await newBooking.save();
@@ -145,17 +189,42 @@ class ICalService {
         const lines = icalData.split('\n');
         let currentEvent = null;
 
+        console.log('🔍 מתחיל פיענוח קובץ iCal...');
+
         for (let line of lines) {
             line = line.trim();
             
             if (line === 'BEGIN:VEVENT') {
-                currentEvent = {};
+                currentEvent = {
+                    rawData: [] // אוסף של כל השורות הגולמיות לדיבוג
+                };
             } else if (line === 'END:VEVENT' && currentEvent) {
                 if (currentEvent.start && currentEvent.end) {
+                    // הדפסת כל המידע שנמצא באירוע
+                    console.log('📅 אירוע נמצא:', {
+                        summary: currentEvent.summary,
+                        description: currentEvent.description,
+                        start: currentEvent.start,
+                        end: currentEvent.end,
+                        uid: currentEvent.uid,
+                        status: currentEvent.status,
+                        location: currentEvent.location,
+                        organizer: currentEvent.organizer,
+                        attendee: currentEvent.attendee,
+                        contact: currentEvent.contact,
+                        url: currentEvent.url,
+                        categories: currentEvent.categories,
+                        class: currentEvent.class,
+                        rawLines: currentEvent.rawData.length > 0 ? currentEvent.rawData : 'לא נשמר'
+                    });
                     events.push(currentEvent);
                 }
                 currentEvent = null;
             } else if (currentEvent) {
+                // שמירת השורה הגולמית לדיבוג
+                currentEvent.rawData.push(line);
+                
+                // פיענוח שדות ידועים
                 if (line.startsWith('DTSTART')) {
                     currentEvent.start = this.parseICalDate(line);
                 } else if (line.startsWith('DTEND')) {
@@ -164,10 +233,29 @@ class ICalService {
                     currentEvent.summary = line.replace('SUMMARY:', '');
                 } else if (line.startsWith('DESCRIPTION:')) {
                     currentEvent.description = line.replace('DESCRIPTION:', '');
+                } else if (line.startsWith('UID:')) {
+                    currentEvent.uid = line.replace('UID:', '');
+                } else if (line.startsWith('STATUS:')) {
+                    currentEvent.status = line.replace('STATUS:', '');
+                } else if (line.startsWith('LOCATION:')) {
+                    currentEvent.location = line.replace('LOCATION:', '');
+                } else if (line.startsWith('ORGANIZER')) {
+                    currentEvent.organizer = line.replace(/ORGANIZER[^:]*:/, '');
+                } else if (line.startsWith('ATTENDEE')) {
+                    currentEvent.attendee = line.replace(/ATTENDEE[^:]*:/, '');
+                } else if (line.startsWith('CONTACT:')) {
+                    currentEvent.contact = line.replace('CONTACT:', '');
+                } else if (line.startsWith('URL:')) {
+                    currentEvent.url = line.replace('URL:', '');
+                } else if (line.startsWith('CATEGORIES:')) {
+                    currentEvent.categories = line.replace('CATEGORIES:', '');
+                } else if (line.startsWith('CLASS:')) {
+                    currentEvent.class = line.replace('CLASS:', '');
                 }
             }
         }
 
+        console.log(`✅ פיענוח הושלם: נמצאו ${events.length} אירועים`);
         return events;
     }
 

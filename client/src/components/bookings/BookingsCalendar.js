@@ -15,12 +15,12 @@ import {
   Divider,
   Chip
 } from '@mui/material';
-import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
+import { format, eachDayOfInterval, isSameDay, addDays, subDays, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import InfoIcon from '@mui/icons-material/Info';
-import MoneyOffIcon from '@mui/icons-material/MoneyOff';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+
+import DeleteIcon from '@mui/icons-material/Delete';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop
@@ -91,7 +91,8 @@ const BookingsCalendar = ({
   onBookingClick,
   location,
   onCreateBooking,
-  onBookingUpdate // פונקציה חדשה לעדכון הזמנה
+  onBookingUpdate, // פונקציה חדשה לעדכון הזמנה
+  onRefreshBookings // פונקציה חדשה לרענון ההזמנות
 }) => {
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
@@ -110,6 +111,8 @@ const BookingsCalendar = ({
     message: '',
     severity: 'success'
   });
+
+
 
   // יצירת מערך של כל הימים בטווח הנבחר
   const daysInRange = eachDayOfInterval({ start: startDate, end: endDate });
@@ -294,6 +297,47 @@ const BookingsCalendar = ({
     setNotification(prev => ({ ...prev, open: false }));
   };
 
+  // מחיקה ישירה ללא אישור
+  const handleDeleteBooking = async (booking, event) => {
+    event.stopPropagation(); // מניעת פתיחת ההזמנה
+    
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🗑️ מוחק הזמנה:', booking._id, 'עם token:', token ? 'קיים' : 'חסר');
+      
+      const response = await fetch(`/api/bookings/${booking._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📡 תגובת שרת:', response.status, response.statusText);
+
+      if (response.ok) {
+        showNotification(`הזמנה ${booking.bookingNumber} נמחקה בהצלחה`, 'success');
+        
+        // עדכון מיידי של רשימת ההזמנות
+        if (onRefreshBookings) {
+          onRefreshBookings();
+        } else if (onBookingUpdate) {
+          // fallback למקרה שלא הועברה פונקציית רענון מיוחדת
+          window.location.reload();
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('❌ שגיאה במחיקה:', errorText);
+        showNotification(`שגיאה במחיקת ההזמנה: ${response.status}`, 'error');
+      }
+    } catch (error) {
+      console.error('❌ שגיאה במחיקת הזמנה:', error);
+      showNotification('שגיאה במחיקת ההזמנה', 'error');
+    }
+  };
+
+
+
   if (loading) {
     return (
       <Paper 
@@ -350,13 +394,7 @@ const BookingsCalendar = ({
     dateToIndex[dateStr] = index;
   });
 
-  // פונקציה להמרת תאריך לפורמט אחיד ללא שעות
-  const normalizeDate = (date) => {
-    if (!date) return null;
-    const dateObj = new Date(date);
-    // החזר תאריך בפורמט yyyy-MM-dd
-    return format(dateObj, 'yyyy-MM-dd');
-  };
+
 
   // טיפול בלחיצה על תא ריק בלוח
   const handleEmptyCellClick = (roomId, day) => {
@@ -464,15 +502,15 @@ const BookingsCalendar = ({
                 sx={{ 
                   px: 0, 
                   py: 1,
-                  cursor: 'pointer',
                   borderRadius: 1,
                   '&:hover': {
                     bgcolor: 'rgba(0,0,0,0.04)'
                   }
                 }}
-                onClick={() => onBookingClick(booking._id)}
               >
                 <ListItemText
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => onBookingClick(booking._id)}
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="body2" fontWeight="bold">
@@ -504,13 +542,25 @@ const BookingsCalendar = ({
                     </Box>
                   }
                 />
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleDeleteBooking(booking, e)}
+                  sx={{
+                    color: '#e74c3c',
+                    '&:hover': {
+                      bgcolor: 'rgba(231, 76, 60, 0.1)'
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
               </ListItem>
               {index < allBookings.length - 1 && <Divider />}
             </React.Fragment>
           ))}
         </List>
         <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary', fontStyle: 'italic' }}>
-          לחץ על הזמנה לפתיחה
+          לחץ על הזמנה לפתיחה • לחץ על 🗑️ למחיקה מיידית
         </Typography>
       </Box>
     );
@@ -932,16 +982,7 @@ const BookingsCalendar = ({
     }
   };
 
-  const handleCellClick = (date, room) => {
-    if (!date || !room) return;
-    
-    // מעבירים את כל המידע הרלוונטי ליצירת הזמנה
-    onCreateBooking(
-      date,
-      room._id,
-      room.location
-    );
-  };
+
 
   return (
     <Box sx={{ overflowX: 'auto' }}>
