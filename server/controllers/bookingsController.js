@@ -3,6 +3,7 @@ const Room = require('../models/Room');
 const Counter = require('../models/Counter');
 const capitalController = require('./capitalController');
 const { deleteBookingImages } = require('../middleware/bookingImageUpload');
+const emailService = require('../services/emailService');
 const path = require('path');
 
 // קבלת כל ההזמנות
@@ -696,8 +697,6 @@ exports.searchBookings = async (req, res) => {
   }
 };
 
-const emailService = require('../services/emailService');
-
 // יצירת הזמנה מהאתר הציבורי
 exports.createPublicBooking = async (req, res) => {
   try {
@@ -790,6 +789,11 @@ exports.createPublicBooking = async (req, res) => {
       const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
       const guestsCount = parseInt(guests, 10) || 2;
       
+      // הגדרת משתנים לחישוב מחיר
+      const baseOccupancy = roomData.baseOccupancy || 2;
+      const extraGuestCharge = roomData.extraGuestCharge || 0;
+      const extraGuests = Math.max(0, guestsCount - baseOccupancy);
+      
       // חישוב מחיר מדויק עם ימים מיוחדים
       let totalPrice = 0;
       
@@ -806,10 +810,7 @@ exports.createPublicBooking = async (req, res) => {
           dailyBasePrice = roomData.vatPrice || 0;
         }
         
-        // חישוב תוספת לאורחים נוספים
-        const baseOccupancy = roomData.baseOccupancy || 2;
-        const extraGuestCharge = roomData.extraGuestCharge || 0;
-        const extraGuests = Math.max(0, guestsCount - baseOccupancy);
+        // חישוב תוספת לאורחים נוספים ליום הזה
         const extraCharge = extraGuests * extraGuestCharge;
         
         totalPrice += dailyBasePrice + extraCharge;
@@ -820,12 +821,16 @@ exports.createPublicBooking = async (req, res) => {
       const pricePerNightNoVat = parseFloat((pricePerNight / 1.18).toFixed(2)); // מחיר ללא מע"מ
       const price = parseFloat(totalPrice.toFixed(2));
       
-              console.log('חישוב תמחור:', { 
+      // חישוב תוספת כוללת לאורחים נוספים
+      const totalExtraCharge = extraGuests * extraGuestCharge * nights;
+      
+      console.log('חישוב תמחור:', { 
           nights, 
           guests: guestsCount, 
           baseOccupancy, 
           extraGuests, 
-          extraCharge, 
+          extraGuestCharge,
+          totalExtraCharge, 
           pricePerNight, 
           price 
         });
