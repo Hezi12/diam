@@ -20,12 +20,15 @@ import {
 } from '@mui/material';
 import { Search as SearchIcon, Info as InfoIcon } from '@mui/icons-material';
 import { isAfter, isBefore, format, isValid, differenceInDays, addDays, subDays } from 'date-fns';
+import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
 
 const SearchBox = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
+  const t = useTranslation();
+  const { direction, isRTL } = useLanguage();
   
   const today = new Date();
   const tomorrow = new Date();
@@ -82,17 +85,17 @@ const SearchBox = () => {
   const handleSearch = () => {
     // וידוא תקינות התאריכים
     if (!isValid(checkIn) || !isValid(checkOut)) {
-      setError('אנא בחר תאריכי צ׳ק-אין וצ׳ק-אאוט תקינים');
+      setError(t('search.errors.invalidDates'));
       return;
     }
     
     if (isBefore(checkOut, checkIn) || checkIn.getTime() === checkOut.getTime()) {
-      setError('תאריך צ׳ק-אאוט חייב להיות לפחות יום אחד אחרי צ׳ק-אין');
+      setError(t('search.errors.checkOutBeforeCheckIn'));
       return;
     }
     
     if (isBefore(checkIn, today) && checkIn.getDate() !== today.getDate()) {
-      setError('לא ניתן להזמין תאריכים בעבר');
+      setError(t('search.errors.pastDates'));
       return;
     }
     
@@ -167,11 +170,11 @@ const SearchBox = () => {
   };
 
   return (
-    <Box sx={{ p: 0 }}>
+    <Box sx={{ p: 0, direction: direction }}>
       <Grid container spacing={1} alignItems="center">
         <Grid item xs={12} sm={6} md={2.2}>
           <TextField
-            label="תאריך צ'ק-אין"
+            label={t('search.checkIn')}
             type="date"
             fullWidth
             size="small"
@@ -202,7 +205,7 @@ const SearchBox = () => {
         
         <Grid item xs={12} sm={6} md={2.2}>
           <TextField
-            label="תאריך צ'ק-אאוט"
+            label={t('search.checkOut')}
             type="date"
             fullWidth
             size="small"
@@ -234,7 +237,7 @@ const SearchBox = () => {
         <Grid item xs={6} sm={3} md={1.3}>
           <TextField
             select
-            label="מספר לילות"
+            label={t('search.nights')}
             fullWidth
             size="small"
             value={nights}
@@ -265,7 +268,7 @@ const SearchBox = () => {
         <Grid item xs={6} sm={3} md={1.3}>
           <TextField
             select
-            label="מספר אורחים"
+            label={t('search.guests')}
             fullWidth
             size="small"
             value={guests}
@@ -328,7 +331,7 @@ const SearchBox = () => {
               }
               label={
                 <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.8rem' }}>
-                  אני תייר (ללא מע"מ)
+                  {t('search.touristSwitch')}
                 </Typography>
               }
               sx={{ 
@@ -363,7 +366,7 @@ const SearchBox = () => {
               }
             }}
           >
-            חפש חדרים
+{t('search.searchButton')}
           </Button>
         </Grid>
       </Grid>
@@ -390,17 +393,11 @@ const SearchBox = () => {
       >
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
           <InfoIcon sx={{ mr: 1, color: 'info.main' }} />
-          פטור ממע"מ לתיירים
+          {t('search.touristDialogTitle')}
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ textAlign: 'center', fontSize: '1rem', lineHeight: 1.6 }}>
-            לקבלת פטור ממע"מ יש להציג בעת הגעה למלונית:
-            <br />
-            <strong>• דרכון זר</strong>
-            <br />
-            <strong>• כרטיס מעבר גבולות המאשר כניסה עם דרכון זר</strong>
-            <br /><br />
-            ללא המסמכים הנדרשים, החיוב יכלול מע"מ.
+          <DialogContentText sx={{ textAlign: 'center', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            {t('search.touristDialogContent')}
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
@@ -409,7 +406,7 @@ const SearchBox = () => {
             variant="contained" 
             sx={{ px: 4 }}
           >
-            הבנתי
+            {t('search.touristDialogButton')}
           </Button>
         </DialogActions>
       </Dialog>

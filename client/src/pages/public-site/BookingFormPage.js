@@ -27,20 +27,29 @@ import {
   PersonOutline as PersonOutlineIcon
 } from '@mui/icons-material';
 import { parseISO, format, differenceInDays, addDays } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, enUS } from 'date-fns/locale';
 import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
+import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
 
-// שלבי הטופס
-const steps = ['פרטי האורח', 'פרטי תשלום', 'אישור הזמנה'];
+// שלבי הטופס - יעודכנו בתרגום
+const steps = [];
 
 const BookingFormPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
+  const t = useTranslation();
+  const { currentLanguage } = useLanguage();
+  
+  // בחירת locale לפי שפה נוכחית
+  const dateLocale = currentLanguage === 'he' ? he : enUS;
+  
+  // שלבי הטופס מתורגמים
+  const translatedSteps = [t('booking.step1'), t('booking.step2'), t('booking.step3')];
   
   // שלב נוכחי בטופס
   const [activeStep, setActiveStep] = useState(0);
@@ -99,7 +108,7 @@ const BookingFormPage = () => {
   
   // חישוב תאריך ביטול (3 ימים לפני צ'ק-אין)
   const cancellationDate = checkIn ? new Date(checkIn.getTime() - 3 * 24 * 60 * 60 * 1000) : null;
-  const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
+  const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
   
   /**
    * חישוב מחיר עם אורחים נוספים וסטטוס תייר וימים מיוחדים
@@ -320,8 +329,8 @@ const BookingFormPage = () => {
   }, [bookingData.guests, room, nightsCount, isTourist, checkIn, checkOut]);
   
   // פורמט תאריכים לתצוגה
-  const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
-  const formattedCheckOut = validParams ? format(checkOut, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
+  const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  const formattedCheckOut = validParams ? format(checkOut, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
   
   // עדכון נתוני הטופס
   const handleChange = (e) => {
@@ -467,13 +476,13 @@ const BookingFormPage = () => {
         return (
           <Box sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
-              פרטי האורח
+              {t('booking.personalDetails')}
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="firstName"
-                  label="שם פרטי"
+                  label={t('booking.firstName')}
                   fullWidth
                   value={bookingData.firstName}
                   onChange={handleChange}
@@ -486,7 +495,7 @@ const BookingFormPage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="lastName"
-                  label="שם משפחה"
+                  label={t('booking.lastName')}
                   fullWidth
                   value={bookingData.lastName}
                   onChange={handleChange}
@@ -499,7 +508,7 @@ const BookingFormPage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="email"
-                  label="אימייל"
+                  label={t('booking.email')}
                   type="email"
                   fullWidth
                   value={bookingData.email}
@@ -513,7 +522,7 @@ const BookingFormPage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="phone"
-                  label="טלפון"
+                  label={t('booking.phone')}
                   fullWidth
                   value={bookingData.phone}
                   onChange={handleChange}
@@ -526,7 +535,7 @@ const BookingFormPage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="code"
-                  label="קוד (אופציונלי)"
+                  label={`${t('booking.idNumber')} (${t('booking.optional')})`}
                   fullWidth
                   value={bookingData.code}
                   onChange={handleChange}
@@ -542,7 +551,7 @@ const BookingFormPage = () => {
               <Grid item xs={12}>
                 <TextField
                   name="notes"
-                  label="הערות מיוחדות"
+                  label={t('booking.notes')}
                   multiline
                   rows={2}
                   fullWidth
@@ -558,15 +567,15 @@ const BookingFormPage = () => {
         return (
           <Box sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
-              פרטי תשלום
+              {t('booking.paymentDetails')}
             </Typography>
             
             <Alert severity="info" sx={{ mb: 3, borderRadius: '8px' }}>
               <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                הבטחת הזמנה בכרטיס אשראי
+                {t('booking.creditCard')}
               </Typography>
               <Typography variant="body2">
-                פרטי הכרטיס נדרשים להבטחת ההזמנה בלבד. התשלום המלא יתבצע עם הגעתך למקום האירוח במזומן או בכרטיס אשראי.
+                {t('booking.paymentMethod')}
               </Typography>
             </Alert>
             
@@ -574,7 +583,7 @@ const BookingFormPage = () => {
               <Grid item xs={12}>
                 <TextField
                   name="creditCard.cardNumber"
-                  label="מספר כרטיס"
+                  label={t('booking.creditCard')}
                   fullWidth
                   value={bookingData.creditCard.cardNumber}
                   onChange={handleChange}
@@ -589,7 +598,7 @@ const BookingFormPage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="creditCard.expiryDate"
-                  label="תוקף"
+                  label={t('booking.expiryDate') || 'Expiry Date'}
                   fullWidth
                   value={bookingData.creditCard.expiryDate}
                   onChange={handleChange}
@@ -619,7 +628,7 @@ const BookingFormPage = () => {
               <Grid item xs={12}>
                 <TextField
                   name="creditCard.holderName"
-                  label="שם בעל הכרטיס"
+                  label={t('booking.holderName') || 'Cardholder Name'}
                   fullWidth
                   value={bookingData.creditCard.holderName}
                   onChange={handleChange}
@@ -636,18 +645,18 @@ const BookingFormPage = () => {
         return (
           <Box sx={{ mt: 3, mb: 2 }}>
             <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
-              אישור הזמנה
+              {t('booking.confirm')}
             </Typography>
             
             <Paper elevation={1} sx={{ p: 3, mb: 3, borderRadius: '10px' }}>
               <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                פרטי ההזמנה
+                {t('booking.bookingDetails')}
               </Typography>
               
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    שם האורח
+                    {t('booking.firstName')} {t('booking.lastName')}
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
                     {bookingData.firstName} {bookingData.lastName}
@@ -655,7 +664,7 @@ const BookingFormPage = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    מספר אורחים
+                    {t('search.guests')}
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
                     {bookingData.guests}
@@ -663,7 +672,7 @@ const BookingFormPage = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    תאריך צ'ק-אין
+                    {t('search.checkIn')}
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
                     {formattedCheckIn}
@@ -671,7 +680,7 @@ const BookingFormPage = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    תאריך צ'ק-אאוט
+                    {t('search.checkOut')}
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
                     {formattedCheckOut}
@@ -679,15 +688,15 @@ const BookingFormPage = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    חדר
+                    {t('booking.roomDetails')}
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
-                    {room?.category} (חדר {room?.roomNumber})
+                    {room?.category} ({t('rooms.roomNumber')} {room?.roomNumber})
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    סה"כ לתשלום
+                    {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
                     {roomPricing.totalPrice} ₪
@@ -698,7 +707,7 @@ const BookingFormPage = () => {
           </Box>
         );
       default:
-        return 'שלב לא ידוע';
+        return t('common.unknownStep') || 'Unknown step';
     }
   };
   
@@ -730,7 +739,7 @@ const BookingFormPage = () => {
         }}
       >
         <Typography variant="body2" sx={{ backgroundColor: 'rgba(255,255,255,0.7)', p: 1, borderRadius: 1 }}>
-          {room ? `חדר ${room.category} - ${room.roomNumber}` : 'טוען פרטי חדר...'}
+          {room ? `${t('rooms.roomNumber')} ${room.category} - ${room.roomNumber}` : t('common.loading')}
         </Typography>
       </Box>
     );
@@ -743,7 +752,7 @@ const BookingFormPage = () => {
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 600 }}>
-            הזמנת חדר
+            {t('booking.title')}
           </Typography>
           
           {error ? (
@@ -770,7 +779,7 @@ const BookingFormPage = () => {
                       }
                     }}
                   >
-                    {steps.map((label, index) => {
+                    {translatedSteps.map((label, index) => {
                       const stepProps = {};
                       const labelProps = {};
                       return (
@@ -792,7 +801,7 @@ const BookingFormPage = () => {
                         sx={{ mr: 1 }}
                         size="small"
                       >
-                        חזרה לתוצאות
+{t('common.backToResults')}
                       </Button>
                     ) : (
                       <Button
@@ -801,7 +810,7 @@ const BookingFormPage = () => {
                         sx={{ mr: 1 }}
                         size="small"
                       >
-                        חזור
+{t('common.back')}
                       </Button>
                     )}
                     <Button
@@ -810,8 +819,8 @@ const BookingFormPage = () => {
                       disabled={loading}
                       size="small"
                     >
-                      {activeStep === steps.length - 1 ? 'סיים הזמנה' : 'המשך'}
-                      {loading && activeStep === steps.length - 1 && (
+{activeStep === translatedSteps.length - 1 ? t('common.finishBooking') : t('common.continue')}
+                                              {loading && activeStep === translatedSteps.length - 1 && (
                         <CircularProgress size={20} sx={{ ml: 1 }} />
                       )}
                     </Button>
@@ -844,7 +853,7 @@ const BookingFormPage = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                           <PersonOutlineIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
                           <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
-                            עד {room?.maxOccupancy} אורחים
+{t('common.upToGuests')} {room?.maxOccupancy} {t('common.guests')}
                           </Typography>
                         </Box>
                         
@@ -858,7 +867,7 @@ const BookingFormPage = () => {
                               borderRadius: 1,
                               fontSize: '0.7rem'
                             }}>
-                              תייר - ללא מע״מ
+{t('common.touristPrices')}
                             </Typography>
                           </Box>
                         )}
@@ -875,15 +884,15 @@ const BookingFormPage = () => {
                         }}>
                           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr auto 1fr auto' }, gap: 1, alignItems: 'center' }}>
                             <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
-                              ₪{roomPricing.pricePerNight}/לילה
+₪{roomPricing.pricePerNight}{t('common.perNight')}
                             </Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary' }}>×</Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
-                              {nightsCount} לילות
+{nightsCount} {t('common.nights')}
                             </Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary' }}>×</Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
-                              {bookingData.guests} אורחים
+{bookingData.guests} {t('common.guests')}
                             </Typography>
                             <Typography variant="body2" sx={{ fontSize: '1rem', fontWeight: 600, color: 'primary.main' }}>
                               = ₪{roomPricing.totalPrice}
@@ -891,7 +900,7 @@ const BookingFormPage = () => {
                           </Box>
                           {roomPricing.extraGuests > 0 && (
                             <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'warning.main', mt: 0.5, textAlign: 'center' }}>
-                              כולל תוספת {roomPricing.extraGuests} אורח{roomPricing.extraGuests > 1 ? 'ים' : ''} (+₪{roomPricing.extraCharge})
+{t('common.includesExtra')} {roomPricing.extraGuests} {roomPricing.extraGuests > 1 ? t('common.extraGuests') : t('common.extraGuest')} (+₪{roomPricing.extraCharge})
                             </Typography>
                           )}
                         </Box>
@@ -900,7 +909,7 @@ const BookingFormPage = () => {
                         
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                           <Typography variant="body1" fontWeight={600}>
-                            סה"כ לתשלום:
+{t('common.totalPayment')}
                           </Typography>
                           <Typography variant="h6" fontWeight={700} color="primary.main">
                             {roomPricing.totalPrice} ₪
@@ -913,11 +922,11 @@ const BookingFormPage = () => {
                         <Box sx={{ mb: 1.5 }}>
                           <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
                             <Typography component="span" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.9rem' }}>
-                              💰 פרטי התשלום:
+{t('common.paymentDetails')}
                             </Typography>
                             {' '}
                             <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
-                              המחיר כולל כל המיסים • תשלום בהגעה (מזומן/אשראי)
+                              {t('common.priceIncludes')}
                             </Typography>
                           </Typography>
                         </Box>
@@ -925,11 +934,11 @@ const BookingFormPage = () => {
                         <Box sx={{ mb: 1.5 }}>
                           <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
                             <Typography component="span" sx={{ fontWeight: 600, color: 'warning.main', fontSize: '0.9rem' }}>
-                              🔄 מדיניות ביטול:
+{t('common.cancellationPolicy')}
                             </Typography>
                             {' '}
                             <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
-                              ביטול ללא עלות עד {formattedCancellationDate} • לאחר מכן לא ניתן לבטל
+                              {t('common.cancellationPolicyShort')} {formattedCancellationDate} {t('common.cancellationAfter')}
                             </Typography>
                           </Typography>
                         </Box>
@@ -937,11 +946,11 @@ const BookingFormPage = () => {
                         <Box>
                           <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
                             <Typography component="span" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.9rem' }}>
-                              🕐 זמני צ'ק-אין/אאוט:
+{t('common.checkInOutTimes')}
                             </Typography>
                             {' '}
                             <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
-                              צ'ק-אין: 15:00 • צ'ק-אאוט: 10:00
+                              {t('common.checkInOutShort')}
                             </Typography>
                           </Typography>
                         </Box>

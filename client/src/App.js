@@ -34,27 +34,34 @@ import FAQDetailsPage from './pages/public-site/FAQDetailsPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/common/Layout';
 import { AuthProvider } from './contexts/AuthContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
-// יצירת קונפיגורציה לתמיכה בכיוון RTL
-const cacheRtl = createCache({
-  key: 'muirtl',
-  stylisPlugins: [prefixer, rtlPlugin],
-});
+// יצירת cache דינמי לכיוון
+const createEmotionCache = (isRTL) => {
+  return createCache({
+    key: isRTL ? 'muirtl' : 'muilen',
+    stylisPlugins: isRTL ? [prefixer, rtlPlugin] : [prefixer],
+  });
+};
 
-/**
- * App component - הרכיב הראשי של האפליקציה
- * 
- * רכיב זה מגדיר את כל הניתובים של האפליקציה
- * ומייבא את הקומפוננטים הרלוונטיים לכל עמוד
- */
-function App() {
+// רכיב עוטף שמטפל בכיוון
+const AppContent = () => {
+  const { isRTL, currentLanguage } = useLanguage();
+  const cache = React.useMemo(() => createEmotionCache(isRTL), [isRTL]);
+
+  // וידוא שהדף מעדכן את הכיוון
+  React.useEffect(() => {
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    document.documentElement.lang = currentLanguage;
+  }, [isRTL, currentLanguage]);
+
   return (
-    <CacheProvider value={cacheRtl}>
+    <CacheProvider value={cache} key={isRTL ? 'rtl' : 'ltr'}>
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <AuthProvider>
-            <Routes>
+              <Routes>
               {/* ניתוב לדף התחברות */}
               <Route path="/login" element={<Login />} />
               
@@ -213,11 +220,22 @@ function App() {
               
               {/* ניתוב ברירת מחדל */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+              </Routes>
           </AuthProvider>
         </ThemeProvider>
       </StyledEngineProvider>
     </CacheProvider>
+  );
+};
+
+/**
+ * App component - הרכיב הראשי של האפליקציה
+ */
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
 

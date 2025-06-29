@@ -52,7 +52,130 @@ body, html {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-color);
   color: var(--text-primary);
+}
+
+/* כיוון טקסט דינמי בהתאם לשפה */
+html[dir="rtl"] body {
   direction: rtl;
+  text-align: right;
+}
+
+html[dir="ltr"] body {
+  direction: ltr;
+  text-align: left;
+}
+
+/* יישור טקסט באנגלית */
+html[dir="ltr"] .MuiTypography-root {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .MuiPaper-root {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .MuiButton-root {
+  direction: ltr !important;
+}
+
+html[dir="ltr"] .MuiTextField-root {
+  direction: ltr !important;
+}
+
+html[dir="ltr"] .MuiInputBase-root {
+  direction: ltr !important;
+}
+
+html[dir="ltr"] .MuiFormControl-root {
+  direction: ltr !important;
+}
+
+html[dir="ltr"] .MuiList-root {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .MuiListItem-root {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .MuiCardContent-root {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .MuiDialogContent-root {
+  text-align: left !important;
+}
+
+html[dir="ltr"] .MuiAccordionDetails-root {
+  text-align: left !important;
+}
+
+/* התאמת ספציפית לרכיבים מותאמים אישית */
+html[dir="ltr"] .apple-heading,
+html[dir="ltr"] .apple-subheading {
+  text-align: left !important;
+}
+
+/* הגדרות ספציפיות לאתר הציבורי */
+html[dir="ltr"] .MuiContainer-root {
+  direction: ltr;
+}
+
+html[dir="ltr"] .MuiGrid-root {
+  direction: ltr;
+}
+
+html[dir="ltr"] .MuiBox-root {
+  direction: ltr;
+}
+
+html[dir="ltr"] .MuiAlert-root {
+  text-align: left !important;
+  direction: ltr;
+}
+
+/* תיקון ספציפי לכותרות ולטקסט חשוב */
+html[dir="ltr"] h1,
+html[dir="ltr"] h2,
+html[dir="ltr"] h3,
+html[dir="ltr"] h4,
+html[dir="ltr"] h5,
+html[dir="ltr"] h6 {
+  text-align: left !important;
+}
+
+html[dir="ltr"] p {
+  text-align: left !important;
+}
+
+/* תיקון למרכזי טקסט */
+html[dir="ltr"] .MuiTypography-root[style*="text-align: center"] {
+  text-align: center !important;
+}
+
+/* שמירת יישור מרכז לכפתורים */
+html[dir="ltr"] .MuiButton-root {
+  text-align: center !important;
+}
+
+/* תיקון ספציפי לכרטיסים */
+html[dir="ltr"] .MuiCard-root {
+  direction: ltr;
+}
+
+html[dir="ltr"] .MuiCard-root .MuiTypography-root {
+  text-align: left !important;
+}
+
+/* תיקון לטפסים */
+html[dir="ltr"] .MuiFormLabel-root {
+  text-align: left !important;
+  direction: ltr;
+}
+
+html[dir="ltr"] .MuiFormHelperText-root {
+  text-align: left !important;
+  direction: ltr;
 }
 
 #root {

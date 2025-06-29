@@ -26,11 +26,13 @@ import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 const GalleryPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const t = useTranslation();
   
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,13 +58,13 @@ const GalleryPage = () => {
           setImages(placeholderImages);
         }
       } catch (err) {
-        console.error('שגיאה בטעינת תמונות:', err);
+        console.error('Error loading images:', err);
         
         // במקרה של שגיאה, נייצר גלריה דמה
         const placeholderImages = Array(9).fill().map((_, index) => `placeholder-${index}`);
         setImages(placeholderImages);
         
-        setError('לא ניתן לטעון את התמונות כרגע');
+        setError(t('gallery.loadingError'));
       } finally {
         setLoading(false);
       }
@@ -113,7 +115,7 @@ const GalleryPage = () => {
           }}
         >
           <Typography variant="body2" sx={{ backgroundColor: 'rgba(255,255,255,0.7)', p: 1, borderRadius: 1 }}>
-            תמונה {index + 1}
+            {t('gallery.imageNumber')} {index + 1}
           </Typography>
         </Box>
       );
@@ -158,7 +160,7 @@ const GalleryPage = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <Typography variant="body1" sx={{ backgroundColor: 'rgba(255,255,255,0.9)', p: 2, borderRadius: 2 }}>
-            תמונה מייצגת {index + 1}
+            {t('gallery.sampleImage')} {index + 1}
           </Typography>
         </Box>
       );
@@ -169,7 +171,7 @@ const GalleryPage = () => {
       <Box
         component="img"
         src={selectedImage}
-        alt="תמונה מוגדלת"
+        alt={t('gallery.enlargedImage')}
         sx={{
           maxHeight: '90vh',
           maxWidth: '100%',
@@ -190,15 +192,15 @@ const GalleryPage = () => {
             startIcon={<ArrowBackIcon />}
             sx={{ mb: 2, gap: 1.5 }}
           >
-            חזרה לדף הבית
+{t('common.backToHome')}
           </Button>
           
           <Typography variant="h4" component="h1" sx={{ mb: 1, fontWeight: 600 }}>
-            גלריית תמונות
+            {t('gallery.title')}
           </Typography>
           
           <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 4 }}>
-            צפו בתמונות של המלונית, החדרים והסביבה
+{t('gallery.subtitle')}
           </Typography>
         </Box>
         

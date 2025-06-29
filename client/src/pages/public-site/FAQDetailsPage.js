@@ -33,53 +33,76 @@ import {
   WhatsApp as WhatsAppIcon
 } from '@mui/icons-material';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 const FAQDetailsPage = () => {
+  const t = useTranslation();
+  
   const faqs = [
     {
-      question: "מה כלול במחיר הלינה?",
-      answer: "המחיר כולל מיטה נוחה, מזגן, טלוויזיה, Wi-Fi חינם, מקלחת פרטית עם מים חמים, מגבות ומצעים נקיים."
+      question: t('faq.questions.q1'),
+      answer: t('faq.questions.a1')
     },
     {
-      question: "באיזה שעות ניתן להגיע ולעזוב?",
-      answer: "צ'ק-אין החל מ-15:00, צ'ק-אאוט עד 10:00. ניתן לתאם שעות שונות מראש בתיאום טלפוני."
+      question: t('faq.questions.q2'),
+      answer: t('faq.questions.a2')
     },
     {
-      question: "האם יש חניה חינם?",
-      answer: "כן, אין בעיה של חניה באזור. יש מקומות חניה זמינים ונוחים בסביבה."
+      question: t('faq.questions.q3'),
+      answer: t('faq.questions.a3')
     },
     {
-      question: "כמה זמן לוקח להגיע לנתב״ג?",
-      answer: "המלונית נמצאת במרחק 15 דקות נסיעה מנמל התעופה בן גוריון, כמובן תלוי בתנועה."
+      question: t('faq.questions.q4'),
+      answer: t('faq.questions.a4')
     },
     {
-      question: "האם יש הסעות לשדה התעופה?",
-      answer: "אנחנו עובדים עם מוניות מקומיות ואפשר לתאם מראש ולהזמין. יש עלות נוספת עבור השירות."
+      question: t('faq.questions.q5'),
+      answer: t('faq.questions.a5')
     },
     {
-      question: "האם המקום מתאים למשפחות עם ילדים?",
-      answer: "כן, אנחנו מקבלים בברכה משפחות עם ילדים. יש אפשרות למיטות נוספות בתיאום מראש."
+      question: t('faq.questions.q6'),
+      answer: t('faq.questions.a6')
     },
     {
-      question: "מה יש לאכול באזור?",
-      answer: "יש הרבה מסעדות וגם קניון בקרבת מקום. במקום האירוח יהיה לכם את כל הפרטים על המקומות הטובים באזור."
+      question: t('faq.questions.q7'),
+      answer: t('faq.questions.a7')
     }
   ];
 
   const services = [
-    { icon: <WifiIcon />, title: "Wi-Fi חינם", description: "אינטרנט אלחוטי מהיר בכל החדרים" },
-    { icon: <AcIcon />, title: "מזגן", description: "מיזוג אוויר מתכוונן בכל חדר" },
-    { icon: <ParkingIcon />, title: "חניה חינם", description: "מקומות חניה זמינים" },
-    { icon: <BedroomParentIcon />, title: "חדרים פרטיים", description: "חדרים פרטיים לגמרי כולל שירותים ומקלחת" },
-    { icon: <FlightIcon />, title: "הסעות", description: "הסעה לשדה התעופה" }
+    { 
+      icon: <WifiIcon />, 
+      title: t('faq.servicesItems.wifi.title'), 
+      description: t('faq.servicesItems.wifi.description') 
+    },
+    { 
+      icon: <AcIcon />, 
+      title: t('faq.servicesItems.ac.title'), 
+      description: t('faq.servicesItems.ac.description') 
+    },
+    { 
+      icon: <ParkingIcon />, 
+      title: t('faq.servicesItems.parking.title'), 
+      description: t('faq.servicesItems.parking.description') 
+    },
+    { 
+      icon: <BedroomParentIcon />, 
+      title: t('faq.servicesItems.rooms.title'), 
+      description: t('faq.servicesItems.rooms.description') 
+    },
+    { 
+      icon: <FlightIcon />, 
+      title: t('faq.servicesItems.shuttle.title'), 
+      description: t('faq.servicesItems.shuttle.description') 
+    }
   ];
 
   const policies = [
-    "צ'ק-אין החל מהשעה 15:00",
-    "צ'ק-אאוט עד השעה 10:00", 
-    "צ'ק-אין מהיר עצמאי בכל שעה",
-    "עישון אסור בחדרים",
-    "אסור לקיים מסיבות או אירועים - אנחנו דואגים לשמור על שקט ונוחות לכל האורחים"
+    t('faq.policies.checkin'),
+    t('faq.policies.checkout'),
+    t('faq.policies.selfCheckin'),
+    t('faq.policies.noSmoking'),
+    t('faq.policies.noParties')
   ];
 
   return (
@@ -96,7 +119,7 @@ const FAQDetailsPage = () => {
               mb: 2
             }}
           >
-            שאלות נפוצות ופרטים נוספים
+            {t('faq.faqTitle')}
           </Typography>
           <Typography 
             variant="h6" 
@@ -107,7 +130,7 @@ const FAQDetailsPage = () => {
               mx: 'auto'
             }}
           >
-            כל מה שחשוב לדעת לפני ההזמנה והגעה למלונית
+            {t('faq.faqSubtitle')}
           </Typography>
         </Box>
 
@@ -115,7 +138,7 @@ const FAQDetailsPage = () => {
           {/* שאלות נפוצות */}
           <Grid item xs={12} lg={8}>
             <Typography variant="h4" sx={{ mb: 3, fontWeight: 600, color: '#1e293b' }}>
-              שאלות נפוצות
+              {t('faq.frequentlyAsked')}
             </Typography>
             
             {faqs.map((faq, index) => (
@@ -164,7 +187,7 @@ const FAQDetailsPage = () => {
             >
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#1e293b' }}>
-                  השירותים שלנו
+                  {t('faq.services')}
                 </Typography>
                 <Grid container spacing={2}>
                   {services.map((service, index) => (
@@ -197,29 +220,26 @@ const FAQDetailsPage = () => {
             <Card 
               elevation={2} 
               sx={{ 
-                mb: 4,
+                mb: 4, 
                 border: '1px solid #e2e8f0',
                 borderRadius: 2
               }}
             >
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#1e293b' }}>
-                  כללי המקום
+                  {t('faq.housePolicies')}
                 </Typography>
                 <List sx={{ p: 0 }}>
                   {policies.map((policy, index) => (
-                    <ListItem key={index} sx={{ px: 0, py: 0.5, direction: 'rtl', gap: 1.5 }}>
-                      <ListItemIcon sx={{ minWidth: 'auto', ml: 0, mr: 0 }}>
+                    <ListItem key={index} sx={{ px: 0, py: 1 }}>
+                      <ListItemIcon sx={{ minWidth: 36 }}>
                         <CheckCircleIcon sx={{ color: '#059669', fontSize: 20 }} />
                       </ListItemIcon>
                       <ListItemText 
                         primary={policy}
-                        sx={{ 
-                          m: 0,
-                          textAlign: 'right',
-                          '& .MuiListItemText-primary': {
-                            fontSize: '0.9rem'
-                          }
+                        primaryTypographyProps={{
+                          variant: 'body2',
+                          sx: { lineHeight: 1.5 }
                         }}
                       />
                     </ListItem>
@@ -228,75 +248,74 @@ const FAQDetailsPage = () => {
               </CardContent>
             </Card>
 
-            {/* פרטי קשר מהירים */}
+            {/* יצירת קשר */}
             <Card 
               elevation={2} 
               sx={{ 
                 border: '1px solid #e2e8f0',
-                borderRadius: 2,
-                bgcolor: '#f8fafc'
+                borderRadius: 2
               }}
             >
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#1e293b' }}>
-                  צריכים עזרה?
+                  {t('faq.contactDetails')}
                 </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1.5 }}>
-                    <PhoneIcon sx={{ color: '#dc2626', fontSize: 20 }} />
-                    <Typography 
-                      variant="body2" 
-                      component="a"
-                      href="tel:+972506070260"
-                      sx={{ 
-                        fontWeight: 500,
-                        color: 'inherit',
-                        textDecoration: 'none',
-                        '&:hover': {
-                          color: '#dc2626'
-                        }
-                      }}
-                    >
-                      0506070260
-                    </Typography>
+                
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <WhatsAppIcon sx={{ color: '#25D366', mr: 2 }} />
+                    <Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {t('contact.whatsapp')}
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        component="a"
+                        href="https://wa.me/972506070260"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ 
+                          color: '#25D366',
+                          textDecoration: 'none',
+                          '&:hover': { textDecoration: 'underline' }
+                        }}
+                      >
+                        050-607-0260
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1.5 }}>
-                    <EmailIcon sx={{ color: '#dc2626', fontSize: 20 }} />
-                    <Typography 
-                      variant="body2" 
-                      component="a"
-                      href="mailto:diamshotels@gmail.com"
-                      sx={{ 
-                        fontWeight: 500,
-                        color: 'inherit',
-                        textDecoration: 'none',
-                        '&:hover': {
-                          color: '#dc2626'
-                        }
-                      }}
-                    >
-                      diamshotels@gmail.com
-                    </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <PhoneIcon sx={{ color: '#6b7280', mr: 2 }} />
+                    <Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {t('contact.phone')}
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        component="a"
+                        href="tel:+972506070260"
+                        sx={{ 
+                          color: '#6b7280',
+                          textDecoration: 'none',
+                          '&:hover': { textDecoration: 'underline' }
+                        }}
+                      >
+                        050-607-0260
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <WhatsAppIcon sx={{ color: '#25D366', fontSize: 20 }} />
-                    <Typography 
-                      variant="body2" 
-                      component="a"
-                      href="https://wa.me/972506070260"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ 
-                        fontWeight: 500,
-                        color: '#25D366',
-                        textDecoration: 'none',
-                        '&:hover': {
-                          textDecoration: 'underline'
-                        }
-                      }}
-                    >
-                      זמינים בווטסאפ - עונים מהר!
-                    </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LocationIcon sx={{ color: '#dc2626', mr: 2 }} />
+                    <Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {t('faq.location')}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#64748b' }}>
+                        {t('location.address')}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
               </CardContent>

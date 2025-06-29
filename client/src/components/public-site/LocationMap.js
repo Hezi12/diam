@@ -1,20 +1,23 @@
 import React from 'react';
 import { Box, Paper, Typography, Link } from '@mui/material';
 import { LocationOn as LocationOnIcon } from '@mui/icons-material';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 // במצב אמיתי, כאן תהיה אינטגרציה עם Google Maps או ספק מפות אחר
 // כרגע זו רק דוגמה ויזואלית
 
 const LocationMap = () => {
+  const t = useTranslation();
+  
   // פונקציה שתפתח את מיקום המלון ב-Google Maps
   const openInGoogleMaps = () => {
     // כתובת המלון - במצב אמיתי תהיה כאן כתובת אמיתית
-    const address = 'הארז 12, אור יהודה';
+    const address = t('location.address');
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
   };
   
   // יצירת iframe למפת גוגל עם כתובת פשוטה
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent('הארז 12, אור יהודה, ישראל')}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(t('location.address') + ', ישראל')}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
   
   return (
     <Paper 
@@ -46,7 +49,7 @@ const LocationMap = () => {
         allowFullScreen=""
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
-        title="מיקום המלונית - הארז 12, אור יהודה"
+        title={t('location.mapTitle')}
       />
       
 

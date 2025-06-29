@@ -37,18 +37,21 @@ import {
   ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
 import { format, parseISO, differenceInDays, subDays } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, enUS } from 'date-fns/locale';
 import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import SearchBox from '../../components/public-site/SearchBox';
+import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
 
 const SearchResultsPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
+  const t = useTranslation();
+  const { currentLanguage } = useLanguage();
   
   const [rooms, setRooms] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);
@@ -57,6 +60,9 @@ const SearchResultsPage = () => {
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
+  
+  // בחירת locale לפי שפה נוכחית
+  const dateLocale = currentLanguage === 'he' ? he : enUS;
   
   // חילוץ פרמטרים מה-URL
   const searchParams = new URLSearchParams(location.search);
@@ -82,7 +88,7 @@ const SearchResultsPage = () => {
 
   // חישוב תאריך ביטול (3 ימים לפני צ'ק-אין)
   const cancellationDate = checkIn ? subDays(checkIn, 3) : null;
-  const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
+  const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
 
   // פתיחת דיאלוג מדיניות
   const handleOpenPolicyDialog = (room) => {
@@ -149,7 +155,7 @@ const SearchResultsPage = () => {
         setAvailableRooms(available);
       } catch (err) {
         console.error('שגיאה בטעינת חדרים:', err);
-        setError('אירעה שגיאה בטעינת החדרים. אנא נסה שנית.');
+        setError(t('rooms.loadingError'));
       } finally {
         setLoading(false);
       }
@@ -159,8 +165,8 @@ const SearchResultsPage = () => {
   }, [checkInStr, checkOutStr, guests, nightsCount, navigate, validParams]);
   
   // פורמט תאריכים לתצוגה
-  const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
-  const formattedCheckOut = validParams ? format(checkOut, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
+  const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  const formattedCheckOut = validParams ? format(checkOut, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
   
   // קרוסלת תמונות לחדר
   const renderRoomImageCarousel = (room) => {
@@ -176,7 +182,7 @@ const SearchResultsPage = () => {
             component="img"
             height="200"
             image={roomImages[currentIndex]}
-            alt={`${room.category} - תמונה ${currentIndex + 1}`}
+            alt={`${room.category} - ${t('gallery.imageOf')} ${currentIndex + 1}`}
             sx={{ 
               objectFit: 'cover',
               transition: 'transform 0.3s ease'
@@ -314,7 +320,7 @@ const SearchResultsPage = () => {
           }}
         >
           <Typography variant="body2" sx={{ backgroundColor: 'rgba(255,255,255,0.7)', p: 1, borderRadius: 1 }}>
-            {`חדר ${room.category}`}
+            {room.category}
           </Typography>
         </Box>
         
@@ -449,21 +455,21 @@ const SearchResultsPage = () => {
             startIcon={<ArrowBackIcon />}
             sx={{ mb: 2, gap: 1.5 }}
           >
-            חזרה לדף הבית
+{t('common.backToHome')}
           </Button>
           
           <Typography variant="h4" component="h1" sx={{ mb: 1, fontWeight: 600 }}>
-            תוצאות חיפוש
+            {t('rooms.searchResults')}
           </Typography>
           
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <DateRangeIcon sx={{ mr: 1, color: 'primary.main' }} />
             <Typography variant="body1">
-              {formattedCheckIn} - {formattedCheckOut} ({nightsCount} לילות)
+{formattedCheckIn} - {formattedCheckOut} ({nightsCount} {t('common.nights')})
             </Typography>
             {isTourist && (
               <Chip 
-                label="תייר - מחירים ללא מע״מ" 
+                label={t('common.touristPrices')} 
                 color="success" 
                 size="small" 
                 sx={{ ml: 2 }}
@@ -486,8 +492,8 @@ const SearchResultsPage = () => {
           </Alert>
         ) : availableRooms.length === 0 ? (
           <Alert severity="info" sx={{ mb: 4 }}>
-            אין חדרים זמינים בתאריכים שנבחרו עבור {guests} אורח{guests > 1 ? 'ים' : ''}. 
-            אנא נסה תאריכים אחרים או מספר אורחים קטן יותר.
+            {t('common.noAvailableRooms')} 
+            {t('common.tryDifferentDates')}
           </Alert>
         ) : (
           <Grid container spacing={3}>
@@ -516,12 +522,12 @@ const SearchResultsPage = () => {
                       {/* תוכן עליון שיגדל */}
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="body1" color="text.primary" paragraph sx={{ fontSize: { xs: '1rem', sm: '1.05rem' }, lineHeight: 1.6, fontWeight: 400 }}>
-                          <strong>{room.category}</strong> - {room.description || 'חדר מאובזר ונוח למנוחה מושלמת. כולל מזגן, טלוויזיה ומקלחת פרטית.'}
+                          <strong>{room.category}</strong> - {t(`rooms.categoryDescriptions.${room.category}`) || t('rooms.categoryDescriptions.Standard')}
                         </Typography>
                         
                         {roomPricing.extraGuests > 0 && (
                           <Typography variant="body2" sx={{ mb: 2, color: '#f57c00', fontWeight: 500 }}>
-                            כולל {roomPricing.extraGuests} אורח{roomPricing.extraGuests > 1 ? 'ים' : ''} נוסף{roomPricing.extraGuests > 1 ? 'ים' : ''}
+                            {t('common.includes')} {roomPricing.extraGuests} {roomPricing.extraGuests > 1 ? t('common.extraGuests') : t('common.extraGuest')}
                           </Typography>
                         )}
                       </Box>
@@ -538,9 +544,9 @@ const SearchResultsPage = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
-                              ₪{roomPricing.pricePerNight} × {nightsCount} לילות
+                              ₪{roomPricing.pricePerNight} × {nightsCount} {t('common.nights')}
                             </Typography>
-                            <Tooltip title="פרטי התשלום והמדיניות" arrow>
+                                                          <Tooltip title={t('common.paymentPolicy')} arrow>
                               <IconButton 
                                 size="small" 
                                 onClick={() => handleOpenPolicyDialog(room)}
@@ -556,7 +562,7 @@ const SearchResultsPage = () => {
                             </Typography>
                             {isTourist && (
                               <Typography variant="caption" color="success.main" sx={{ fontSize: '0.75rem' }}>
-                                ללא מע״מ
+                                {t('common.vatExempt')}
                               </Typography>
                             )}
                           </Box>
@@ -574,7 +580,7 @@ const SearchResultsPage = () => {
                         sx={{ fontWeight: 500, width: '100%' }}
                         size="large"
                       >
-                        הזמן עכשיו
+{t('rooms.book')}
                       </Button>
                     </CardActions>
                   </Card>
@@ -597,7 +603,7 @@ const SearchResultsPage = () => {
           <DialogTitle sx={{ pb: 1 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6" fontWeight={600}>
-                פרטי התשלום והמדיניות
+                {t('common.paymentPolicy')}
               </Typography>
               <IconButton onClick={handleClosePolicyDialog} size="small">
                 <CloseIcon />
@@ -608,13 +614,13 @@ const SearchResultsPage = () => {
           <DialogContent sx={{ pt: 1 }}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" fontWeight={600} color="success.main" gutterBottom>
-                💰 פרטי התשלום
+                {t('common.paymentDetails')}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                • אין תשלום נוסף - המחיר כולל את כל המיסים והעלויות
+                {t('common.paymentInfo1')}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                • התשלום מתבצע במלונית בעת ההגעה (מזומן או כרטיס אשראי)
+                {t('common.paymentInfo2')}
               </Typography>
             </Box>
 
@@ -622,13 +628,13 @@ const SearchResultsPage = () => {
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" fontWeight={600} color="warning.main" gutterBottom>
-                🔄 מדיניות ביטול
+                {t('common.cancellationPolicy')}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                • ניתן לבטל ללא עלות עד יום <strong>{formattedCancellationDate}</strong> בשעה 00:00
+                • {t('common.cancellationInfo1')} <strong>{formattedCancellationDate}</strong> {t('common.cancellationInfo2')}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                • לאחר מועד זה לא ניתן לבטל את ההזמנה
+                • {t('common.cancellationInfo3')}
               </Typography>
             </Box>
 
@@ -636,13 +642,13 @@ const SearchResultsPage = () => {
 
             <Box>
               <Typography variant="subtitle2" fontWeight={600} color="info.main" gutterBottom>
-                🕐 זמני צ'ק-אין וצ'ק-אאוט
+                {t('common.checkInOutTimes')}
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                • <strong>צ'ק-אין:</strong> החל מהשעה 15:00
+                • <strong>{t('common.checkInTime')}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                • <strong>צ'ק-אאוט:</strong> עד השעה 10:00 בבוקר
+                • <strong>{t('common.checkOutTime')}</strong>
               </Typography>
             </Box>
           </DialogContent>
@@ -654,7 +660,7 @@ const SearchResultsPage = () => {
               fullWidth
               sx={{ borderRadius: 2 }}
             >
-              הבנתי
+{t('search.touristDialogButton')}
             </Button>
           </DialogActions>
         </Dialog>

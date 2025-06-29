@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   Box, 
@@ -9,43 +9,58 @@ import {
   Grid,
   Divider,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Alert,
+  Card,
+  CardContent,
+  IconButton
 } from '@mui/material';
 import { 
   CheckCircleOutline as CheckCircleOutlineIcon,
   EventAvailable as EventAvailableIcon,
   BedroomParent as BedroomParentIcon,
   Share as ShareIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
+  Print as PrintIcon,
+  WhatsApp as WhatsAppIcon
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, enUS } from 'date-fns/locale';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
+import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
 
 const ConfirmationPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
+  const t = useTranslation();
+  const { currentLanguage } = useLanguage();
   
-  // נתונים מה-state
-  const bookingData = location.state || {};
+  // בחירת locale לפי שפה נוכחית
+  const dateLocale = currentLanguage === 'he' ? he : enUS;
   
-  // אם אין נתונים, נחזיר לדף הבית
+  // נתוני ההזמנה מה-state שהועבר מהטופס הקודם
+  const bookingData = location.state?.bookingData;
+  
   useEffect(() => {
-    if (!bookingData.bookingNumber) {
+    // אם אין נתוני הזמנה, נווט לדף הבית
+    if (!bookingData) {
       navigate('/airport-booking');
     }
   }, [bookingData, navigate]);
   
-  // המרת תאריכים
-  const checkIn = bookingData.checkIn ? parseISO(bookingData.checkIn) : null;
-  const checkOut = bookingData.checkOut ? parseISO(bookingData.checkOut) : null;
+  // אם אין נתוני הזמנה, לא נציג כלום
+  if (!bookingData) {
+    return null;
+  }
   
-  // פורמט תאריכים לתצוגה
-  const formattedCheckIn = checkIn ? format(checkIn, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
-  const formattedCheckOut = checkOut ? format(checkOut, 'EEEE, d בMMMM yyyy', { locale: he }) : '';
+  // פורמט תאריכים
+  const checkIn = parseISO(bookingData.checkIn);
+  const checkOut = parseISO(bookingData.checkOut);
+  const formattedCheckIn = checkIn ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  const formattedCheckOut = checkOut ? format(checkOut, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
   
   // פורמט מספר הזמנה
   const formattedBookingNumber = bookingData.bookingNumber 
@@ -57,8 +72,12 @@ const ConfirmationPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'הזמנה במלונית Airport Guest House',
-          text: `הזמנתי חדר במלונית Airport Guest House לתאריכים ${formattedCheckIn} עד ${formattedCheckOut}. מספר הזמנה: ${formattedBookingNumber}`,
+          title: t('confirmation.shareTitle'),
+          text: t('confirmation.shareText', { 
+            checkIn: formattedCheckIn, 
+            checkOut: formattedCheckOut, 
+            bookingNumber: formattedBookingNumber 
+          }),
           url: window.location.href
         });
       } catch (error) {
@@ -66,11 +85,6 @@ const ConfirmationPage = () => {
       }
     }
   };
-  
-  // אם אין נתונים, לא נציג דבר
-  if (!bookingData.bookingNumber) {
-    return null;
-  }
   
   return (
     <PublicSiteLayout>
@@ -98,7 +112,7 @@ const ConfirmationPage = () => {
             gutterBottom
             sx={{ mb: 1 }}
           >
-            ההזמנה התקבלה בהצלחה!
+{t('confirmation.bookingConfirmed')}
           </Typography>
           
           <Typography 
@@ -106,10 +120,8 @@ const ConfirmationPage = () => {
             color="text.secondary" 
             sx={{ mb: 3 }}
           >
-            מספר הזמנה: {formattedBookingNumber}
+{t('confirmation.bookingNumber')}: {formattedBookingNumber}
           </Typography>
-          
-
           
           <Divider sx={{ my: 3 }} />
           
@@ -121,7 +133,7 @@ const ConfirmationPage = () => {
               align="right"
               sx={{ mb: 2 }}
             >
-              פרטי ההזמנה
+{t('confirmation.bookingDetails')}
             </Typography>
             
             <Grid container spacing={2}>
@@ -139,15 +151,15 @@ const ConfirmationPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                     <EventAvailableIcon sx={{ color: 'primary.main', mr: 1, fontSize: 20 }} />
                     <Typography variant="body1" fontWeight={600}>
-                      תאריכי שהייה
+{t('confirmation.stayDates')}
                     </Typography>
                   </Box>
                   
                   <Typography variant="body2" align="right" paragraph sx={{ fontSize: '0.9rem' }}>
-                    <strong>צ'ק-אין:</strong> {formattedCheckIn}
+                    <strong>{t('search.checkIn')}:</strong> {formattedCheckIn}
                   </Typography>
                   <Typography variant="body2" align="right" sx={{ fontSize: '0.9rem' }}>
-                    <strong>צ'ק-אאוט:</strong> {formattedCheckOut}
+                    <strong>{t('search.checkOut')}:</strong> {formattedCheckOut}
                   </Typography>
                 </Paper>
               </Grid>
@@ -166,15 +178,15 @@ const ConfirmationPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                     <BedroomParentIcon sx={{ color: 'primary.main', mr: 1, fontSize: 20 }} />
                     <Typography variant="body1" fontWeight={600}>
-                      פרטי החדר
+{t('confirmation.roomDetails')}
                     </Typography>
                   </Box>
                   
                   <Typography variant="body2" align="right" paragraph sx={{ fontSize: '0.9rem' }}>
-                    <strong>סוג חדר:</strong> {bookingData.roomCategory}
+                    <strong>{t('confirmation.roomType')}</strong> {bookingData.roomCategory}
                   </Typography>
                   <Typography variant="body2" align="right" sx={{ fontSize: '0.9rem' }}>
-                    <strong>מספר אורחים:</strong> {bookingData.guests}
+                    <strong>{t('confirmation.numberOfGuests')}</strong> {bookingData.guests}
                   </Typography>
                 </Paper>
               </Grid>
@@ -192,7 +204,7 @@ const ConfirmationPage = () => {
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                     <Typography variant="body1" fontWeight={600}>
-                      סכום לתשלום
+{t('confirmation.totalAmount')}
                     </Typography>
                   </Box>
                   
@@ -208,10 +220,10 @@ const ConfirmationPage = () => {
           
           <Box sx={{ mt: 3, mb: 1, textAlign: 'center' }}>
             <Typography variant="body1" color="text.primary" paragraph sx={{ fontWeight: 500 }}>
-              📧 אישור הזמנה נשלח לכתובת המייל שלך
+{t('confirmation.emailSent')}
             </Typography>
             <Typography variant="body1" fontWeight={500}>
-              נתראה ב-Airport Guest House!
+              {t('confirmation.seeYouSoon')}
             </Typography>
           </Box>
         </Paper>

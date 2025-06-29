@@ -31,19 +31,22 @@ import SearchBox from '../../components/public-site/SearchBox';
 import LocationMap from '../../components/public-site/LocationMap';
 import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 const HomePage = () => {
+  const t = useTranslation();
+  
   // מערך השירותים עם אייקונים ייחודיים וצבעים שונים
   const services = [
-    { name: 'מיזוג אוויר', icon: <AcUnitIcon />, color: '#0ea5e9' },
-    { name: 'מצעים ומגבות', icon: <HotelIcon />, color: '#8b5cf6' },
-    { name: 'Wi-Fi חינמי', icon: <WifiIcon />, color: '#10b981' },
-    { name: 'חניה חינם', icon: <LocalParkingIcon />, color: '#f59e0b' },
-    { name: 'שירותי הסעות (בתוספת תשלום)', icon: <DirectionsBusIcon />, color: '#ef4444' },
-    { name: 'מסעדות בקרבה', icon: <RestaurantIcon />, color: '#ec4899' },
-    { name: 'צ\'ק-אין 24/7', icon: <ScheduleIcon />, color: '#06b6d4' },
-    { name: 'פרטיות מלאה', icon: <LockIcon />, color: '#84cc16' },
-    { name: 'תמורה מלאה למחיר', icon: <CheckCircleIcon />, color: '#059669' }
+    { nameKey: 'faq.airCondition', icon: <AcUnitIcon />, color: '#0ea5e9' },
+    { nameKey: 'faq.bedding', icon: <HotelIcon />, color: '#8b5cf6' },
+    { nameKey: 'faq.wifi', icon: <WifiIcon />, color: '#10b981' },
+    { nameKey: 'faq.parking', icon: <LocalParkingIcon />, color: '#f59e0b' },
+    { nameKey: 'faq.shuttle', icon: <DirectionsBusIcon />, color: '#ef4444' },
+    { nameKey: 'faq.restaurants', icon: <RestaurantIcon />, color: '#ec4899' },
+    { nameKey: 'faq.checkin24', icon: <ScheduleIcon />, color: '#06b6d4' },
+    { nameKey: 'faq.privacy', icon: <LockIcon />, color: '#84cc16' },
+    { nameKey: 'faq.value', icon: <CheckCircleIcon />, color: '#059669' }
   ];
 
   return (
@@ -99,7 +102,7 @@ const HomePage = () => {
                 onMouseEnter={(e) => e.target.style.borderBottomColor = '#1e293b'}
                 onMouseLeave={(e) => e.target.style.borderBottomColor = 'transparent'}
               >
-                מלונית Airport Guest House
+{t('home.title')}
               </Link>
             </Typography>
             
@@ -112,9 +115,7 @@ const HomePage = () => {
                 lineHeight: 1.6
               }}
             >
-              המלונית המובילה באזור נמל התעופה בן גוריון. 
-              חדרים מודרניים ומאובזרים עם שירות מקצועי - 
-              הפתרון המושלם לנוסעים ואנשי עסקים.
+{t('home.description')}
               {' '}
               <Link 
                 to="/airport-booking/faq-details"
@@ -125,7 +126,7 @@ const HomePage = () => {
                   borderBottom: '1px solid #1e293b'
                 }}
               >
-                לפרטים נוספים ושאלות נפוצות
+{t('home.moreDetails')}
               </Link>
             </Typography>
 
@@ -141,7 +142,7 @@ const HomePage = () => {
             >
               <CardContent sx={{ p: 2.5 }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#334155', fontSize: '1.1rem' }}>
-                  השירותים והמתקנים שלנו
+                  {t('home.servicesTitle')}
                 </Typography>
                 <Grid container spacing={1}>
                   <Grid item xs={12}>
@@ -173,7 +174,7 @@ const HomePage = () => {
                             {service.icon}
                           </Box>
                           <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' }, color: '#64748b', fontWeight: 500 }}>
-                            {service.name}
+                            {t(service.nameKey)}
                           </Typography>
                         </Box>
                       ))}
