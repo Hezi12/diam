@@ -239,13 +239,17 @@ const BookingFormPage = () => {
       // מעבר לדף אישור
       navigate('/airport-booking/confirmation', {
         state: {
-          bookingNumber: response.data.data.bookingNumber,
-          checkIn: checkInStr,
-          checkOut: checkOutStr,
-          roomCategory: room.category,
-          roomNumber: room.roomNumber,
-          totalPrice: roomPricing.totalPrice,
-          guests: bookingData.guests
+          bookingData: {
+            bookingNumber: response.data.data.bookingNumber,
+            checkIn: checkInStr,
+            checkOut: checkOutStr,
+            roomCategory: room.category || room.roomType || 'חדר רגיל',
+            roomNumber: room.roomNumber,
+            totalPrice: roomPricing.totalPrice,
+            guests: bookingData.guests,
+            nights: response.data.data.nights || nightsCount,
+            price: response.data.data.price || roomPricing.totalPrice
+          }
         }
       });
     } catch (err) {
