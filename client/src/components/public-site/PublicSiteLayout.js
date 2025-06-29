@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Box, 
   AppBar, 
@@ -7,28 +7,15 @@ import {
   Typography, 
   Button, 
   IconButton, 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemButton, 
-  ListItemText,
-  Divider,
   useMediaQuery,
-  useTheme,
-  Menu,
-  MenuItem,
-  Grid
+  useTheme
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Language as LanguageIcon,
   WhatsApp as WhatsAppIcon,
   Phone as PhoneIcon,
-  Flight as FlightIcon,
-  Home as HomeIcon
+  Flight as FlightIcon
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
-import { styled } from '@mui/material/styles';
 
 // תפריט וחלקים קבועים נוספים
 
@@ -37,32 +24,10 @@ const PublicSiteLayout = ({ children }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [languageMenu, setLanguageMenu] = useState(null);
-  const [language, setLanguage] = useState('he');
-  
   // נתיבי התפריט
   const menuItems = [
     { label: 'שאלות ופרטים נוספים', path: '/airport-booking/faq-details' },
   ];
-  
-  const handleLanguageMenu = (event) => {
-    setLanguageMenu(event.currentTarget);
-  };
-  
-  const handleLanguageClose = () => {
-    setLanguageMenu(null);
-  };
-  
-  const handleLanguageChange = (lang) => {
-    setLanguage(lang);
-    handleLanguageClose();
-    // כאן תהיה לוגיקה לשינוי השפה בהמשך
-  };
-  
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
-  };
   
   return (
     <Box sx={{ 
@@ -138,7 +103,7 @@ const PublicSiteLayout = ({ children }) => {
             </Box>
             
             {isMobile ? (
-              <>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <IconButton
                   component="a"
                   href="https://wa.me/972506070260"
@@ -146,7 +111,6 @@ const PublicSiteLayout = ({ children }) => {
                   rel="noopener noreferrer"
                   sx={{ 
                     color: '#25D366',
-                    mr: 1,
                     '&:hover': { 
                       bgcolor: 'rgba(37, 211, 102, 0.1)',
                       color: '#128C7E'
@@ -161,7 +125,7 @@ const PublicSiteLayout = ({ children }) => {
                   href="tel:+972506070260"
                   sx={{ 
                     color: '#dc2626',
-                    mr: 1,
+                    ml: 1,
                     '&:hover': { 
                       bgcolor: 'rgba(220, 38, 38, 0.1)',
                       color: '#991b1b'
@@ -170,31 +134,7 @@ const PublicSiteLayout = ({ children }) => {
                 >
                   <PhoneIcon />
                 </IconButton>
-                
-                <IconButton 
-                  onClick={handleLanguageMenu}
-                  edge="end"
-                  sx={{ 
-                    mr: 1,
-                    color: '#64748b',
-                    '&:hover': { bgcolor: '#f1f5f9' }
-                  }}
-                >
-                  <LanguageIcon />
-                </IconButton>
-                <IconButton
-                  edge="end"
-                  color="inherit"
-                  aria-label="menu"
-                  onClick={toggleDrawer}
-                  sx={{
-                    color: '#64748b',
-                    '&:hover': { bgcolor: '#f1f5f9' }
-                  }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              </>
+              </Box>
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 {menuItems.map((item) => (
@@ -252,154 +192,14 @@ const PublicSiteLayout = ({ children }) => {
                   </IconButton>
                 </Box>
                 
-                <Divider orientation="vertical" flexItem sx={{ mx: 2, height: 24, bgcolor: '#e2e8f0' }} />
-                <Button 
-                  onClick={handleLanguageMenu}
-                  color="inherit"
-                  startIcon={<LanguageIcon />}
-                  sx={{ 
-                    ml: 1,
-                    color: '#64748b',
-                    gap: 1.5,
-                    '&:hover': { bgcolor: '#f8fafc' }
-                  }}
-                >
-                  {language === 'he' ? 'עברית' : 'English'}
-                </Button>
+
               </Box>
             )}
           </Toolbar>
         </Container>
       </AppBar>
       
-      {/* תפריט שפות */}
-      <Menu
-        anchorEl={languageMenu}
-        open={Boolean(languageMenu)}
-        onClose={handleLanguageClose}
-        PaperProps={{
-          sx: {
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }
-        }}
-      >
-        <MenuItem 
-          onClick={() => handleLanguageChange('he')}
-          selected={language === 'he'}
-          sx={{ 
-            minWidth: 120,
-            '&.Mui-selected': {
-              bgcolor: '#f1f5f9'
-            }
-          }}
-        >
-          עברית
-        </MenuItem>
-        <MenuItem 
-          onClick={() => handleLanguageChange('en')}
-          selected={language === 'en'}
-          sx={{ 
-            minWidth: 120,
-            '&.Mui-selected': {
-              bgcolor: '#f1f5f9'
-            }
-          }}
-        >
-          English
-        </MenuItem>
-      </Menu>
-      
-      {/* מגירה לתפריט במובייל */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={toggleDrawer}
-        PaperProps={{
-          sx: {
-            width: 250,
-            bgcolor: 'white',
-            border: 'none'
-          }
-        }}
-      >
-        <Box
-          sx={{ width: 250 }}
-          role="presentation"
-          onClick={toggleDrawer}
-        >
-          <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0' }}>
-            <Typography variant="h6" sx={{ color: '#1e293b', fontWeight: 600 }}>
-              Airport Guest House
-            </Typography>
-          </Box>
-          <List>
-            {menuItems.map((item) => (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton 
-                  component={Link} 
-                  to={item.path}
-                  sx={{ 
-                    py: 2,
-                    backgroundColor: location.pathname === item.path ? '#f8fafc' : 'transparent',
-                    borderRight: location.pathname === item.path ? '3px solid #dc2626' : 'none',
-                    '&:hover': {
-                      bgcolor: '#f1f5f9'
-                    }
-                  }}
-                >
-                  <ListItemText 
-                    primary={item.label}
-                    sx={{
-                      '& .MuiListItemText-primary': {
-                        color: location.pathname === item.path ? '#dc2626' : '#64748b',
-                        fontWeight: location.pathname === item.path ? 600 : 400
-                      }
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-            
-            {/* כפתורי קשר במובייל */}
-            <ListItem disablePadding>
-              <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 2 }}>
-                <IconButton
-                  component="a"
-                  href="https://wa.me/972506070260"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ 
-                    color: '#25D366',
-                    mx: 1,
-                    '&:hover': { 
-                      bgcolor: 'rgba(37, 211, 102, 0.1)',
-                      color: '#128C7E'
-                    }
-                  }}
-                >
-                  <WhatsAppIcon />
-                </IconButton>
-                
-                <IconButton
-                  component="a"
-                  href="tel:+972506070260"
-                  sx={{ 
-                    color: '#dc2626',
-                    mx: 1,
-                    '&:hover': { 
-                      bgcolor: 'rgba(220, 38, 38, 0.1)',
-                      color: '#991b1b'
-                    }
-                  }}
-                >
-                  <PhoneIcon />
-                </IconButton>
-              </Box>
-            </ListItem>
-          </List>
-        </Box>
-      </Drawer>
+
       
       {/* תוכן ראשי */}
       <Box component="main" sx={{ flex: 1 }}>
