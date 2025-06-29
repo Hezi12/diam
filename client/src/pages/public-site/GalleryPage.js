@@ -188,7 +188,7 @@ const GalleryPage = () => {
             component={Link}
             to="/airport-booking"
             startIcon={<ArrowBackIcon />}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, gap: 1.5 }}
           >
             חזרה לדף הבית
           </Button>

@@ -29,29 +29,45 @@ const GalleryPreview = ({ location, limit = 6 }) => {
   // פונקציה לבדיקת אפשרויות גלילה
   const checkScrollButtons = () => {
     if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+      const { scrollWidth, clientWidth } = scrollContainerRef.current;
       
-      // אם יש תמונות ואין גלילה, נבדוק אם יש תמונות נוספות שלא נראות
-      if (images.length > (isMobile ? 1 : 2)) {
-        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-      }
+      // בדיקה אם יש תוכן לגלילה
+      const hasScrollableContent = scrollWidth > clientWidth;
+      
+      // בעברית, החיצים תמיד יופיעו אם יש תוכן לגלילה
+      setCanScrollLeft(hasScrollableContent);
+      setCanScrollRight(hasScrollableContent);
     }
   };
 
-  // פונקציות גלילה
+  // פונקציות גלילה עם לולאה אינסופית
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
+      const { scrollLeft: currentScroll, scrollWidth, clientWidth } = scrollContainerRef.current;
       const scrollAmount = isMobile ? 270 : 320; // רוחב תמונה + gap
-      scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      
+      // גלילה שמאלה (לתמונות קודמות)
+      // אם כבר בהתחלה, עבור לסוף
+      if (currentScroll <= 10) {
+        scrollContainerRef.current.scrollTo({ left: scrollWidth - clientWidth, behavior: 'smooth' });
+      } else {
+        scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      }
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
+      const { scrollLeft: currentScroll, scrollWidth, clientWidth } = scrollContainerRef.current;
       const scrollAmount = isMobile ? 270 : 320; // רוחב תמונה + gap
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      
+      // גלילה ימינה (לתמונות הבאות)
+      // אם כבר בסוף, עבור להתחלה
+      if (currentScroll >= scrollWidth - clientWidth - 10) {
+        scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
     }
   };
 
@@ -89,7 +105,11 @@ const GalleryPreview = ({ location, limit = 6 }) => {
 
   // useEffect לבדיקת כפתורי גלילה
   useEffect(() => {
-    checkScrollButtons();
+    // השהיה קטנה לוודא שהתמונות נטענו
+    const timeoutId = setTimeout(() => {
+      checkScrollButtons();
+    }, 100);
+    
     const handleScroll = () => checkScrollButtons();
     const handleResize = () => checkScrollButtons();
     
@@ -101,9 +121,12 @@ const GalleryPreview = ({ location, limit = 6 }) => {
       return () => {
         scrollContainer.removeEventListener('scroll', handleScroll);
         window.removeEventListener('resize', handleResize);
+        clearTimeout(timeoutId);
       };
     }
-  }, [images]);
+    
+    return () => clearTimeout(timeoutId);
+  }, [images, isMobile]);
   
   // סקלטון לטעינה
   if (loading) {
@@ -201,10 +224,10 @@ const GalleryPreview = ({ location, limit = 6 }) => {
   
   return (
     <Box sx={{ position: 'relative' }}>
-      {/* כפתור גלילה שמאלה */}
+      {/* כפתור גלילה שמאלה - נמצא פיזית בצד שמאל */}
       {canScrollLeft && (
         <IconButton
-          onClick={scrollLeft}
+          onClick={scrollRight}
           sx={{
             position: 'absolute',
             left: -20,
@@ -225,10 +248,10 @@ const GalleryPreview = ({ location, limit = 6 }) => {
         </IconButton>
       )}
 
-      {/* כפתור גלילה ימינה */}
+      {/* כפתור גלילה ימינה - נמצא פיזית בצד ימין */}
       {canScrollRight && (
         <IconButton
-          onClick={scrollRight}
+          onClick={scrollLeft}
           sx={{
             position: 'absolute',
             right: -20,

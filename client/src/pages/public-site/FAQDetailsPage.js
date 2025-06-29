@@ -28,7 +28,9 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   LocationOn as LocationIcon,
-  Flight as FlightIcon
+  Flight as FlightIcon,
+  BedroomParent as BedroomParentIcon,
+  WhatsApp as WhatsAppIcon
 } from '@mui/icons-material';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 
@@ -40,51 +42,44 @@ const FAQDetailsPage = () => {
     },
     {
       question: "באיזה שעות ניתן להגיע ולעזוב?",
-      answer: "צ'ק-אין החל מ-14:00, צ'ק-אאוט עד 11:00. ניתן לתאם שעות שונות מראש בתיאום טלפוני."
+      answer: "צ'ק-אין החל מ-15:00, צ'ק-אאוט עד 10:00. ניתן לתאם שעות שונות מראש בתיאום טלפוני."
     },
     {
       question: "האם יש חניה חינם?",
-      answer: "כן, יש חניה חינם ומאובטחת לכל האורחים. החניה נמצאת בשטח המלונית."
+      answer: "כן, אין בעיה של חניה באזור. יש מקומות חניה זמינים ונוחים בסביבה."
     },
     {
       question: "כמה זמן לוקח להגיע לנתב״ג?",
-      answer: "המלונית נמצאת במרחק 5-10 דקות נסיעה מנמל התעופה בן גוריון, תלוי בתנועה."
+      answer: "המלונית נמצאת במרחק 15 דקות נסיעה מנמל התעופה בן גוריון, כמובן תלוי בתנועה."
     },
     {
       question: "האם יש הסעות לשדה התעופה?",
-      answer: "כן, ניתן לתאם הסעה לשדה התעופה בתיאום מראש. יש עלות נוספת עבור השירות."
-    },
-    {
-      question: "איך מתבצע התשלום?",
-      answer: "ניתן לשלם במזומן או בכרטיס אשראי בעת ההגעה למלונית. אין צורך בתשלום מראש."
-    },
-    {
-      question: "מה המדיניות ביטול?",
-      answer: "ביטול חינם עד 24 שעות לפני המועד. ביטול ברגע האחרון או אי הגעה עלולים לכלול חיוב."
+      answer: "אנחנו עובדים עם מוניות מקומיות ואפשר לתאם מראש ולהזמין. יש עלות נוספת עבור השירות."
     },
     {
       question: "האם המקום מתאים למשפחות עם ילדים?",
       answer: "כן, אנחנו מקבלים בברכה משפחות עם ילדים. יש אפשרות למיטות נוספות בתיאום מראש."
+    },
+    {
+      question: "מה יש לאכול באזור?",
+      answer: "יש הרבה מסעדות וגם קניון בקרבת מקום. במקום האירוח יהיה לכם את כל הפרטים על המקומות הטובים באזור."
     }
   ];
 
   const services = [
     { icon: <WifiIcon />, title: "Wi-Fi חינם", description: "אינטרנט אלחוטי מהיר בכל החדרים" },
     { icon: <AcIcon />, title: "מזגן", description: "מיזוג אוויר מתכוונן בכל חדר" },
-    { icon: <ParkingIcon />, title: "חניה חינם", description: "מקומות חניה מאובטחים" },
-    { icon: <SecurityIcon />, title: "אבטחה 24/7", description: "שמירה והתראת אבטחה" },
-    { icon: <LaundryIcon />, title: "כביסה", description: "שירותי כביסה בתיאום" },
+    { icon: <ParkingIcon />, title: "חניה חינם", description: "מקומות חניה זמינים" },
+    { icon: <BedroomParentIcon />, title: "חדרים פרטיים", description: "חדרים פרטיים לגמרי כולל שירותים ומקלחת" },
     { icon: <FlightIcon />, title: "הסעות", description: "הסעה לשדה התעופה" }
   ];
 
   const policies = [
-    "צ'ק-אין החל מהשעה 14:00",
-    "צ'ק-אאוט עד השעה 11:00", 
-    "ביטול חינם עד 24 שעות מראש",
-    "תשלום בהגעה - מזומן או כרטיס אשראי",
+    "צ'ק-אין החל מהשעה 15:00",
+    "צ'ק-אאוט עד השעה 10:00", 
+    "צ'ק-אין מהיר עצמאי בכל שעה",
     "עישון אסור בחדרים",
-    "חיות מחמד בתיאום מראש בלבד",
-    "שקט לילי החל מ-22:00"
+    "אסור לקיים מסיבות או אירועים - אנחנו דואגים לשמור על שקט ונוחות לכל האורחים"
   ];
 
   return (
@@ -174,10 +169,9 @@ const FAQDetailsPage = () => {
                 <Grid container spacing={2}>
                   {services.map((service, index) => (
                     <Grid item xs={12} key={index}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1.5 }}>
                         <Box sx={{ 
                           color: '#059669', 
-                          mr: 2,
                           p: 1,
                           bgcolor: 'rgba(5, 150, 105, 0.1)',
                           borderRadius: 1
@@ -214,14 +208,15 @@ const FAQDetailsPage = () => {
                 </Typography>
                 <List sx={{ p: 0 }}>
                   {policies.map((policy, index) => (
-                    <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
+                    <ListItem key={index} sx={{ px: 0, py: 0.5, direction: 'rtl', gap: 1.5 }}>
+                      <ListItemIcon sx={{ minWidth: 'auto', ml: 0, mr: 0 }}>
                         <CheckCircleIcon sx={{ color: '#059669', fontSize: 20 }} />
                       </ListItemIcon>
                       <ListItemText 
                         primary={policy}
                         sx={{ 
                           m: 0,
+                          textAlign: 'right',
                           '& .MuiListItemText-primary': {
                             fontSize: '0.9rem'
                           }
@@ -247,22 +242,60 @@ const FAQDetailsPage = () => {
                   צריכים עזרה?
                 </Typography>
                 <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <PhoneIcon sx={{ color: '#dc2626', mr: 1, fontSize: 20 }} />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      050-123-4567
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1.5 }}>
+                    <PhoneIcon sx={{ color: '#dc2626', fontSize: 20 }} />
+                    <Typography 
+                      variant="body2" 
+                      component="a"
+                      href="tel:+972506070260"
+                      sx={{ 
+                        fontWeight: 500,
+                        color: 'inherit',
+                        textDecoration: 'none',
+                        '&:hover': {
+                          color: '#dc2626'
+                        }
+                      }}
+                    >
+                      0506070260
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <EmailIcon sx={{ color: '#dc2626', mr: 1, fontSize: 20 }} />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      info@airport-guesthouse.co.il
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1.5 }}>
+                    <EmailIcon sx={{ color: '#dc2626', fontSize: 20 }} />
+                    <Typography 
+                      variant="body2" 
+                      component="a"
+                      href="mailto:diamshotels@gmail.com"
+                      sx={{ 
+                        fontWeight: 500,
+                        color: 'inherit',
+                        textDecoration: 'none',
+                        '&:hover': {
+                          color: '#dc2626'
+                        }
+                      }}
+                    >
+                      diamshotels@gmail.com
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <ScheduleIcon sx={{ color: '#dc2626', mr: 1, fontSize: 20 }} />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      זמינים 24/7
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <WhatsAppIcon sx={{ color: '#25D366', fontSize: 20 }} />
+                    <Typography 
+                      variant="body2" 
+                      component="a"
+                      href="https://wa.me/972506070260"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        fontWeight: 500,
+                        color: '#25D366',
+                        textDecoration: 'none',
+                        '&:hover': {
+                          textDecoration: 'underline'
+                        }
+                      }}
+                    >
+                      זמינים בווטסאפ - עונים מהר!
                     </Typography>
                   </Box>
                 </Box>

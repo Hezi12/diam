@@ -139,7 +139,7 @@ const AboutContactPage = () => {
             component={Link}
             to="/airport-booking"
             startIcon={<ArrowBackIcon />}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, gap: 1.5 }}
           >
             חזרה לדף הבית
           </Button>
@@ -243,21 +243,25 @@ const AboutContactPage = () => {
                     </Box>
                     
                     <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mb: 2 }}>
-                      5 דקות נסיעה מנמל התעופה בן גוריון
+                      15 דקות נסיעה מנמל התעופה בן גוריון
                     </Typography>
                     
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <PhoneIcon sx={{ color: 'primary.main', mr: 1 }} />
-                      <Typography variant="body1">
-                        03-123-4567
-                      </Typography>
+                                          <Typography variant="body1">
+                      <a href="tel:+972506070260" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        050-607-0260
+                      </a>
+                    </Typography>
                     </Box>
                     
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <EmailIcon sx={{ color: 'primary.main', mr: 1 }} />
-                      <Typography variant="body1">
-                        info@airport-guesthouse.com
-                      </Typography>
+                                          <Typography variant="body1">
+                      <a href="mailto:diamshotels@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        diamshotels@gmail.com
+                      </a>
+                    </Typography>
                     </Box>
                   </Box>
                 </Paper>
@@ -338,6 +342,7 @@ const AboutContactPage = () => {
                           fullWidth
                           disabled={loading}
                           startIcon={loading ? <CircularProgress size={20} /> : <SendIcon />}
+                          sx={{ gap: 1.5 }}
                         >
                           שלח הודעה
                         </Button>
@@ -367,7 +372,9 @@ const AboutContactPage = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" sx={{ ml: 4 }}>
-                      03-123-4567
+                      <a href="tel:+972506070260" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        050-607-0260
+                      </a>
                     </Typography>
                   </Box>
                   
@@ -379,7 +386,9 @@ const AboutContactPage = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" sx={{ ml: 4 }}>
-                      info@airport-guesthouse.com
+                      <a href="mailto:diamshotels@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        diamshotels@gmail.com
+                      </a>
                     </Typography>
                   </Box>
                   
@@ -394,7 +403,7 @@ const AboutContactPage = () => {
                       רחוב הערבה 5, אור יהודה
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
-                      5 דקות נסיעה מנמל התעופה בן גוריון
+                      15 דקות נסיעה מנמל התעופה בן גוריון
                     </Typography>
                   </Box>
                   

@@ -23,7 +23,9 @@ import {
   Menu as MenuIcon,
   Language as LanguageIcon,
   WhatsApp as WhatsAppIcon,
-  Phone as PhoneIcon
+  Phone as PhoneIcon,
+  Flight as FlightIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
@@ -41,14 +43,8 @@ const PublicSiteLayout = ({ children }) => {
   
   // נתיבי התפריט
   const menuItems = [
-    { label: 'דף הבית', path: '/airport-booking' },
     { label: 'שאלות ופרטים נוספים', path: '/airport-booking/faq-details' },
   ];
-
-  // פילטור התפריט - הסתרת "דף הבית" כשאנחנו בדף הבית
-  const filteredMenuItems = menuItems.filter(item => 
-    !(item.path === '/airport-booking' && location.pathname === '/airport-booking')
-  );
   
   const handleLanguageMenu = (event) => {
     setLanguageMenu(event.currentTarget);
@@ -88,22 +84,58 @@ const PublicSiteLayout = ({ children }) => {
       >
         <Container>
           <Toolbar sx={{ px: { xs: 0, sm: 2 }, minHeight: '64px !important' }}>
-            <Typography 
-              variant="h6" 
-              component={Link} 
+            <Box
+              component={Link}
               to="/airport-booking"
-              sx={{ 
-                flexGrow: 1, 
+              sx={{
+                flexGrow: 1,
                 textDecoration: 'none',
-                color: '#1e293b',
-                fontWeight: 600,
-                fontSize: '1.5rem',
                 display: 'flex',
                 alignItems: 'center',
+                gap: 1.5,
+                cursor: 'pointer',
+                '&:hover .logo-text': {
+                  background: 'linear-gradient(45deg, #0f172a 30%, #1e40af 90%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  transform: 'translateY(-1px)'
+                },
+                '&:hover .logo-icon': {
+                  transform: 'rotate(5deg) scale(1.1)',
+                  color: '#1e40af'
+                }
               }}
             >
-              Airport Guest House
-            </Typography>
+              <FlightIcon 
+                className="logo-icon"
+                sx={{ 
+                  fontSize: '2rem',
+                  color: '#0f172a',
+                  transition: 'all 0.3s ease',
+                  transform: 'rotate(-15deg)'
+                }} 
+              />
+              <Typography 
+                className="logo-text"
+                variant="h6" 
+                sx={{ 
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: { xs: '1.3rem', sm: '1.6rem' },
+                  letterSpacing: '-0.5px',
+                  background: 'linear-gradient(45deg, #0f172a 60%, #374151 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  transition: 'all 0.3s ease',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  lineHeight: 1.2
+                }}
+              >
+                Airport Guest House
+              </Typography>
+            </Box>
             
             {isMobile ? (
               <>
@@ -165,7 +197,7 @@ const PublicSiteLayout = ({ children }) => {
               </>
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {filteredMenuItems.map((item) => (
+                {menuItems.map((item) => (
                   <Button
                     key={item.path}
                     component={Link}
@@ -228,6 +260,7 @@ const PublicSiteLayout = ({ children }) => {
                   sx={{ 
                     ml: 1,
                     color: '#64748b',
+                    gap: 1.5,
                     '&:hover': { bgcolor: '#f8fafc' }
                   }}
                 >
@@ -301,7 +334,7 @@ const PublicSiteLayout = ({ children }) => {
             </Typography>
           </Box>
           <List>
-            {filteredMenuItems.map((item) => (
+            {menuItems.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton 
                   component={Link} 

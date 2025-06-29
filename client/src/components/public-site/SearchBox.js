@@ -354,6 +354,7 @@ const SearchBox = () => {
               borderRadius: 1,
               fontWeight: 500,
               height: '40px',
+              gap: 1.5,
               '&:hover': {
                 bgcolor: '#b91c1c',
               },

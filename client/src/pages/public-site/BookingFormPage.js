@@ -757,8 +757,8 @@ const BookingFormPage = () => {
           ) : (
             <Grid container spacing={3}>
               {/* טופס הזמנה */}
-              <Grid item xs={12} md={6}>
-                <Paper elevation={1} sx={{ p: 2, borderRadius: '10px' }}>
+              <Grid item xs={12} md={6} order={{ xs: 2, md: 1 }}>
+                <Paper elevation={1} sx={{ p: { xs: 1, sm: 2 }, borderRadius: '10px' }}>
                   <Stepper 
                     activeStep={activeStep} 
                     alternativeLabel={!isMobile} 
@@ -820,8 +820,8 @@ const BookingFormPage = () => {
               </Grid>
               
               {/* סיכום הזמנה */}
-              <Grid item xs={12} md={6}>
-                <Card elevation={2} sx={{ borderRadius: '10px', position: 'sticky', top: 20 }}>
+              <Grid item xs={12} md={6} order={{ xs: 1, md: 2 }}>
+                <Card elevation={2} sx={{ borderRadius: '10px', position: { xs: 'static', md: 'sticky' }, top: 20 }}>
                   {roomLoading ? (
                     <Box sx={{ p: 3 }}>
                       <CircularProgress size={24} />
@@ -837,13 +837,13 @@ const BookingFormPage = () => {
                         
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                           <EventAvailableIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
-                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                          <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
                             {formattedCheckIn} - {formattedCheckOut}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                           <PersonOutlineIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
-                          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                          <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
                             עד {room?.maxOccupancy} אורחים
                           </Typography>
                         </Box>
@@ -873,7 +873,7 @@ const BookingFormPage = () => {
                           mb: 1.5,
                           border: '1px solid #e2e8f0'
                         }}>
-                          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr auto', gap: 1, alignItems: 'center' }}>
+                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr auto 1fr auto' }, gap: 1, alignItems: 'center' }}>
                             <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
                               ₪{roomPricing.pricePerNight}/לילה
                             </Typography>

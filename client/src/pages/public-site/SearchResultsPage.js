@@ -447,7 +447,7 @@ const SearchResultsPage = () => {
             component={Link}
             to="/airport-booking"
             startIcon={<ArrowBackIcon />}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, gap: 1.5 }}
           >
             חזרה לדף הבית
           </Button>
@@ -515,7 +515,7 @@ const SearchResultsPage = () => {
                     <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                       {/* תוכן עליון שיגדל */}
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body1" color="text.primary" paragraph sx={{ fontSize: '1.05rem', lineHeight: 1.6, fontWeight: 400 }}>
+                        <Typography variant="body1" color="text.primary" paragraph sx={{ fontSize: { xs: '1rem', sm: '1.05rem' }, lineHeight: 1.6, fontWeight: 400 }}>
                           <strong>{room.category}</strong> - {room.description || 'חדר מאובזר ונוח למנוחה מושלמת. כולל מזגן, טלוויזיה ומקלחת פרטית.'}
                         </Typography>
                         
@@ -537,7 +537,7 @@ const SearchResultsPage = () => {
                       }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: '0.95rem' }}>
+                            <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
                               ₪{roomPricing.pricePerNight} × {nightsCount} לילות
                             </Typography>
                             <Tooltip title="פרטי התשלום והמדיניות" arrow>
@@ -551,7 +551,7 @@ const SearchResultsPage = () => {
                             </Tooltip>
                           </Box>
                           <Box sx={{ textAlign: 'right' }}>
-                            <Typography variant="h6" fontWeight={700} color="success.main" sx={{ lineHeight: 1, fontSize: '1.5rem' }}>
+                            <Typography variant="h6" fontWeight={700} color="success.main" sx={{ lineHeight: 1, fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
                               ₪{roomPricing.totalPrice}
                             </Typography>
                             {isTourist && (

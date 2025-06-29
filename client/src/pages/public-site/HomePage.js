@@ -62,7 +62,7 @@ const HomePage = () => {
           <Paper 
             elevation={1}
             sx={{ 
-              p: 4,
+              p: { xs: 2, sm: 3, md: 4 },
               border: '1px solid #e2e8f0',
               borderRadius: 2,
               bgcolor: 'white'
@@ -74,7 +74,7 @@ const HomePage = () => {
       </Box>
 
       {/* מידע על המלונית */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 } }}>
         <Grid container spacing={4} alignItems="flex-start">
           {/* מידע כללי */}
           <Grid item xs={12} md={6}>
@@ -88,7 +88,19 @@ const HomePage = () => {
                 fontSize: { xs: '1.5rem', sm: '1.75rem' }
               }}
             >
-              מלונית Airport Guest House
+              <Link 
+                to="/airport-booking/faq-details" 
+                style={{ 
+                  textDecoration: 'none', 
+                  color: 'inherit',
+                  borderBottom: '2px solid transparent',
+                  transition: 'border-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.borderBottomColor = '#1e293b'}
+                onMouseLeave={(e) => e.target.style.borderBottomColor = 'transparent'}
+              >
+                מלונית Airport Guest House
+              </Link>
             </Typography>
             
             <Typography 
@@ -103,6 +115,18 @@ const HomePage = () => {
               המלונית המובילה באזור נמל התעופה בן גוריון. 
               חדרים מודרניים ומאובזרים עם שירות מקצועי - 
               הפתרון המושלם לנוסעים ואנשי עסקים.
+              {' '}
+              <Link 
+                to="/airport-booking/faq-details"
+                style={{ 
+                  color: '#1e293b', 
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  borderBottom: '1px solid #1e293b'
+                }}
+              >
+                לפרטים נוספים ושאלות נפוצות
+              </Link>
             </Typography>
 
             {/* שירותים מאוחדים */}
@@ -148,7 +172,7 @@ const HomePage = () => {
                           >
                             {service.icon}
                           </Box>
-                          <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                          <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' }, color: '#64748b', fontWeight: 500 }}>
                             {service.name}
                           </Typography>
                         </Box>
@@ -168,7 +192,7 @@ const HomePage = () => {
                 overflow: 'hidden',
                 border: '1px solid #e2e8f0',
                 borderRadius: 2,
-                height: '350px'
+                height: { xs: '250px', sm: '300px', md: '350px' }
               }}
             >
               <LocationMap />
