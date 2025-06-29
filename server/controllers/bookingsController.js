@@ -827,7 +827,7 @@ exports.createPublicBooking = async (req, res) => {
       console.log('חישוב תמחור:', { 
           nights, 
           guests: guestsCount, 
-          baseOccupancy, 
+          baseOccupancy: roomData.baseOccupancy || 2, 
           extraGuests, 
           extraGuestCharge,
           totalExtraCharge, 
