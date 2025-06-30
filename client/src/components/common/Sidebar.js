@@ -393,17 +393,17 @@ const Sidebar = () => {
           {/* הצגת תת-תפריט הכנסות אם הוא מוצג */}
           {renderRevenueSubmenu()}
           
-          {/* קבוצת אתרים */}
+          {/* קבוצת אתרים ציבוריים */}
           <SidebarItem
             icon={<RothschildIcon />}
-            to="/rothschild-site"
-            title="אתר Rothschild"
+            to="/rothschild-booking"
+            title="אתר Rothschild 79"
             iconColor={iconColors.rothschild}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
           <SidebarItem
             icon={<AirportIcon />}
-            to="/airport-site"
+            to="/airport-booking"
             title="אתר Airport Guest House"
             iconColor={iconColors.airport}
             onClick={isMobile ? toggleDrawer(false) : undefined}

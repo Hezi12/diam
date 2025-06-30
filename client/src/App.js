@@ -14,8 +14,7 @@ import Login from './pages/Login';
 import Settings from './pages/settings/Settings';
 import AirportRooms from './pages/settings/rooms/AirportRooms';
 import RothschildRooms from './pages/settings/rooms/RothschildRooms';
-import AirportSite from './pages/sites/AirportSite';
-import RothschildSite from './pages/sites/RothschildSite';
+
 import Cleaning from './pages/Cleaning';
 import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
@@ -229,26 +228,7 @@ const AppContent = () => {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/rothschild-site"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <RothschildSite />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/airport-site"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <AirportSite />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
+
               <Route
                 path="/revenue"
                 element={
