@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     // בחירת נתיב uploads מתאים לסביבה
     const baseUploadsPath = process.env.NODE_ENV === 'production' 
-      ? '/opt/render/project/src/uploads'
+      ? '/opt/render/project/src/uploads'  // ✅ Render Persistent Disk path
       : path.join(__dirname, '../uploads');
     
     // קביעת היעד לפי סוג ההעלאה ומיקום
@@ -58,6 +58,9 @@ const storage = multer.diskStorage({
     else {
       uploadPath = path.join(baseUploadsPath, 'temp');
     }
+    
+    // ✅ לוג לבדיקה
+    console.log(`🗂️ Upload path determined: ${uploadPath} (NODE_ENV: ${process.env.NODE_ENV})`);
     
     // וידוא שהתיקייה קיימת
     await ensureDir(uploadPath);

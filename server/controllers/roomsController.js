@@ -283,8 +283,13 @@ exports.uploadImage = async (req, res) => {
       return res.status(404).json({ message: 'חדר לא נמצא' });
     }
     
-    // בניית נתיב הגישה לתמונה
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/rooms/${room.location}/${req.file.filename}`;
+    // ✅ בניית נתיב הגישה לתמונה - תיקון לפרודקשן
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://diam-loy6.onrender.com'
+      : `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/uploads/rooms/${room.location}/${req.file.filename}`;
+    
+    console.log(`📸 Image uploaded: ${imageUrl}`);
     
     // עדכון החדר עם התמונה החדשה
     await Room.findByIdAndUpdate(
@@ -327,8 +332,13 @@ exports.uploadGalleryImage = async (req, res) => {
       return res.status(400).json({ message: 'לא נשלח קובץ תמונה' });
     }
     
-    // בניית נתיב הגישה לתמונה
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/gallery/${location}/${req.file.filename}`;
+    // ✅ בניית נתיב הגישה לתמונה - תיקון לפרודקשן
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://diam-loy6.onrender.com'
+      : `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/uploads/gallery/${location}/${req.file.filename}`;
+    
+    console.log(`🖼️ Gallery image uploaded: ${imageUrl}`);
     
     // שמירת מידע על התמונה במסד הנתונים
     const galleryImage = new Gallery({
@@ -388,10 +398,13 @@ exports.getGalleryImages = async (req, res) => {
         // קריאת רשימת הקבצים
         const files = await fs.readdir(galleryPath);
         
-        // יצירת רשימת URLs לתמונות
+        // ✅ יצירת רשימת URLs לתמונות - תיקון לפרודקשן
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://diam-loy6.onrender.com'
+          : `${req.protocol}://${req.get('host')}`;
         const imageUrls = files
           .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file)) // רק קבצי תמונה
-          .map(file => `${req.protocol}://${req.get('host')}/uploads/gallery/${location}/${file}`);
+          .map(file => `${baseUrl}/uploads/gallery/${location}/${file}`);
         
         // המרת התמונות למודל החדש ושמירה במסד הנתונים
         if (imageUrls.length > 0) {
@@ -576,10 +589,15 @@ exports.uploadRoomImages = async (req, res) => {
     
     console.log(`מעלה ${req.files.length} תמונות לחדר ${room.roomNumber} במיקום ${room.location}`);
     
-    // יצירת רשימת URLs לתמונות החדשות
+    // ✅ יצירת רשימת URLs לתמונות החדשות - תיקון לפרודקשן
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://diam-loy6.onrender.com'
+      : `${req.protocol}://${req.get('host')}`;
     const imageUrls = req.files.map(file => {
-      return `${req.protocol}://${req.get('host')}/uploads/rooms/${room.location}/${file.filename}`;
+      return `${baseUrl}/uploads/rooms/${room.location}/${file.filename}`;
     });
+    
+    console.log(`📸 Generated image URLs:`, imageUrls);
     
     // עדכון החדר במסד הנתונים - הוספת התמונות החדשות לרשימה הקיימת
     const updatedRoom = await Room.findByIdAndUpdate(
