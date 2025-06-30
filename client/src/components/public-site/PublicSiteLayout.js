@@ -15,6 +15,7 @@ import {
   WhatsApp as WhatsAppIcon,
   Phone as PhoneIcon,
   Flight as FlightIcon,
+  Apartment as ApartmentIcon,
   Language as LanguageIcon
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
@@ -79,15 +80,26 @@ const PublicSiteLayout = ({ children, location: siteLocation = 'airport' }) => {
                 }
               }}
             >
-              <FlightIcon 
-                className="logo-icon"
-                sx={{ 
-                  fontSize: '2rem',
-                  color: '#0f172a',
-                  transition: 'all 0.3s ease',
-                  transform: 'rotate(-15deg)'
-                }} 
-              />
+              {siteLocation === 'rothschild' ? (
+                <ApartmentIcon 
+                  className="logo-icon"
+                  sx={{ 
+                    fontSize: '2rem',
+                    color: '#0f172a',
+                    transition: 'all 0.3s ease'
+                  }} 
+                />
+              ) : (
+                <FlightIcon 
+                  className="logo-icon"
+                  sx={{ 
+                    fontSize: '2rem',
+                    color: '#0f172a',
+                    transition: 'all 0.3s ease',
+                    transform: 'rotate(-15deg)'
+                  }} 
+                />
+              )}
               <Typography 
                 className="logo-text"
                 variant="h6" 

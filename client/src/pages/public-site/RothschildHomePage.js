@@ -42,7 +42,6 @@ const RothschildHomePage = () => {
     { nameKey: 'faq.bedding', icon: <HotelIcon />, color: '#8b5cf6' },
     { nameKey: 'faq.wifi', icon: <WifiIcon />, color: '#10b981' },
     { nameKey: 'faq.parking', icon: <LocalParkingIcon />, color: '#f59e0b' },
-    { nameKey: 'faq.shuttle', icon: <DirectionsBusIcon />, color: '#ef4444' },
     { nameKey: 'faq.restaurants', icon: <RestaurantIcon />, color: '#ec4899' },
     { nameKey: 'faq.checkin24', icon: <ScheduleIcon />, color: '#06b6d4' },
     { nameKey: 'faq.privacy', icon: <LockIcon />, color: '#84cc16' },
