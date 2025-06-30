@@ -101,12 +101,6 @@ const RoomManagement = ({ location }) => {
           location
         });
         savedRoom = response.data;
-        
-        // עדכון החדר ברשימה
-        const updatedRooms = rooms.map(room => 
-          room._id === currentRoom._id ? savedRoom : room
-        );
-        setRooms(updatedRooms);
       } else {
         // הוספת חדר חדש
         const response = await axios.post('/api/rooms', {
@@ -114,9 +108,6 @@ const RoomManagement = ({ location }) => {
           location
         });
         savedRoom = response.data;
-        
-        // הוספת החדר החדש לרשימה
-        setRooms([...rooms, savedRoom]);
       }
       
       // העלאת תמונות אם יש כאלה
@@ -130,17 +121,32 @@ const RoomManagement = ({ location }) => {
           });
           
           // שליחת התמונות לשרת
-          await axios.post(`/api/rooms/${savedRoom._id}/upload-images`, formData, {
+          const uploadResponse = await axios.post(`/api/rooms/${savedRoom._id}/upload-images`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
           
           console.log('התמונות הועלו בהצלחה');
+          
+          // ✅ קבלת מידע החדר המעודכן כולל URLs התמונות החדשים
+          const updatedRoomResponse = await axios.get(`/api/rooms/single/${savedRoom._id}`);
+          savedRoom = updatedRoomResponse.data;
+          
         } catch (uploadError) {
           console.error('שגיאה בהעלאת תמונות:', uploadError);
           alert('החדר נשמר בהצלחה, אך הייתה בעיה בהעלאת התמונות. אנא נסה שוב.');
         }
+      }
+      
+      // ✅ עדכון החדר ברשימה עם הנתונים המעודכנים
+      if (isEdit) {
+        const updatedRooms = rooms.map(room => 
+          room._id === currentRoom._id ? savedRoom : room
+        );
+        setRooms(updatedRooms);
+      } else {
+        setRooms([...rooms, savedRoom]);
       }
       
       setOpenForm(false);

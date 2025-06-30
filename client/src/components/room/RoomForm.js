@@ -264,20 +264,39 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
     
-    // יצירת תצוגות מקדימות
-    const filePreviews = files.map(file => URL.createObjectURL(file));
+    // יצירת תצוגות מקדימות רק עבור הקבצים החדשים
+    const filePreviews = files.map(file => ({
+      file: file,
+      preview: URL.createObjectURL(file),
+      isTemporary: true // מסמן שזה זמני
+    }));
     
     setImageFiles((prev) => [...prev, ...files]);
-    setImagePreview((prev) => [...prev, ...filePreviews]);
+    
+    // הוספת תצוגות מקדימות זמניות
+    const tempPreviews = filePreviews.map(item => item.preview);
+    setImagePreview((prev) => [...prev, ...tempPreviews]);
   };
   
   const handleRemoveImage = (index) => {
+    const imageToRemove = imagePreview[index];
+    
+    // ניקוי blob URL אם זה זמני
+    if (imageToRemove && imageToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(imageToRemove);
+    }
+    
     setImagePreview((prev) => prev.filter((_, i) => i !== index));
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // סינון רק התמונות הקיימות (לא blob) עבור השמירה
+    const existingImages = imagePreview.filter(img => 
+      img && !img.startsWith('blob:') && img.includes('diam-loy6.onrender.com')
+    );
     
     // הכנת הנתונים לשליחה
     const processedData = {
@@ -294,8 +313,8 @@ const RoomForm = ({ room, isEdit, viewOnly, onSave, onCancel }) => {
       extraGuestCharge: parseInt(formData.extraGuestCharge, 10) || 0,
       description: formData.description,
       amenities: (formData.amenities || '').split(',').map(item => item.trim()).filter(item => item),
-      images: imagePreview,
-      imageFiles: imageFiles, // הוספת הקבצים עצמם
+      images: existingImages, // ✅ רק תמונות קיימות, לא blob
+      imageFiles: imageFiles, // קבצים חדשים להעלאה
       status: formData.status
     };
     
