@@ -2,7 +2,7 @@
  * סקריפט בדיקה לשליחת מייל
  */
 
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: '.env' });
 const emailService = require('../services/emailService');
 
 async function testEmail() {
