@@ -86,6 +86,9 @@ class EmailService {
        checkInFormatted = format(new Date(bookingData.checkIn), 'dd/MM/yyyy');
        checkOutFormatted = format(new Date(bookingData.checkOut), 'dd/MM/yyyy');
      }
+     
+     // זיהוי שם העסק לפי המיקום
+     const businessName = bookingData.location === 'rothschild' ? 'Rothschild 79' : 'Airport Guest House';
     
     return `
 <!DOCTYPE html>
@@ -93,7 +96,7 @@ class EmailService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>אישור הזמנה - Airport Guest House</title>
+    <title>אישור הזמנה - ${businessName}</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -219,7 +222,7 @@ class EmailService {
         <div class="header">
             <div style="font-size: 50px; color: #059669; margin-bottom: 15px;">✅</div>
             <h1>ההזמנה התקבלה בהצלחה!</h1>
-            <p class="subtitle">Airport Guest House</p>
+            <p class="subtitle">${businessName}</p>
         </div>
         
         <div class="content">
@@ -276,7 +279,7 @@ class EmailService {
         </div>
         
         <div class="contact-info">
-            <p><strong>Airport Guest House</strong></p>
+            <p><strong>${businessName}</strong></p>
         </div>
     </div>
 </body>
@@ -297,6 +300,9 @@ class EmailService {
        checkOutFormatted = format(new Date(bookingData.checkOut), 'dd/MM/yyyy');
      }
      const now = format(new Date(), 'dd/MM/yyyy HH:mm');
+     
+     // זיהוי שם העסק לפי המיקום
+     const businessName = bookingData.location === 'rothschild' ? 'Rothschild 79' : 'Airport Guest House';
     
     return `
 <!DOCTYPE html>
@@ -372,7 +378,7 @@ class EmailService {
     <div class="container">
         <div class="header">
             <h1>🚨 הזמנה חדשה מהאתר הציבורי</h1>
-            <p>התקבלה ב-${now}</p>
+            <p>התקבלה ב-${now} - ${businessName}</p>
         </div>
         
         <div class="content">
@@ -478,13 +484,16 @@ class EmailService {
       checkOutFormatted = format(new Date(bookingData.checkOut), 'MM/dd/yyyy');
     }
 
+    // זיהוי שם העסק לפי המיקום
+    const businessName = bookingData.location === 'rothschild' ? 'Rothschild 79' : 'Airport Guest House';
+
     return `
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Confirmation - Airport Guest House</title>
+    <title>Booking Confirmation - ${businessName}</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -595,7 +604,7 @@ class EmailService {
         <div class="header">
             <div style="font-size: 50px; color: #059669; margin-bottom: 15px;">✅</div>
             <h1>Booking Confirmed!</h1>
-            <p class="subtitle">Airport Guest House</p>
+            <p class="subtitle">${businessName}</p>
         </div>
         
         <div class="content">
@@ -652,7 +661,7 @@ class EmailService {
         </div>
         
         <div class="contact-info">
-            <p><strong>Airport Guest House</strong></p>
+            <p><strong>${businessName}</strong></p>
         </div>
     </div>
 </body>
@@ -694,20 +703,21 @@ class EmailService {
          throw new Error('כתובת מייל לא תקינה');
        }
 
-       // בחירת כותרת מייל לפי שפה
+       // בחירת כותרת מייל לפי שפה ומיקום
        const language = bookingData.language || 'he';
+       const businessName = bookingData.location === 'rothschild' ? 'Rothschild 79' : 'Airport Guest House';
        const subject = language === 'en' 
-         ? `Booking Confirmation #${String(bookingData.bookingNumber).padStart(6, '0')} - Airport Guest House`
-         : `אישור הזמנה ${String(bookingData.bookingNumber).padStart(6, '0')} - Airport Guest House`;
+         ? `Booking Confirmation #${String(bookingData.bookingNumber).padStart(6, '0')} - ${businessName}`
+         : `אישור הזמנה ${String(bookingData.bookingNumber).padStart(6, '0')} - ${businessName}`;
 
        const mailOptions = {
-         from: `"Airport Guest House" <${this.fromEmail}>`,
+         from: `"${businessName}" <${this.fromEmail}>`,
          to: bookingData.email,
          subject: subject,
          html: this.createGuestConfirmationTemplate(bookingData),
          text: language === 'en' 
-           ? `Hello ${bookingData.firstName || 'Dear Guest'},\n\nYour booking has been confirmed!\n\nBooking Number: ${bookingData.bookingNumber}\nCheck-in: ${bookingData.checkIn}\nCheck-out: ${bookingData.checkOut}\nPrice: ₪${bookingData.price}\n\nWe look forward to welcoming you!\nAirport Guest House`
-           : `שלום ${bookingData.firstName || 'אורח יקר'},\n\nההזמנה שלך אושרה!\n\nמספר הזמנה: ${bookingData.bookingNumber}\nצ'ק-אין: ${bookingData.checkIn}\nצ'ק-אאוט: ${bookingData.checkOut}\nמחיר: ${bookingData.price} ₪\n\nמחכים לכם!\nAirport Guest House`
+           ? `Hello ${bookingData.firstName || 'Dear Guest'},\n\nYour booking has been confirmed!\n\nBooking Number: ${bookingData.bookingNumber}\nCheck-in: ${bookingData.checkIn}\nCheck-out: ${bookingData.checkOut}\nPrice: ₪${bookingData.price}\n\nWe look forward to welcoming you!\n${businessName}`
+           : `שלום ${bookingData.firstName || 'אורח יקר'},\n\nההזמנה שלך אושרה!\n\nמספר הזמנה: ${bookingData.bookingNumber}\nצ'ק-אין: ${bookingData.checkIn}\nצ'ק-אאוט: ${bookingData.checkOut}\nמחיר: ${bookingData.price} ₪\n\nמחכים לכם!\n${businessName}`
        };
 
       const info = await this.transporter.sendMail(mailOptions);

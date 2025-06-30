@@ -934,7 +934,8 @@ exports.createPublicBooking = async (req, res) => {
           roomNumber: roomData.roomNumber,
           guests: guestsCount,
           notes,
-          language // 🔥 הוספת שפת הלקוח לנתוני המייל
+          language, // 🔥 הוספת שפת הלקוח לנתוני המייל
+          location: roomData.location // 🔥 הוספת המיקום לנתוני המייל
         };
         
         console.log('📧 שולח מיילים להזמנה:', bookingNumber);
