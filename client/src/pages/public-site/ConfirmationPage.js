@@ -72,8 +72,8 @@ const ConfirmationPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: t('confirmation.shareTitle'),
-          text: t('confirmation.shareText', { 
+                title: t('confirmation.airportShareTitle'),
+      text: t('confirmation.airportShareText', { 
             checkIn: formattedCheckIn, 
             checkOut: formattedCheckOut, 
             bookingNumber: formattedBookingNumber 
@@ -223,7 +223,7 @@ const ConfirmationPage = () => {
 {t('confirmation.emailSent')}
             </Typography>
             <Typography variant="body1" fontWeight={500}>
-              {t('confirmation.seeYouSoon')}
+              {t('confirmation.airportSeeYouSoon')}
             </Typography>
           </Box>
         </Paper>

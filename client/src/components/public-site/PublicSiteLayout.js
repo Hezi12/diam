@@ -260,7 +260,7 @@ const PublicSiteLayout = ({ children, location: siteLocation = 'airport' }) => {
       >
         <Container maxWidth="lg">
           <Typography variant="body2" sx={{ textAlign: 'center', color: '#64748b' }}>
-{t('footer.copyright')}
+            {siteLocation === 'rothschild' ? t('rothschildFooter.copyright') : t('airportFooter.copyright')}
           </Typography>
         </Container>
       </Box>

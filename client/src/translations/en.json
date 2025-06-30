@@ -138,9 +138,12 @@
     "numberOfGuests": "Number of Guests:",
     "totalAmount": "Total Amount",
     "emailSent": "📧 Booking confirmation sent to your email address",
-    "seeYouSoon": "See you at Airport Guest House!",
-    "shareTitle": "Booking at Airport Guest House",
-    "shareText": "I booked a room at Airport Guest House for {checkIn} to {checkOut}. Booking number: {bookingNumber}"
+    "airportSeeYouSoon": "See you at Airport Guest House!",
+    "rothschildSeeYouSoon": "See you at Rothschild 79!",
+    "airportShareTitle": "Booking at Airport Guest House",
+    "rothschildShareTitle": "Booking at Rothschild 79",
+    "airportShareText": "I booked a room at Airport Guest House for {checkIn} to {checkOut}. Booking number: {bookingNumber}",
+    "rothschildShareText": "I booked a room at Rothschild 79 for {checkIn} to {checkOut}. Booking number: {bookingNumber}"
   },
   "gallery": {
     "title": "Gallery",
@@ -282,8 +285,11 @@
     "close": "Close",
     "airportSitePreview": "Preview - Airport Guest House"
   },
-  "footer": {
+  "airportFooter": {
     "copyright": "© 2024 Airport Guest House. All rights reserved."
+  },
+  "rothschildFooter": {
+    "copyright": "© 2024 Rothschild 79. All rights reserved."
   },
   "airportHome": {
     "title": "Airport Guest House",

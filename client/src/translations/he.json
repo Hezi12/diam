@@ -138,9 +138,12 @@
     "numberOfGuests": "מספר אורחים:",
     "totalAmount": "סכום לתשלום",
     "emailSent": "📧 אישור הזמנה נשלח לכתובת המייל שלך",
-    "seeYouSoon": "נתראה ב-Airport Guest House!",
-    "shareTitle": "הזמנה במלונית Airport Guest House",
-    "shareText": "הזמנתי חדר במלונית Airport Guest House לתאריכים {checkIn} עד {checkOut}. מספר הזמנה: {bookingNumber}"
+    "airportSeeYouSoon": "נתראה ב-Airport Guest House!",
+    "rothschildSeeYouSoon": "נתראה ב-Rothschild 79!",
+    "airportShareTitle": "הזמנה במלונית Airport Guest House",
+    "rothschildShareTitle": "הזמנה ב-Rothschild 79",
+    "airportShareText": "הזמנתי חדר במלונית Airport Guest House לתאריכים {checkIn} עד {checkOut}. מספר הזמנה: {bookingNumber}",
+    "rothschildShareText": "הזמנתי חדר ב-Rothschild 79 לתאריכים {checkIn} עד {checkOut}. מספר הזמנה: {bookingNumber}"
   },
   "gallery": {
     "title": "גלריה",
@@ -283,8 +286,11 @@
     "close": "סגור",
     "airportSitePreview": "תצוגה מקדימה - Airport Guest House"
   },
-  "footer": {
+  "airportFooter": {
     "copyright": "© 2024 Airport Guest House. כל הזכויות שמורות."
+  },
+  "rothschildFooter": {
+    "copyright": "© 2024 Rothschild 79. כל הזכויות שמורות."
   },
   "airportHome": {
     "title": "Airport Guest House",

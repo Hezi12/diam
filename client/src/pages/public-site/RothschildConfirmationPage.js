@@ -72,8 +72,8 @@ const RothschildConfirmationPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: t('confirmation.shareTitle'),
-          text: t('confirmation.shareText', { 
+                title: t('confirmation.rothschildShareTitle'),
+      text: t('confirmation.rothschildShareText', { 
             checkIn: formattedCheckIn, 
             checkOut: formattedCheckOut, 
             bookingNumber: formattedBookingNumber 
@@ -223,7 +223,7 @@ const RothschildConfirmationPage = () => {
 {t('confirmation.emailSent')}
             </Typography>
             <Typography variant="body1" fontWeight={500}>
-              {t('confirmation.seeYouSoon')}
+              {t('confirmation.rothschildSeeYouSoon')}
             </Typography>
           </Box>
         </Paper>
