@@ -213,6 +213,7 @@ const BookingFormPage = () => {
         checkIn: checkInStr,
         checkOut: checkOutStr,
         isTourist: isTourist,
+        language: currentLanguage, // 🔥 הוספת שפת הלקוח
         creditCard: {
           cardNumber: bookingData.creditCard.cardNumber.replace(/\s/g, ''),
           expiryDate: bookingData.creditCard.expiryDate,

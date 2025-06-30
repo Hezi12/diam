@@ -5,7 +5,7 @@
 
 const nodemailer = require('nodemailer');
 const { format } = require('date-fns');
-const { he } = require('date-fns/locale');
+const { he, enUS } = require('date-fns/locale');
 
 class EmailService {
   constructor() {
@@ -72,10 +72,10 @@ class EmailService {
     }
   }
 
-     /**
-    * יצירת תבנית HTML לאישור הזמנה לאורח
-    */
-   createGuestConfirmationTemplate(bookingData) {
+       /**
+   * יצירת תבנית HTML לאישור הזמנה לאורח - בעברית
+   */
+  createGuestConfirmationTemplateHE(bookingData) {
      // עיצוב תאריכים בעברית (fallback אם יש בעיה עם locale)
      let checkInFormatted, checkOutFormatted;
      try {
@@ -434,6 +434,13 @@ class EmailService {
                     <span class="value">${bookingData.price} ₪</span>
                 </div>
                 
+                ${bookingData.language ? `
+                <div class="detail-row">
+                    <span class="label">שפת הלקוח:</span>
+                    <span class="value">${bookingData.language === 'en' ? 'אנגלית' : 'עברית'}</span>
+                </div>
+                ` : ''}
+                
                 ${bookingData.notes ? `
                 <div class="detail-row">
                     <span class="label">הערות:</span>
@@ -457,6 +464,216 @@ class EmailService {
   }
 
   /**
+   * יצירת תבנית HTML לאישור הזמנה לאורח - באנגלית
+   */
+  createGuestConfirmationTemplateEN(bookingData) {
+    // Format dates in English
+    let checkInFormatted, checkOutFormatted;
+    try {
+      checkInFormatted = format(new Date(bookingData.checkIn), 'EEEE, MMMM d, yyyy', { locale: enUS });
+      checkOutFormatted = format(new Date(bookingData.checkOut), 'EEEE, MMMM d, yyyy', { locale: enUS });
+    } catch (error) {
+      // fallback in case of locale issues
+      checkInFormatted = format(new Date(bookingData.checkIn), 'MM/dd/yyyy');
+      checkOutFormatted = format(new Date(bookingData.checkOut), 'MM/dd/yyyy');
+    }
+
+    return `
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation - Airport Guest House</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 12px; 
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+            background: white; 
+            color: #1e293b; 
+            padding: 30px 30px 20px 30px; 
+            text-align: center; 
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 26px; 
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .header .subtitle { 
+            margin: 8px 0 0; 
+            font-size: 16px; 
+            color: #64748b;
+            font-weight: 400;
+        }
+        .content { 
+            padding: 30px; 
+        }
+        .booking-number { 
+            text-align: center; 
+            background: #f0f9ff; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 25px;
+            border: 1px solid #bfdbfe;
+        }
+        .booking-number h2 { 
+            color: #1e40af; 
+            margin: 0; 
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .details-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 20px; 
+            margin-bottom: 30px;
+        }
+        .detail-card { 
+            background: #f8fafc; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid #1e40af;
+        }
+        .detail-card h3 { 
+            margin: 0 0 10px; 
+            color: #1e40af; 
+            font-size: 16px;
+            text-align: left;
+        }
+        .detail-card p { 
+            margin: 5px 0; 
+            color: #64748b;
+            text-align: left;
+        }
+        .instructions { 
+            background: #f0f9ff; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid #3b82f6;
+            margin: 20px 0;
+        }
+        .instructions h3 { 
+            color: #1e40af; 
+            margin: 0 0 10px;
+            text-align: left;
+        }
+        ul { text-align: left; direction: ltr; }
+        .contact-info { 
+            text-align: center; 
+            padding: 20px; 
+            background: #f8fafc; 
+            border-top: 1px solid #e2e8f0;
+        }
+        .contact-info a { 
+            color: #0071e3; 
+            text-decoration: none;
+        }
+        @media (max-width: 768px) {
+            .details-grid { grid-template-columns: 1fr; }
+            .container { margin: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size: 50px; color: #059669; margin-bottom: 15px;">✅</div>
+            <h1>Booking Confirmed!</h1>
+            <p class="subtitle">Airport Guest House</p>
+        </div>
+        
+        <div class="content">
+            <div class="booking-number">
+                <h2>Booking Number: ${String(bookingData.bookingNumber).padStart(6, '0')}</h2>
+            </div>
+            
+            <div class="details-grid">
+                <div class="detail-card">
+                    <h3>Stay Dates</h3>
+                    <p><strong>Check-in:</strong> ${checkInFormatted}</p>
+                    <p><strong>Check-out:</strong> ${checkOutFormatted}</p>
+                    <p><strong>Number of nights:</strong> ${bookingData.nights}</p>
+                </div>
+                
+                <div class="detail-card">
+                    <h3>Room Details</h3>
+                    <p><strong>Room type:</strong> ${bookingData.roomType}</p>
+                    <p><strong>Room number:</strong> ${bookingData.roomNumber}</p>
+                    <p><strong>Number of guests:</strong> ${bookingData.guests}</p>
+                </div>
+                
+                <div class="detail-card">
+                    <h3>Total Amount</h3>
+                    <p style="color: #1e40af; font-size: 20px; font-weight: bold;">₪${bookingData.price}</p>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3>Important Instructions</h3>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>Check-in from 3:00 PM</li>
+                    <li>Check-out until 10:00 AM</li>
+                    <li>We have self check-in - on arrival day we will send all details and entry instructions via WhatsApp</li>
+                </ul>
+            </div>
+            
+            <div class="instructions">
+                <h3>Cancellation Policy</h3>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>Free cancellation up to 3 days before arrival</li>
+                    <li>After that, cancellation is not possible</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 40px 0; padding: 25px; background: #f8fafc; border-radius: 12px; border: 2px solid #e2e8f0;">
+                <p style="color: #1e293b; text-align: center; font-size: 18px; font-weight: 600; margin-bottom: 15px;">
+                    If you have any questions or need help, we are here for you
+                </p>
+                <p style="text-align: center; margin: 0;">
+                    📱 <a href="https://wa.me/972506070260" style="color: #25d366; text-decoration: none; font-weight: 700; font-size: 20px;">WhatsApp</a> <span style="font-size: 18px; color: #64748b; font-weight: 600;">- for any changes or cancellations</span>
+                </p>
+            </div>
+        </div>
+        
+        <div class="contact-info">
+            <p><strong>Airport Guest House</strong></p>
+        </div>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * יצירת תבנית HTML לאישור הזמנה לאורח - כללית שמבחינה בין שפות
+   */
+  createGuestConfirmationTemplate(bookingData) {
+    // בדיקת שפה ובחירת תבנית מתאימה
+    const language = bookingData.language || 'he'; // ברירת מחדל עברית
+    
+    if (language === 'en') {
+      return this.createGuestConfirmationTemplateEN(bookingData);
+    } else {
+      return this.createGuestConfirmationTemplateHE(bookingData);
+    }
+  }
+
+  /**
    * שליחת אישור הזמנה לאורח
    */
   async sendGuestConfirmation(bookingData) {
@@ -477,12 +694,20 @@ class EmailService {
          throw new Error('כתובת מייל לא תקינה');
        }
 
+       // בחירת כותרת מייל לפי שפה
+       const language = bookingData.language || 'he';
+       const subject = language === 'en' 
+         ? `Booking Confirmation #${String(bookingData.bookingNumber).padStart(6, '0')} - Airport Guest House`
+         : `אישור הזמנה ${String(bookingData.bookingNumber).padStart(6, '0')} - Airport Guest House`;
+
        const mailOptions = {
          from: `"Airport Guest House" <${this.fromEmail}>`,
          to: bookingData.email,
-         subject: `אישור הזמנה ${String(bookingData.bookingNumber).padStart(6, '0')} - Airport Guest House`,
+         subject: subject,
          html: this.createGuestConfirmationTemplate(bookingData),
-         text: `שלום ${bookingData.firstName || 'אורח יקר'},\n\nההזמנה שלך אושרה!\n\nמספר הזמנה: ${bookingData.bookingNumber}\nצ'ק-אין: ${bookingData.checkIn}\nצ'ק-אאוט: ${bookingData.checkOut}\nמחיר: ${bookingData.price} ₪\n\nמחכים לכם!\nAirport Guest House`
+         text: language === 'en' 
+           ? `Hello ${bookingData.firstName || 'Dear Guest'},\n\nYour booking has been confirmed!\n\nBooking Number: ${bookingData.bookingNumber}\nCheck-in: ${bookingData.checkIn}\nCheck-out: ${bookingData.checkOut}\nPrice: ₪${bookingData.price}\n\nWe look forward to welcoming you!\nAirport Guest House`
+           : `שלום ${bookingData.firstName || 'אורח יקר'},\n\nההזמנה שלך אושרה!\n\nמספר הזמנה: ${bookingData.bookingNumber}\nצ'ק-אין: ${bookingData.checkIn}\nצ'ק-אאוט: ${bookingData.checkOut}\nמחיר: ${bookingData.price} ₪\n\nמחכים לכם!\nAirport Guest House`
        };
 
       const info = await this.transporter.sendMail(mailOptions);

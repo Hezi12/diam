@@ -713,7 +713,8 @@ exports.createPublicBooking = async (req, res) => {
       checkOut,
       notes,
       creditCard,
-      isTourist
+      isTourist,
+      language = 'he' // 🔥 הוספת שפת הלקוח עם ברירת מחדל עברית
     } = req.body;
     
     // בדיקת שדות חובה
@@ -870,6 +871,7 @@ exports.createPublicBooking = async (req, res) => {
             paymentStatus: 'unpaid',
             status: 'pending',
             isTourist: isTourist || false,
+            language: language, // 🔥 שמירת שפת הלקוח
             // שמירת נתוני כרטיס האשראי מלאים (כמו בהזמנות רגילות)
             creditCard: creditCard ? {
               cardNumber: creditCard.cardNumber,
@@ -931,7 +933,8 @@ exports.createPublicBooking = async (req, res) => {
           roomType: roomData.category,
           roomNumber: roomData.roomNumber,
           guests: guestsCount,
-          notes
+          notes,
+          language // 🔥 הוספת שפת הלקוח לנתוני המייל
         };
         
         console.log('📧 שולח מיילים להזמנה:', bookingNumber);
