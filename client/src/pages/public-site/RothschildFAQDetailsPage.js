@@ -52,14 +52,6 @@ const RothschildFAQDetailsPage = () => {
       answer: t('faq.questions.a3')
     },
     {
-      question: t('faq.questions.q4'),
-      answer: t('faq.questions.a4')
-    },
-    {
-      question: t('faq.questions.q5'),
-      answer: t('faq.questions.a5')
-    },
-    {
       question: t('faq.questions.q6'),
       answer: t('faq.questions.a6')
     },
@@ -89,11 +81,6 @@ const RothschildFAQDetailsPage = () => {
       icon: <BedroomParentIcon />, 
       title: t('faq.servicesItems.rooms.title'), 
       description: t('faq.servicesItems.rooms.description') 
-    },
-    { 
-      icon: <FlightIcon />, 
-      title: t('faq.servicesItems.shuttle.title'), 
-      description: t('faq.servicesItems.shuttle.description') 
     }
   ];
 
