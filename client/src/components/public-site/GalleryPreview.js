@@ -14,11 +14,13 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 const GalleryPreview = ({ location, limit = 6 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const scrollContainerRef = useRef(null);
+  const t = usePublicTranslation();
   
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ const GalleryPreview = ({ location, limit = 6 }) => {
         const placeholderImages = Array(limit).fill().map((_, index) => `placeholder-${index}`);
         setImages(placeholderImages);
         
-        setError('לא ניתן לטעון את תמונות הגלריה');
+        setError(t('gallery.loadingError'));
       } finally {
         setLoading(false);
       }
@@ -178,7 +180,7 @@ const GalleryPreview = ({ location, limit = 6 }) => {
           borderRadius: 2
         }}
       >
-        אין תמונות להצגה בגלריה
+        {t('gallery.noImages')}
       </Box>
     );
   }

@@ -43,15 +43,15 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import SearchBox from '../../components/public-site/SearchBox';
-import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
+import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
 const SearchResultsPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
-  const t = useTranslation();
-  const { currentLanguage } = useLanguage();
+  const t = usePublicTranslation();
+  const { currentLanguage } = usePublicLanguage();
   
   const [rooms, setRooms] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);

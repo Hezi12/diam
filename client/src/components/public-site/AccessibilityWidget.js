@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from '../../contexts/LanguageContext';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 import {
   Box,
   Fab,
@@ -30,7 +30,7 @@ import {
 const AccessibilityWidget = () => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
-  const t = useTranslation();
+  const t = usePublicTranslation();
   const [settings, setSettings] = useState({
     fontSize: 100,
     highContrast: false,

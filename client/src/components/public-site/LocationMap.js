@@ -1,13 +1,13 @@
 import React from 'react';
 import { Box, Paper, Typography, Link } from '@mui/material';
 import { LocationOn as LocationOnIcon } from '@mui/icons-material';
-import { useTranslation } from '../../contexts/LanguageContext';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 // במצב אמיתי, כאן תהיה אינטגרציה עם Google Maps או ספק מפות אחר
 // כרגע זו רק דוגמה ויזואלית
 
 const LocationMap = () => {
-  const t = useTranslation();
+  const t = usePublicTranslation();
   
   // פונקציה שתפתח את מיקום המלון ב-Google Maps
   const openInGoogleMaps = () => {

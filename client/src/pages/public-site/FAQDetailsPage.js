@@ -33,10 +33,10 @@ import {
   WhatsApp as WhatsAppIcon
 } from '@mui/icons-material';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
-import { useTranslation } from '../../contexts/LanguageContext';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 const FAQDetailsPage = () => {
-  const t = useTranslation();
+  const t = usePublicTranslation();
   
   const faqs = [
     {

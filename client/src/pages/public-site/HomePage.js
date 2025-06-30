@@ -31,10 +31,10 @@ import SearchBox from '../../components/public-site/SearchBox';
 import LocationMap from '../../components/public-site/LocationMap';
 import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
-import { useTranslation } from '../../contexts/LanguageContext';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 const HomePage = () => {
-  const t = useTranslation();
+  const t = usePublicTranslation();
   
   // מערך השירותים עם אייקונים ייחודיים וצבעים שונים
   const services = [

@@ -34,29 +34,47 @@ import FAQDetailsPage from './pages/public-site/FAQDetailsPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/common/Layout';
 import { AuthProvider } from './contexts/AuthContext';
-import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { PublicLanguageProvider } from './contexts/PublicLanguageContext';
 
-// יצירת cache דינמי לכיוון
-const createEmotionCache = (isRTL) => {
+// יצירת cache רק ל-RTL (דפי הניהול)
+const createEmotionCache = () => {
   return createCache({
-    key: isRTL ? 'muirtl' : 'muilen',
-    stylisPlugins: isRTL ? [prefixer, rtlPlugin] : [prefixer],
+    key: 'muirtl',
+    stylisPlugins: [prefixer, rtlPlugin],
   });
 };
 
-// רכיב עוטף שמטפל בכיוון
+// רכיב עוטף עם RTL קבוע לדפי הניהול
 const AppContent = () => {
-  const { isRTL, currentLanguage } = useLanguage();
-  const cache = React.useMemo(() => createEmotionCache(isRTL), [isRTL]);
+  const cache = React.useMemo(() => createEmotionCache(), []);
 
-  // וידוא שהדף מעדכן את הכיוון
+  // הגדרת כיוון RTL קבוע עבור דפי הניהול
   React.useEffect(() => {
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-    document.documentElement.lang = currentLanguage;
-  }, [isRTL, currentLanguage]);
+    // נקבע RTL בכל מקרה בתחילה
+    document.documentElement.dir = 'rtl';
+    document.documentElement.lang = 'he';
+    
+    // האזנה לשינויי נתיב כדי לשחזר RTL אחרי יציאה מהאתר הציבורי
+    const handleRouteChange = () => {
+      if (!window.location.pathname.startsWith('/airport-booking')) {
+        document.documentElement.dir = 'rtl';
+        document.documentElement.lang = 'he';
+      }
+    };
+    
+    // ביצוע הבדיקה גם כאשר האתר נטען
+    handleRouteChange();
+    
+    // האזנה לשינויי history
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, []);
 
   return (
-    <CacheProvider value={cache} key={isRTL ? 'rtl' : 'ltr'}>
+    <CacheProvider value={cache} key="rtl">
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
           <CssBaseline />
@@ -68,13 +86,37 @@ const AppContent = () => {
               {/* דף ניקיון - ללא אבטחה */}
               <Route path="/cleaning" element={<Cleaning />} />
               
-              {/* נתיבי האתר הציבורי - ללא אבטחה */}
-              <Route path="/airport-booking" element={<HomePage />} />
-              <Route path="/airport-booking/search-results" element={<SearchResultsPage />} />
-              <Route path="/airport-booking/book" element={<BookingFormPage />} />
-              <Route path="/airport-booking/confirmation" element={<ConfirmationPage />} />
-              <Route path="/airport-booking/gallery" element={<GalleryPage />} />
-              <Route path="/airport-booking/faq-details" element={<FAQDetailsPage />} />
+              {/* נתיבי האתר הציבורי - עם קונטקסט שפה מבודד */}
+              <Route path="/airport-booking" element={
+                <PublicLanguageProvider>
+                  <HomePage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/airport-booking/search-results" element={
+                <PublicLanguageProvider>
+                  <SearchResultsPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/airport-booking/book" element={
+                <PublicLanguageProvider>
+                  <BookingFormPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/airport-booking/confirmation" element={
+                <PublicLanguageProvider>
+                  <ConfirmationPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/airport-booking/gallery" element={
+                <PublicLanguageProvider>
+                  <GalleryPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/airport-booking/faq-details" element={
+                <PublicLanguageProvider>
+                  <FAQDetailsPage />
+                </PublicLanguageProvider>
+              } />
               
               {/* ניתובים לעמודים מוגנים */}
               <Route
@@ -232,11 +274,7 @@ const AppContent = () => {
  * App component - הרכיב הראשי של האפליקציה
  */
 function App() {
-  return (
-    <LanguageProvider>
-      <AppContent />
-    </LanguageProvider>
-  );
+  return <AppContent />;
 }
 
 export default App; 

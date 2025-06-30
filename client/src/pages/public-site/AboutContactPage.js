@@ -28,10 +28,12 @@ import axios from 'axios';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import LocationMap from '../../components/public-site/LocationMap';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 const AboutContactPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const t = usePublicTranslation();
   
   const [tabValue, setTabValue] = useState(0);
   const [contactForm, setContactForm] = useState({
@@ -72,21 +74,21 @@ const AboutContactPage = () => {
     const errors = {};
     
     if (!contactForm.name.trim()) {
-      errors.name = 'נא להזין שם מלא';
+      errors.name = t('contact.form.errors.nameRequired');
     }
     
     if (!contactForm.email.trim()) {
-      errors.email = 'נא להזין כתובת אימייל';
+      errors.email = t('contact.form.errors.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(contactForm.email)) {
-      errors.email = 'כתובת האימייל אינה תקינה';
+      errors.email = t('contact.form.errors.emailInvalid');
     }
     
     if (!contactForm.phone.trim()) {
-      errors.phone = 'נא להזין מספר טלפון';
+      errors.phone = t('contact.form.errors.phoneRequired');
     }
     
     if (!contactForm.message.trim()) {
-      errors.message = 'נא להזין את תוכן ההודעה';
+      errors.message = t('contact.form.errors.messageRequired');
     }
     
     setFormErrors(errors);
@@ -120,7 +122,7 @@ const AboutContactPage = () => {
       setSuccess(true);
     } catch (err) {
       console.error('שגיאה בשליחת הטופס:', err);
-      setError('אירעה שגיאה בשליחת הטופס. אנא נסה שנית.');
+      setError(t('contact.form.errors.submitError'));
     } finally {
       setLoading(false);
     }
@@ -141,7 +143,7 @@ const AboutContactPage = () => {
             startIcon={<ArrowBackIcon />}
             sx={{ mb: 2, gap: 1.5 }}
           >
-            חזרה לדף הבית
+{t('common.backToHome')}
           </Button>
           
           <Tabs 
@@ -150,8 +152,8 @@ const AboutContactPage = () => {
             variant={isMobile ? 'fullWidth' : 'standard'}
             sx={{ mb: 4, borderBottom: 1, borderColor: 'divider' }}
           >
-            <Tab label="אודות המלונית" />
-            <Tab label="צור קשר" />
+            <Tab label={t('about.tabs.about')} />
+            <Tab label={t('about.tabs.contact')} />
           </Tabs>
           
           {/* תוכן טאב אודות */}
@@ -159,57 +161,57 @@ const AboutContactPage = () => {
             <Grid container spacing={4} sx={{ mb: 4 }}>
               <Grid item xs={12} md={6}>
                 <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 600 }}>
-                  אודות Airport Guest House
+                  {t('about.title')}
                 </Typography>
                 
                 <Typography variant="body1" paragraph>
-                  מלונית Airport Guest House ממוקמת במרחק של דקות ספורות מנמל התעופה בן גוריון, ומציעה אירוח איכותי במחירים נוחים לכל כיס.
+                  {t('about.description1')}
                 </Typography>
                 
                 <Typography variant="body1" paragraph>
-                  המלונית נבנתה בשנת 2020 ומציעה חדרים מודרניים, נקיים ומאובזרים היטב, וזאת במחירים תחרותיים. כל החדרים כוללים מיזוג אוויר, טלוויזיה, Wi-Fi חינם ושירותים צמודים.
+                  {t('about.description2')}
                 </Typography>
                 
                 <Typography variant="body1" paragraph>
-                  המיקום האסטרטגי של המלונית בקרבת שדה התעופה הופך אותה לפתרון מושלם למטיילים הנוחתים או ממריאים מנתב"ג, אנשי עסקים, או מבקרים המחפשים מקום לינה נוח באזור המרכז.
+                  {t('about.description3')}
                 </Typography>
                 
                 <Typography variant="h6" sx={{ mt: 4, mb: 2, fontWeight: 600 }}>
-                  המתקנים שלנו
+                  {t('about.facilitiesTitle')}
                 </Typography>
                 
                 <Grid container spacing={2} sx={{ mb: 4 }}>
                   <Grid item xs={6}>
                     <Box component="ul" sx={{ pl: 2, margin: 0 }}>
-                      <Box component="li" sx={{ mb: 1 }}>חניה חינם</Box>
-                      <Box component="li" sx={{ mb: 1 }}>Wi-Fi חינם</Box>
-                      <Box component="li" sx={{ mb: 1 }}>מיזוג אוויר</Box>
-                      <Box component="li" sx={{ mb: 1 }}>טלוויזיה</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.parking')}</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.wifi')}</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.ac')}</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.tv')}</Box>
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
                     <Box component="ul" sx={{ pl: 2, margin: 0 }}>
-                      <Box component="li" sx={{ mb: 1 }}>מקלחת פרטית</Box>
-                      <Box component="li" sx={{ mb: 1 }}>מגבות ומצעים</Box>
-                      <Box component="li" sx={{ mb: 1 }}>מטבחון משותף</Box>
-                      <Box component="li" sx={{ mb: 1 }}>שירותי ניקיון</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.shower')}</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.linens')}</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.kitchen')}</Box>
+                      <Box component="li" sx={{ mb: 1 }}>{t('about.facilities.cleaning')}</Box>
                     </Box>
                   </Grid>
                 </Grid>
                 
                 <Typography variant="h6" sx={{ mt: 4, mb: 2, fontWeight: 600 }}>
-                  שעות פעילות
+                  {t('about.hoursTitle')}
                 </Typography>
                 
                 <Typography variant="body1" sx={{ mb: 0.5 }}>
-                  <strong>קבלה (צ'ק-אין):</strong> 15:00 - 22:00
+                  <strong>{t('about.hours.checkIn')}:</strong> 15:00 - 22:00
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 3 }}>
-                  <strong>עזיבה (צ'ק-אאוט):</strong> עד 11:00
+                  <strong>{t('about.hours.checkOut')}:</strong> {t('about.hours.checkOutTime')}
                 </Typography>
                 
                 <Alert severity="info" sx={{ mt: 3 }}>
-                  ניתן לתאם צ'ק-אין מאוחר בתיאום מראש דרך הטלפון.
+                  {t('about.hours.lateCheckInNote')}
                 </Alert>
               </Grid>
               
@@ -217,7 +219,7 @@ const AboutContactPage = () => {
                 <Box
                   component="img"
                   src="/images/airport-building.jpg"
-                  alt="מלונית Airport Guest House"
+                  alt={t('about.imageAlt')}
                   sx={{
                     width: '100%',
                     height: 300,
@@ -229,7 +231,7 @@ const AboutContactPage = () => {
                 
                 <Paper elevation={1} sx={{ p: 3, borderRadius: '10px' }}>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    המיקום שלנו
+                    {t('about.locationTitle')}
                   </Typography>
                   
                   <LocationMap />
@@ -238,12 +240,12 @@ const AboutContactPage = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <LocationOnIcon sx={{ color: 'primary.main', mr: 1 }} />
                       <Typography variant="body1">
-                        רחוב הערבה 5, אור יהודה
+                        {t('about.address')}
                       </Typography>
                     </Box>
                     
                     <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mb: 2 }}>
-                      15 דקות נסיעה מנמל התעופה בן גוריון
+                      {t('about.distanceFromAirport')}
                     </Typography>
                     
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -274,11 +276,11 @@ const AboutContactPage = () => {
             <Grid container spacing={4}>
               <Grid item xs={12} md={6}>
                 <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 600 }}>
-                  צור קשר
+                  {t('contact.title')}
                 </Typography>
                 
                 <Typography variant="body1" paragraph>
-                  אנו זמינים לכל שאלה, בקשה או הצעה. מלאו את הטופס ונחזור אליכם בהקדם האפשרי.
+                  {t('contact.description')}
                 </Typography>
                 
                 <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: '10px' }}>
@@ -287,7 +289,7 @@ const AboutContactPage = () => {
                       <Grid item xs={12}>
                         <TextField
                           name="name"
-                          label="שם מלא"
+                          label={t('contact.form.name')}
                           fullWidth
                           value={contactForm.name}
                           onChange={handleInputChange}
@@ -299,7 +301,7 @@ const AboutContactPage = () => {
                       <Grid item xs={12} sm={6}>
                         <TextField
                           name="email"
-                          label="אימייל"
+                          label={t('contact.form.email')}
                           type="email"
                           fullWidth
                           value={contactForm.email}
@@ -312,7 +314,7 @@ const AboutContactPage = () => {
                       <Grid item xs={12} sm={6}>
                         <TextField
                           name="phone"
-                          label="טלפון"
+                          label={t('contact.form.phone')}
                           fullWidth
                           value={contactForm.phone}
                           onChange={handleInputChange}
@@ -324,7 +326,7 @@ const AboutContactPage = () => {
                       <Grid item xs={12}>
                         <TextField
                           name="message"
-                          label="תוכן ההודעה"
+                          label={t('contact.form.message')}
                           multiline
                           rows={4}
                           fullWidth
@@ -344,7 +346,7 @@ const AboutContactPage = () => {
                           startIcon={loading ? <CircularProgress size={20} /> : <SendIcon />}
                           sx={{ gap: 1.5 }}
                         >
-                          שלח הודעה
+{t('contact.form.submit')}
                         </Button>
                         
                         {error && (
@@ -361,14 +363,14 @@ const AboutContactPage = () => {
               <Grid item xs={12} md={6}>
                 <Paper elevation={1} sx={{ p: 3, borderRadius: '10px' }}>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    פרטי התקשרות
+                    {t('contact.details.title')}
                   </Typography>
                   
                   <Box sx={{ mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <PhoneIcon sx={{ color: 'primary.main', mr: 1 }} />
                       <Typography variant="body1" fontWeight={500}>
-                        טלפון
+                        {t('contact.details.phone')}
                       </Typography>
                     </Box>
                     <Typography variant="body1" sx={{ ml: 4 }}>
@@ -382,7 +384,7 @@ const AboutContactPage = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <EmailIcon sx={{ color: 'primary.main', mr: 1 }} />
                       <Typography variant="body1" fontWeight={500}>
-                        אימייל
+                        {t('contact.details.email')}
                       </Typography>
                     </Box>
                     <Typography variant="body1" sx={{ ml: 4 }}>
@@ -396,21 +398,21 @@ const AboutContactPage = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <LocationOnIcon sx={{ color: 'primary.main', mr: 1 }} />
                       <Typography variant="body1" fontWeight={500}>
-                        כתובת
+                        {t('contact.details.address')}
                       </Typography>
                     </Box>
                     <Typography variant="body1" sx={{ ml: 4 }}>
-                      רחוב הערבה 5, אור יהודה
+                      {t('about.address')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
-                      15 דקות נסיעה מנמל התעופה בן גוריון
+                      {t('about.distanceFromAirport')}
                     </Typography>
                   </Box>
                   
                   <Divider sx={{ my: 3 }} />
                   
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    המיקום שלנו
+                    {t('about.locationTitle')}
                   </Typography>
                   <LocationMap />
                 </Paper>
@@ -423,7 +425,7 @@ const AboutContactPage = () => {
       {/* הודעת הצלחה */}
       <Snackbar open={success} autoHideDuration={6000} onClose={handleCloseSuccess}>
         <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
-          ההודעה נשלחה בהצלחה! נחזור אליך בהקדם.
+          {t('contact.form.successMessage')}
         </Alert>
       </Snackbar>
     </PublicSiteLayout>

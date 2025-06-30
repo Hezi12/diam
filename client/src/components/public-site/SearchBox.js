@@ -20,15 +20,15 @@ import {
 } from '@mui/material';
 import { Search as SearchIcon, Info as InfoIcon } from '@mui/icons-material';
 import { isAfter, isBefore, format, isValid, differenceInDays, addDays, subDays } from 'date-fns';
-import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
+import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
 const SearchBox = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const t = useTranslation();
-  const { direction, isRTL } = useLanguage();
+  const t = usePublicTranslation();
+  const { direction, isRTL } = usePublicLanguage();
   
   const today = new Date();
   const tomorrow = new Date();

@@ -28,15 +28,15 @@ import { format, parseISO } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
-import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
+import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
 const ConfirmationPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
-  const t = useTranslation();
-  const { currentLanguage } = useLanguage();
+  const t = usePublicTranslation();
+  const { currentLanguage } = usePublicLanguage();
   
   // בחירת locale לפי שפה נוכחית
   const dateLocale = currentLanguage === 'he' ? he : enUS;

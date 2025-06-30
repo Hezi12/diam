@@ -32,7 +32,7 @@ import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
-import { useTranslation, useLanguage } from '../../contexts/LanguageContext';
+import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
 // שלבי הטופס - יעודכנו בתרגום
 const steps = [];
@@ -42,8 +42,8 @@ const BookingFormPage = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const navigate = useNavigate();
-  const t = useTranslation();
-  const { currentLanguage } = useLanguage();
+  const t = usePublicTranslation();
+  const { currentLanguage } = usePublicLanguage();
   
   // בחירת locale לפי שפה נוכחית
   const dateLocale = currentLanguage === 'he' ? he : enUS;
@@ -494,6 +494,7 @@ const BookingFormPage = () => {
                   helperText={formErrors.firstName}
                   required
                   size="small"
+                  placeholder={t('booking.firstNamePlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -507,6 +508,7 @@ const BookingFormPage = () => {
                   helperText={formErrors.lastName}
                   required
                   size="small"
+                  placeholder={t('booking.lastNamePlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -521,6 +523,7 @@ const BookingFormPage = () => {
                   helperText={formErrors.email}
                   required
                   size="small"
+                  placeholder={t('booking.emailPlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -534,6 +537,7 @@ const BookingFormPage = () => {
                   helperText={formErrors.phone}
                   required
                   size="small"
+                  placeholder={t('booking.phonePlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -562,6 +566,7 @@ const BookingFormPage = () => {
                   value={bookingData.notes}
                   onChange={handleChange}
                   size="small"
+                  placeholder={t('booking.notesPlaceholder')}
                 />
               </Grid>
             </Grid>
@@ -602,7 +607,7 @@ const BookingFormPage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="creditCard.expiryDate"
-                  label={t('booking.expiryDate') || 'Expiry Date'}
+                  label={t('booking.expiryDate')}
                   fullWidth
                   value={bookingData.creditCard.expiryDate}
                   onChange={handleChange}
@@ -632,7 +637,7 @@ const BookingFormPage = () => {
               <Grid item xs={12}>
                 <TextField
                   name="creditCard.holderName"
-                  label={t('booking.holderName') || 'Cardholder Name'}
+                  label={t('booking.holderName')}
                   fullWidth
                   value={bookingData.creditCard.holderName}
                   onChange={handleChange}
@@ -640,6 +645,7 @@ const BookingFormPage = () => {
                   helperText={formErrors['creditCard.holderName']}
                   required
                   size="small"
+                  placeholder={t('booking.holderNamePlaceholder')}
                 />
               </Grid>
             </Grid>
@@ -695,7 +701,7 @@ const BookingFormPage = () => {
                     {t('booking.roomDetails')}
                   </Typography>
                   <Typography variant="body1" fontWeight={500}>
-                    {room?.category} ({t('rooms.roomNumber')} {room?.roomNumber})
+                    {room?.category}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -743,7 +749,7 @@ const BookingFormPage = () => {
         }}
       >
         <Typography variant="body2" sx={{ backgroundColor: 'rgba(255,255,255,0.7)', p: 1, borderRadius: 1 }}>
-          {room ? `${t('rooms.roomNumber')} ${room.category} - ${room.roomNumber}` : t('common.loading')}
+          {room ? `${room.category}` : t('common.loading')}
         </Typography>
       </Box>
     );

@@ -19,7 +19,7 @@ import {
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import AccessibilityWidget from './AccessibilityWidget';
-import { useLanguage, useTranslation } from '../../contexts/LanguageContext';
+import { usePublicLanguage, usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 // תפריט וחלקים קבועים נוספים
 
@@ -27,8 +27,8 @@ const PublicSiteLayout = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
-  const { currentLanguage, changeLanguage } = useLanguage();
-  const t = useTranslation();
+  const { currentLanguage, changeLanguage } = usePublicLanguage();
+  const t = usePublicTranslation();
   
   // נתיבי התפריט
   const menuItems = [

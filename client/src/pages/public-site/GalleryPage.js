@@ -26,13 +26,13 @@ import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
-import { useTranslation } from '../../contexts/LanguageContext';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 const GalleryPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  const t = useTranslation();
+  const t = usePublicTranslation();
   
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
