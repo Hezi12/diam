@@ -22,7 +22,7 @@ import { Search as SearchIcon, Info as InfoIcon } from '@mui/icons-material';
 import { isAfter, isBefore, format, isValid, differenceInDays, addDays, subDays } from 'date-fns';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
-const SearchBox = () => {
+const SearchBox = ({ location: siteLocation = 'airport' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
@@ -108,7 +108,8 @@ const SearchBox = () => {
     setError('');
     
     // מעבר לדף תוצאות החיפוש עם פרמטרים כולל מספר אורחים, לילות וסטטוס תייר
-    navigate(`/airport-booking/search-results?checkIn=${format(checkIn, 'yyyy-MM-dd')}&checkOut=${format(checkOut, 'yyyy-MM-dd')}&nights=${actualNights}&guests=${guests}&isTourist=${isTourist}`);
+    const baseRoute = siteLocation === 'rothschild' ? '/rothschild-booking' : '/airport-booking';
+    navigate(`${baseRoute}/search-results?checkIn=${format(checkIn, 'yyyy-MM-dd')}&checkOut=${format(checkOut, 'yyyy-MM-dd')}&nights=${actualNights}&guests=${guests}&isTourist=${isTourist}`);
   };
   
   const handleCheckInChange = (e) => {

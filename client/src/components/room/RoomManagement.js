@@ -174,7 +174,7 @@ const RoomManagement = ({ location }) => {
   
   // שינוי שמות המיקומים
   const getLocationName = () => {
-    return location === 'airport' ? 'Airport Guest House' : 'רוטשילד';
+    return location === 'airport' ? 'Airport Guest House' : 'Rothschild 79';
   };
   
   // קבלת הצבעים המתאימים לפי המיקום

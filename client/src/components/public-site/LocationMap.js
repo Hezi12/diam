@@ -6,18 +6,20 @@ import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 // במצב אמיתי, כאן תהיה אינטגרציה עם Google Maps או ספק מפות אחר
 // כרגע זו רק דוגמה ויזואלית
 
-const LocationMap = () => {
+const LocationMap = ({ location: siteLocation = 'airport' }) => {
   const t = usePublicTranslation();
   
   // פונקציה שתפתח את מיקום המלון ב-Google Maps
   const openInGoogleMaps = () => {
     // כתובת המלון - במצב אמיתי תהיה כאן כתובת אמיתית
-    const address = t('location.address');
+    const addressKey = siteLocation === 'rothschild' ? 'location.rothschildAddress' : 'location.address';
+    const address = t(addressKey);
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
   };
   
   // יצירת iframe למפת גוגל עם כתובת פשוטה
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(t('location.address') + ', ישראל')}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  const addressKey = siteLocation === 'rothschild' ? 'location.rothschildAddress' : 'location.address';
+  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(t(addressKey) + ', ישראל')}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
   
   return (
     <Paper 

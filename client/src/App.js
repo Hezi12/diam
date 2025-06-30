@@ -22,13 +22,21 @@ import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
 
-// עמודי אתר ציבורי
+// עמודי אתר ציבורי - Airport
 import HomePage from './pages/public-site/HomePage';
 import SearchResultsPage from './pages/public-site/SearchResultsPage';
 import BookingFormPage from './pages/public-site/BookingFormPage';
 import ConfirmationPage from './pages/public-site/ConfirmationPage';
 import GalleryPage from './pages/public-site/GalleryPage';
 import FAQDetailsPage from './pages/public-site/FAQDetailsPage';
+
+// עמודי אתר ציבורי - Rothschild
+import RothschildHomePage from './pages/public-site/RothschildHomePage';
+import RothschildSearchResultsPage from './pages/public-site/RothschildSearchResultsPage';
+import RothschildBookingFormPage from './pages/public-site/RothschildBookingFormPage';
+import RothschildConfirmationPage from './pages/public-site/RothschildConfirmationPage';
+import RothschildGalleryPage from './pages/public-site/RothschildGalleryPage';
+import RothschildFAQDetailsPage from './pages/public-site/RothschildFAQDetailsPage';
 
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -115,6 +123,38 @@ const AppContent = () => {
               <Route path="/airport-booking/faq-details" element={
                 <PublicLanguageProvider>
                   <FAQDetailsPage />
+                </PublicLanguageProvider>
+              } />
+              
+              {/* נתיבי האתר הציבורי של רוטשילד - עם קונטקסט שפה מבודד */}
+              <Route path="/rothschild-booking" element={
+                <PublicLanguageProvider>
+                  <RothschildHomePage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/rothschild-booking/search-results" element={
+                <PublicLanguageProvider>
+                  <RothschildSearchResultsPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/rothschild-booking/book" element={
+                <PublicLanguageProvider>
+                  <RothschildBookingFormPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/rothschild-booking/confirmation" element={
+                <PublicLanguageProvider>
+                  <RothschildConfirmationPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/rothschild-booking/gallery" element={
+                <PublicLanguageProvider>
+                  <RothschildGalleryPage />
+                </PublicLanguageProvider>
+              } />
+              <Route path="/rothschild-booking/faq-details" element={
+                <PublicLanguageProvider>
+                  <RothschildFAQDetailsPage />
                 </PublicLanguageProvider>
               } />
               

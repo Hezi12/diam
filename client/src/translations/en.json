@@ -297,7 +297,8 @@
   },
   "location": {
     "mapTitle": "Guest house location - Haarets 12, Or Yehuda",
-    "address": "Haarets 12, Or Yehuda"
+    "address": "Haarets 12, Or Yehuda",
+    "rothschildAddress": "Rothschild 79, Petah Tikva"
   },
   "about": {
     "title": "About Airport Guest House",

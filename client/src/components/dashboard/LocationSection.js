@@ -19,7 +19,7 @@ const LocationSection = ({
   
   // צבעים לפי מיקום
   const locationColors = location === 'airport' ? colors.airport : colors.rothschild;
-  const locationTitle = location === 'airport' ? 'Airport Guest House' : 'רוטשילד';
+  const locationTitle = location === 'airport' ? 'Airport Guest House' : 'Rothschild 79';
   const LocationIcon = location === 'airport' ? AirportIcon : RothschildIcon;
 
   // ספירה של החדרים לפי סטטוס

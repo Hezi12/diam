@@ -193,7 +193,7 @@ const PricelistModal = ({ open, onClose, rooms, location, onRoomsUpdate }) => {
           py: 2
         }}
       >
-        מחירון {location === 'airport' ? 'Airport Guest House' : 'רוטשילד'}
+        מחירון {location === 'airport' ? 'Airport Guest House' : 'Rothschild 79'}
         
         <Box sx={{ flexGrow: 1 }} />
         

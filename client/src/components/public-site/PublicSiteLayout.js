@@ -23,16 +23,17 @@ import { usePublicLanguage, usePublicTranslation } from '../../contexts/PublicLa
 
 // תפריט וחלקים קבועים נוספים
 
-const PublicSiteLayout = ({ children }) => {
+const PublicSiteLayout = ({ children, location: siteLocation = 'airport' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const { currentLanguage, changeLanguage } = usePublicLanguage();
   const t = usePublicTranslation();
   
-  // נתיבי התפריט
+  // נתיבי התפריט בהתאם למיקום
+  const baseRoute = siteLocation === 'rothschild' ? '/rothschild-booking' : '/airport-booking';
   const menuItems = [
-    { label: t('header.faqFull'), path: '/airport-booking/faq-details' },
+    { label: t('header.faqFull'), path: `${baseRoute}/faq-details` },
   ];
   
   return (
@@ -57,7 +58,7 @@ const PublicSiteLayout = ({ children }) => {
           <Toolbar sx={{ px: { xs: 0, sm: 2 }, minHeight: '64px !important' }}>
             <Box
               component={Link}
-              to="/airport-booking"
+              to={baseRoute}
               sx={{
                 flexGrow: 1,
                 textDecoration: 'none',
@@ -104,17 +105,17 @@ const PublicSiteLayout = ({ children }) => {
                   lineHeight: 1.2
                 }}
               >
-                Airport Guest House
+                {siteLocation === 'rothschild' ? 'Rothschild 79' : 'Airport Guest House'}
               </Typography>
             </Box>
             
             {isMobile ? (
               <Button
                 component={Link}
-                to="/airport-booking/faq-details"
+                to={`${baseRoute}/faq-details`}
                 sx={{ 
-                  color: location.pathname === '/airport-booking/faq-details' ? '#dc2626' : '#64748b',
-                  fontWeight: location.pathname === '/airport-booking/faq-details' ? 600 : 400,
+                  color: location.pathname === `${baseRoute}/faq-details` ? '#dc2626' : '#64748b',
+                  fontWeight: location.pathname === `${baseRoute}/faq-details` ? 600 : 400,
                   fontSize: '0.9rem',
                   px: 2,
                   py: 1,

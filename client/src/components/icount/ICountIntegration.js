@@ -185,7 +185,7 @@ const ICountIntegration = () => {
   
   // פונקציה מעזר - שם המתחם המוצג למשתמש
   const getLocationName = () => {
-    return location === 'airport' ? 'Airport Guest House' : 'רוטשילד';
+    return location === 'airport' ? 'Airport Guest House' : 'Rothschild 79';
   };
   
   // סגירת התראה
@@ -209,9 +209,9 @@ const ICountIntegration = () => {
           aria-label="בחירת מתחם"
           dir="rtl"
         >
-          <ToggleButton value="rothschild" aria-label="רוטשילד">
+          <ToggleButton value="rothschild" aria-label="Rothschild 79">
             <HomeIcon sx={{ ml: 1 }} />
-            <Typography>רוטשילד</Typography>
+            <Typography>Rothschild 79</Typography>
           </ToggleButton>
           <ToggleButton value="airport" aria-label="Airport Guest House">
             <FlightIcon sx={{ ml: 1 }} />
