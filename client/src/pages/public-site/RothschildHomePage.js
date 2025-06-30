@@ -101,7 +101,7 @@ const RothschildHomePage = () => {
                 onMouseEnter={(e) => e.target.style.borderBottomColor = '#1e293b'}
                 onMouseLeave={(e) => e.target.style.borderBottomColor = 'transparent'}
               >
-{t('home.title')}
+{t('rothschildHome.title')}
               </Link>
             </Typography>
             
@@ -114,7 +114,7 @@ const RothschildHomePage = () => {
                 lineHeight: 1.6
               }}
             >
-{t('home.description')}
+{t('rothschildHome.description')}
               {' '}
               <Link 
                 to="/rothschild-booking/faq-details"
@@ -125,7 +125,7 @@ const RothschildHomePage = () => {
                   borderBottom: '1px solid #1e293b'
                 }}
               >
-{t('home.moreDetails')}
+{t('rothschildHome.moreDetails')}
               </Link>
             </Typography>
 
@@ -141,7 +141,7 @@ const RothschildHomePage = () => {
             >
               <CardContent sx={{ p: 2.5 }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#334155', fontSize: '1.1rem' }}>
-                  {t('home.servicesTitle')}
+                  {t('rothschildHome.servicesTitle')}
                 </Typography>
                 <Grid container spacing={1}>
                   <Grid item xs={12}>

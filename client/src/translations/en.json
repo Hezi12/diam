@@ -285,7 +285,14 @@
   "footer": {
     "copyright": "© 2024 Airport Guest House. All rights reserved."
   },
-  "home": {
+  "airportHome": {
+    "title": "Airport Guest House",
+    "description": "Modern and smart guest house located near Ben Gurion Airport. Offers clean and equipped rooms with air conditioning, free Wi-Fi and parking. Perfect for travelers looking for convenient and accessible accommodation to the airport.",
+    "moreDetails": "For more details and FAQ",
+    "servicesTitle": "Our Services & Facilities",
+    "galleryTitle": "Gallery"
+  },
+  "rothschildHome": {
     "title": "Rothschild 79",
     "description": "We are located in the center of Petah Tikva close to everything you need - shops, supermarkets and more. Located on a main road close to public transportation with on-site parking. Completely private rooms, clean and organized, with excellent value for money.",
     "moreDetails": "For more details and FAQ",

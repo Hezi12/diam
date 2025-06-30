@@ -102,7 +102,7 @@ const HomePage = () => {
                 onMouseEnter={(e) => e.target.style.borderBottomColor = '#1e293b'}
                 onMouseLeave={(e) => e.target.style.borderBottomColor = 'transparent'}
               >
-{t('home.title')}
+{t('airportHome.title')}
               </Link>
             </Typography>
             
@@ -115,7 +115,7 @@ const HomePage = () => {
                 lineHeight: 1.6
               }}
             >
-{t('home.description')}
+{t('airportHome.description')}
               {' '}
               <Link 
                 to="/airport-booking/faq-details"
@@ -126,7 +126,7 @@ const HomePage = () => {
                   borderBottom: '1px solid #1e293b'
                 }}
               >
-{t('home.moreDetails')}
+{t('airportHome.moreDetails')}
               </Link>
             </Typography>
 
@@ -142,7 +142,7 @@ const HomePage = () => {
             >
               <CardContent sx={{ p: 2.5 }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#334155', fontSize: '1.1rem' }}>
-                  {t('home.servicesTitle')}
+                  {t('airportHome.servicesTitle')}
                 </Typography>
                 <Grid container spacing={1}>
                   <Grid item xs={12}>
