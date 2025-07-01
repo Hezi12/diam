@@ -1,0 +1,36 @@
+User-agent: *
+# אפשר לכל הבוטים לסרוק את האתרים הציבוריים
+Allow: /airport-booking
+Allow: /rothschild-booking
+
+# חסום דפי ניהול פנימיים
+Disallow: /dashboard
+Disallow: /bookings
+Disallow: /settings
+Disallow: /revenue
+Disallow: /financial-overview
+Disallow: /capital
+Disallow: /login
+Disallow: /cleaning
+Disallow: /email-preview
+Disallow: /quick-booking
+
+# חסום קבצים זמניים ופרטיים
+Disallow: /uploads/
+Disallow: /temp/
+Disallow: /api/
+
+# מידע חשוב לבוטים
+Sitemap: https://www.diamhotels.com/sitemap.xml
+
+# הגדרות מיוחדות לגוגל
+User-agent: Googlebot
+Allow: /airport-booking
+Allow: /rothschild-booking
+Crawl-delay: 1
+
+# הגדרות לבינג
+User-agent: Bingbot
+Allow: /airport-booking
+Allow: /rothschild-booking
+Crawl-delay: 2 

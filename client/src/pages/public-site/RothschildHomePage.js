@@ -25,6 +25,7 @@ import {
   BedroomParent as BedroomParentIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import SEOHead from '../../components/public-site/SEOHead';
 
 // קומפוננטים
 import SearchBox from '../../components/public-site/SearchBox';
@@ -50,6 +51,11 @@ const RothschildHomePage = () => {
 
   return (
     <PublicSiteLayout location="rothschild">
+      <SEOHead
+        title={t('rothschildHome.seoTitle')}
+        description={t('rothschildHome.seoDescription')}
+        keywords={t('rothschildHome.seoKeywords')}
+      />
       {/* Hero Section - טופס חיפוש בלבד */}
       <Box
         sx={{

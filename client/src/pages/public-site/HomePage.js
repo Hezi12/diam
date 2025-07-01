@@ -8,7 +8,9 @@ import {
   Button,
   Card,
   CardContent,
-  Divider
+  Divider,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { 
   LocationOn as LocationOnIcon,
@@ -22,7 +24,11 @@ import {
   Schedule as ScheduleIcon,
   Lock as LockIcon,
   Hotel as HotelIcon,
-  BedroomParent as BedroomParentIcon
+  BedroomParent as BedroomParentIcon,
+  Kitchen as KitchenIcon,
+  Tv as TvIcon,
+  LocalLaundryService as LaundryIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -32,6 +38,7 @@ import LocationMap from '../../components/public-site/LocationMap';
 import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
+import SEOHead from '../../components/public-site/SEOHead';
 
 const HomePage = () => {
   const t = usePublicTranslation();
@@ -46,11 +53,20 @@ const HomePage = () => {
     { nameKey: 'faq.restaurants', icon: <RestaurantIcon />, color: '#ec4899' },
     { nameKey: 'faq.checkin24', icon: <ScheduleIcon />, color: '#06b6d4' },
     { nameKey: 'faq.privacy', icon: <LockIcon />, color: '#84cc16' },
-    { nameKey: 'faq.value', icon: <CheckCircleIcon />, color: '#059669' }
+    { nameKey: 'faq.value', icon: <CheckCircleIcon />, color: '#059669' },
+    { nameKey: 'faq.kitchen', icon: <KitchenIcon />, color: '#8b5cf6' },
+    { nameKey: 'faq.tv', icon: <TvIcon />, color: '#10b981' },
+    { nameKey: 'faq.laundry', icon: <LaundryIcon />, color: '#f59e0b' },
+    { nameKey: 'faq.security', icon: <SecurityIcon />, color: '#ef4444' }
   ];
 
   return (
     <PublicSiteLayout>
+      <SEOHead
+        title={t('airportHome.seoTitle')}
+        description={t('airportHome.seoDescription')}
+        keywords={t('airportHome.seoKeywords')}
+      />
       {/* Hero Section - טופס חיפוש בלבד */}
       <Box
         sx={{

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   Box, 
@@ -34,9 +34,12 @@ import {
   LocalParking as ParkingIcon,
   Tv as TvIcon,
   ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon
+  ChevronRight as ChevronRightIcon,
+  Person as PersonIcon,
+  Bed as BedIcon,
+  AcUnit as AcIcon
 } from '@mui/icons-material';
-import { format, parseISO, differenceInDays, subDays } from 'date-fns';
+import { format, parseISO, differenceInDays, subDays, isValid } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
 import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
@@ -44,6 +47,8 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import SearchBox from '../../components/public-site/SearchBox';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
+import SEOHead from '../../components/public-site/SEOHead';
+import bookingService from '../../services/bookingService';
 
 const SearchResultsPage = () => {
   const theme = useTheme();
@@ -447,6 +452,7 @@ const SearchResultsPage = () => {
   
   return (
     <PublicSiteLayout>
+      <SEOHead title={`${t('rooms.searchResults')} - Airport Guest House`} />
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Button

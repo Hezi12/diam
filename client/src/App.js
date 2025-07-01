@@ -6,6 +6,7 @@ import createCache from '@emotion/cache';
 import { prefixer } from 'stylis';
 import rtlPlugin from 'stylis-plugin-rtl';
 import theme from './theme';
+import { HelmetProvider } from 'react-helmet-async';
 
 // קומפוננטים לעמודים
 import Dashboard from './pages/Dashboard';
@@ -93,213 +94,215 @@ const AppContent = () => {
           <CssBaseline />
           <AuthProvider>
             <LanguageProvider>
-              <Routes>
-              {/* ניתוב לדף התחברות */}
-              <Route path="/login" element={<Login />} />
-              
-              {/* דף ניקיון - ללא אבטחה */}
-              <Route path="/cleaning" element={<Cleaning />} />
-              
-              {/* נתיבי האתר הציבורי - עם קונטקסט שפה מבודד */}
-              <Route path="/airport-booking" element={
-                <PublicLanguageProvider>
-                  <HomePage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/airport-booking/search-results" element={
-                <PublicLanguageProvider>
-                  <SearchResultsPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/airport-booking/book" element={
-                <PublicLanguageProvider>
-                  <BookingFormPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/airport-booking/confirmation" element={
-                <PublicLanguageProvider>
-                  <ConfirmationPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/airport-booking/gallery" element={
-                <PublicLanguageProvider>
-                  <GalleryPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/airport-booking/faq-details" element={
-                <PublicLanguageProvider>
-                  <FAQDetailsPage />
-                </PublicLanguageProvider>
-              } />
-              
-              {/* נתיבי האתר הציבורי של רוטשילד - עם קונטקסט שפה מבודד */}
-              <Route path="/rothschild-booking" element={
-                <PublicLanguageProvider>
-                  <RothschildHomePage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/rothschild-booking/search-results" element={
-                <PublicLanguageProvider>
-                  <RothschildSearchResultsPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/rothschild-booking/book" element={
-                <PublicLanguageProvider>
-                  <RothschildBookingFormPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/rothschild-booking/confirmation" element={
-                <PublicLanguageProvider>
-                  <RothschildConfirmationPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/rothschild-booking/gallery" element={
-                <PublicLanguageProvider>
-                  <RothschildGalleryPage />
-                </PublicLanguageProvider>
-              } />
-              <Route path="/rothschild-booking/faq-details" element={
-                <PublicLanguageProvider>
-                  <RothschildFAQDetailsPage />
-                </PublicLanguageProvider>
-              } />
-              
-              {/* ניתובים לעמודים מוגנים */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Dashboard />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/bookings"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Bookings />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/quick-booking"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <QuickBooking />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Settings />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings/rooms/airport"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <AirportRooms />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings/rooms/rothschild"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <RothschildRooms />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
+              <HelmetProvider>
+                <Routes>
+                {/* ניתוב לדף התחברות */}
+                <Route path="/login" element={<Login />} />
+                
+                {/* דף ניקיון - ללא אבטחה */}
+                <Route path="/cleaning" element={<Cleaning />} />
+                
+                {/* נתיבי האתר הציבורי - עם קונטקסט שפה מבודד */}
+                <Route path="/airport-booking" element={
+                  <PublicLanguageProvider>
+                    <HomePage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/airport-booking/search-results" element={
+                  <PublicLanguageProvider>
+                    <SearchResultsPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/airport-booking/book" element={
+                  <PublicLanguageProvider>
+                    <BookingFormPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/airport-booking/confirmation" element={
+                  <PublicLanguageProvider>
+                    <ConfirmationPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/airport-booking/gallery" element={
+                  <PublicLanguageProvider>
+                    <GalleryPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/airport-booking/faq-details" element={
+                  <PublicLanguageProvider>
+                    <FAQDetailsPage />
+                  </PublicLanguageProvider>
+                } />
+                
+                {/* נתיבי האתר הציבורי של רוטשילד - עם קונטקסט שפה מבודד */}
+                <Route path="/rothschild-booking" element={
+                  <PublicLanguageProvider>
+                    <RothschildHomePage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/rothschild-booking/search-results" element={
+                  <PublicLanguageProvider>
+                    <RothschildSearchResultsPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/rothschild-booking/book" element={
+                  <PublicLanguageProvider>
+                    <RothschildBookingFormPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/rothschild-booking/confirmation" element={
+                  <PublicLanguageProvider>
+                    <RothschildConfirmationPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/rothschild-booking/gallery" element={
+                  <PublicLanguageProvider>
+                    <RothschildGalleryPage />
+                  </PublicLanguageProvider>
+                } />
+                <Route path="/rothschild-booking/faq-details" element={
+                  <PublicLanguageProvider>
+                    <RothschildFAQDetailsPage />
+                  </PublicLanguageProvider>
+                } />
+                
+                {/* ניתובים לעמודים מוגנים */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Dashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/bookings"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Bookings />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/quick-booking"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <QuickBooking />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Settings />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings/rooms/airport"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <AirportRooms />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings/rooms/rothschild"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <RothschildRooms />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/revenue"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <MonthlyRevenue />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/financial-overview"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <FinancialOverview />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/revenue/monthly"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <MonthlyRevenue />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/revenue/overview"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <FinancialOverview />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/capital"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <CapitalManagement />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/email-preview"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <EmailPreview />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* ניתוב ברירת מחדל */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
+                <Route
+                  path="/revenue"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <MonthlyRevenue />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financial-overview"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <FinancialOverview />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/revenue/monthly"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <MonthlyRevenue />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/revenue/overview"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <FinancialOverview />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/capital"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <CapitalManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/email-preview"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <EmailPreview />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                
+                {/* ניתוב ברירת מחדל */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </HelmetProvider>
             </LanguageProvider>
           </AuthProvider>
         </ThemeProvider>

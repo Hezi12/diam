@@ -296,14 +296,20 @@
     "description": "Modern and smart guest house located near Ben Gurion Airport. Offers clean and equipped rooms with air conditioning, free Wi-Fi and parking. Perfect for travelers looking for convenient and accessible accommodation to the airport.",
     "moreDetails": "For more details and FAQ",
     "servicesTitle": "Our Services & Facilities",
-    "galleryTitle": "Gallery"
+    "galleryTitle": "Gallery",
+    "seoTitle": "Airport Guest House | Ben Gurion Airport Hotel | Or Yehuda | Instant Booking",
+    "seoDescription": "Modern Airport Guest House near Ben Gurion Airport. Clean, equipped rooms with free Wi-Fi, free parking, 24/7 check-in. Instant online booking with special rates. Perfect for travelers and early flights.",
+    "seoKeywords": "Airport hotel, Airport Guest House, Ben Gurion hotel, Or Yehuda accommodation, airport guest house, rooms near Ben Gurion, Ben Gurion Airport hotel, accommodation near airport, 24 hour check-in hotel, cheap hotel near Ben Gurion"
   },
   "rothschildHome": {
     "title": "Rothschild 79",
     "description": "We are located in the center of Petah Tikva close to everything you need - shops, supermarkets and more. Located on a main road close to public transportation with on-site parking. Completely private rooms, clean and organized, with excellent value for money.",
     "moreDetails": "For more details and FAQ",
     "servicesTitle": "Our Services & Facilities",
-    "galleryTitle": "Gallery"
+    "galleryTitle": "Gallery",
+    "seoTitle": "Rothschild 79 | Petah Tikva Hotel | Private Rooms in City Center | Instant Booking",
+    "seoDescription": "Quality accommodation at Rothschild 79 in central Petah Tikva. Private clean rooms, free on-site parking, close to public transport and shopping. Excellent value for money with instant online booking. Perfect for business visits and leisure.",
+    "seoKeywords": "Petah Tikva hotel, Petah Tikva accommodation, Rothschild 79, Petah Tikva rooms, Petah Tikva guest house, central Petah Tikva accommodation, cheap hotel Petah Tikva, private rooms Petah Tikva, business accommodation Petah Tikva"
   },
   "location": {
     "mapTitle": "Guest house location - Haarets 12, Or Yehuda",
