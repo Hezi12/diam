@@ -873,7 +873,7 @@ const getHotelInfo = (location, language) => {
 };
 
 // פונקציה לשליחת מייל אישור הזמנה
-const sendBookingConfirmation = async (booking, language = 'he') => {
+const sendBookingConfirmation = async (booking, language = 'he', isPublicBooking = false) => {
   try {
     const transporter = createTransporter();
     const hotelInfo = getHotelInfo(booking.location, language);
@@ -894,8 +894,15 @@ const sendBookingConfirmation = async (booking, language = 'he') => {
       html: htmlContent,
       replyTo: 'diamshotels@gmail.com'
     };
+
+    // אם זו הזמנה מהאתר הציבורי, הוסף עותק למייל הניהול
+    if (isPublicBooking) {
+      mailOptions.bcc = 'diamshotels@gmail.com';
+      console.log(`📧 שולח מייל אישור הזמנה ל-${booking.email} + עותק לניהול`);
+    } else {
+      console.log(`📧 שולח מייל אישור הזמנה ל-${booking.email}`);
+    }
     
-    console.log(`📧 שולח מייל אישור הזמנה ל-${booking.email}`);
     const result = await transporter.sendMail(mailOptions);
     console.log('✅ מייל נשלח בהצלחה:', result.messageId);
     

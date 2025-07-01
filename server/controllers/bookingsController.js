@@ -917,11 +917,11 @@ exports.createPublicBooking = async (req, res) => {
       
       console.log('הזמנה נשמרה בהצלחה:', newBooking._id);
       
-      // 📧 שליחת מייל אישור הזמנה
+      // 📧 שליחת מייל אישור הזמנה (+ עותק לניהול כי זו הזמנה ציבורית)
       try {
         const emailService = require('../services/emailService');
-        await emailService.sendBookingConfirmation(newBooking, language);
-        console.log('✅ מייל אישור נשלח בהצלחה ל-', newBooking.email);
+        await emailService.sendBookingConfirmation(newBooking, language, true);
+        console.log('✅ מייל אישור נשלח בהצלחה ל-', newBooking.email, '+ עותק לניהול');
       } catch (emailError) {
         console.error('❌ שגיאה בשליחת מייל אישור (ההזמנה נשמרה):', emailError.message);
         // לא נקרוס את ההזמנה בגלל שגיאת מייל
