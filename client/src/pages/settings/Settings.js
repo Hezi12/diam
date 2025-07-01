@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import FlightIcon from '@mui/icons-material/Flight';
 import SyncIcon from '@mui/icons-material/Sync';
+import EmailIcon from '@mui/icons-material/Email';
 import ICalSettings from '../../components/settings/ICalSettings';
 
 /**
@@ -102,6 +103,50 @@ const Settings = () => {
               }}
             >
               <ApartmentIcon fontSize="large" />
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* תצוגה מקדימה - מיילים */}
+        <Grid item xs={12} sm={6}>
+          <Paper
+            component={RouterLink}
+            to="/email-preview"
+            sx={{
+              p: 3,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: 2,
+              transition: 'all 0.2s',
+              '&:hover': {
+                transform: 'translateY(-3px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                bgcolor: 'rgba(33, 150, 243, 0.04)'
+              }
+            }}
+          >
+            <Box sx={{ maxWidth: '70%' }}>
+              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+                תצוגה מקדימה - מיילים
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                צפייה ובדיקת תבניות המיילים של המערכת
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                bgcolor: 'rgba(33, 150, 243, 0.1)',
+                color: '#2196f3',
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 2,
+              }}
+            >
+              <EmailIcon fontSize="large" />
             </Box>
           </Paper>
         </Grid>

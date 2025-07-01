@@ -63,9 +63,13 @@ const AppContent = () => {
     document.documentElement.dir = 'rtl';
     document.documentElement.lang = 'he';
     
-    // האזנה לשינויי נתיב כדי לשחזר RTL אחרי יציאה מהאתר הציבורי
+    // האזנה לשינויי נתיב כדי לשחזר RTL אחרי יציאה מהאתרים הציבוריים
     const handleRouteChange = () => {
-      if (!window.location.pathname.startsWith('/airport-booking')) {
+      const isPublicSite = window.location.pathname.startsWith('/airport-booking') || 
+                           window.location.pathname.startsWith('/rothschild-booking');
+      
+      // אם לא באתר ציבורי, תמיד נחזיר ל-RTL
+      if (!isPublicSite) {
         document.documentElement.dir = 'rtl';
         document.documentElement.lang = 'he';
       }

@@ -31,8 +31,7 @@ import {
   Menu as MenuIcon,
   AccountBalanceWallet as AccountBalanceWalletIcon,
   SwapHoriz as MigrationIcon,
-  Description as DocumentsIcon,
-  Email as EmailIcon
+  Description as DocumentsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -410,13 +409,7 @@ const Sidebar = () => {
             iconColor={iconColors.airport}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
-          <SidebarItem
-            icon={<EmailIcon />}
-            to="/email-preview"
-            title="תצוגה מקדימה - מיילים"
-            iconColor={iconColors.email}
-            onClick={isMobile ? toggleDrawer(false) : undefined}
-          />
+
           <SidebarItem
             icon={<SettingsIcon />}
             to="/settings"

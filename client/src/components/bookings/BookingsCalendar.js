@@ -24,18 +24,18 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
-// רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop
+// רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop (מותאם RTL)
 const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant, isDragging, isDragOver }) => ({
   position: 'absolute',
   height: variant === 'full' ? '100%' : '70%',
-  left: `${startOffset}%`,
+  right: `${startOffset}%`, // שונה מ-left ל-right עבור RTL
   width: `${length}%`,
   borderRadius: '6px',
   transition: isDragging ? 'none' : 'all 0.15s ease-in-out',
   padding: '8px 8px',
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'flex-start',
+  alignItems: 'flex-start', // נשאר flex-start כי זה הטקסט בתוך התא
   justifyContent: 'space-between',
   cursor: 'grab',
   overflow: 'hidden',
@@ -68,8 +68,8 @@ const DropZoneCell = styled(Box)(({ theme, isValidDropZone, isDragOver }) => ({
     content: isDragOver && isValidDropZone ? '"שחרר כאן"' : '""',
     position: 'absolute',
     top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
+    right: '50%', // שונה מ-left ל-right עבור RTL
+    transform: 'translate(50%, -50%)', // שונה מ-translate(-50%, -50%) עבור RTL
     fontSize: '12px',
     color: '#4caf50',
     fontWeight: 'bold',
