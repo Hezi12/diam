@@ -43,6 +43,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/common/Layout';
 import { AuthProvider } from './contexts/AuthContext';
 import { PublicLanguageProvider } from './contexts/PublicLanguageContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // יצירת cache רק ל-RTL (דפי הניהול)
 const createEmotionCache = () => {
@@ -87,6 +88,7 @@ const AppContent = () => {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <AuthProvider>
+            <LanguageProvider>
               <Routes>
               {/* ניתוב לדף התחברות */}
               <Route path="/login" element={<Login />} />
@@ -294,6 +296,7 @@ const AppContent = () => {
               {/* ניתוב ברירת מחדל */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
+            </LanguageProvider>
           </AuthProvider>
         </ThemeProvider>
       </StyledEngineProvider>

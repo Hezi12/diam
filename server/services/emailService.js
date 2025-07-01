@@ -25,7 +25,7 @@ const getHebrewEmailTemplate = (booking, hotelName, hotelAddress) => {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;
@@ -200,7 +200,7 @@ const getEnglishEmailTemplate = (booking, hotelName, hotelAddress) => {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;

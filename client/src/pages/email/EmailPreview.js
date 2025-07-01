@@ -32,7 +32,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Language as LanguageIcon,
-  Hotel as HotelIcon
+  Hotel as HotelIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useLanguage } from '../../contexts/LanguageContext';
 import axios from 'axios';
@@ -148,9 +149,37 @@ const EmailPreview = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Box sx={{ 
+      width: 'calc(100vw - 80px)', 
+      minHeight: '100vh', 
+      p: 2, 
+      bgcolor: '#f5f5f7',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      zIndex: 1000,
+      overflow: 'auto',
+      marginRight: '80px'
+    }}>
+      {/* כפתור סגירה */}
+      <Box sx={{ 
+        position: 'absolute', 
+        top: 16, 
+        right: 16, 
+        zIndex: 1001 
+      }}>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() => window.history.back()}
+          startIcon={<CloseIcon />}
+        >
+          סגור
+        </Button>
+      </Box>
+
       {/* כותרת */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 4, mt: 4 }}>
         <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>
           📧 תצוגה מקדימה - מיילים
         </Typography>
@@ -186,7 +215,7 @@ const EmailPreview = () => {
 
       <Grid container spacing={3}>
         {/* פאנל שמאל - בקרות */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Paper sx={{ p: 3, height: 'fit-content' }}>
             <Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
               <PreviewIcon sx={{ mr: 1 }} />
@@ -293,8 +322,8 @@ const EmailPreview = () => {
         </Grid>
 
         {/* תצוגה מקדימה של המייל */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ height: '80vh', overflow: 'hidden' }}>
+        <Grid item xs={12} md={9}>
+          <Paper sx={{ height: '85vh', overflow: 'hidden' }}>
             {/* כותרת המייל */}
             {emailPreview && (
               <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
@@ -315,7 +344,14 @@ const EmailPreview = () => {
                 </Box>
               ) : emailPreview ? (
                 <Box 
-                  sx={{ p: 2 }}
+                  sx={{ 
+                    p: 0,
+                    '& body': {
+                      maxWidth: '100% !important',
+                      margin: '0 !important',
+                      padding: '20px !important'
+                    }
+                  }}
                   dangerouslySetInnerHTML={{ __html: emailPreview.html }}
                 />
               ) : (
@@ -374,7 +410,7 @@ const EmailPreview = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 };
 
