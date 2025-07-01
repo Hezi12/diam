@@ -12,8 +12,8 @@ const API_URLS = {
   production: 'https://diam-loy6.onrender.com'
 };
 
-// בחירת הכתובת בהתאם לסביבה - זמנית מחובר לשרת האמיתי
-const API_URL = API_URLS.production;
+// בחירת הכתובת בהתאם לסביבה
+const API_URL = isLocalhost ? API_URLS.development : API_URLS.production;
 
 // מבנה נתיבי ה-API
 const API_ENDPOINTS = {
