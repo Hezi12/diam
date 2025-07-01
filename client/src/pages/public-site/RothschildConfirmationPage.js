@@ -13,7 +13,8 @@ import {
   Alert,
   Card,
   CardContent,
-  IconButton
+  IconButton,
+  Chip
 } from '@mui/material';
 import { 
   CheckCircleOutline as CheckCircleOutlineIcon,
@@ -22,7 +23,9 @@ import {
   Share as ShareIcon,
   Home as HomeIcon,
   Print as PrintIcon,
-  WhatsApp as WhatsAppIcon
+  WhatsApp as WhatsAppIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { he, enUS } from 'date-fns/locale';
@@ -43,6 +46,35 @@ const RothschildConfirmationPage = () => {
   
   // נתוני ההזמנה מה-state שהועבר מהטופס הקודם
   const bookingData = location.state?.bookingData;
+  
+  // Google Analytics - מעקב אחרי הזמנה שהושלמה
+  useEffect(() => {
+    if (bookingData && typeof window.gtag !== 'undefined') {
+      // מעקב אחרי conversion
+      window.gtag('event', 'purchase', {
+        transaction_id: bookingData.bookingNumber || 'unknown',
+        value: bookingData.totalPrice || 0,
+        currency: 'ILS',
+        items: [{
+          item_id: bookingData.room?._id || 'unknown_room',
+          item_name: `חדר ${bookingData.roomNumber} - Rothschild 79`,
+          category: 'hotel_booking',
+          quantity: 1,
+          price: bookingData.totalPrice || 0
+        }]
+      });
+      
+      // מעקב אחרי הזמנה באתר רוטשילד
+      window.gtag('event', 'rothschild_booking_completed', {
+        booking_number: bookingData.bookingNumber,
+        room_type: bookingData.room?.category,
+        nights: bookingData.nights,
+        guests: bookingData.guests,
+        total_price: bookingData.totalPrice,
+        is_tourist: bookingData.isTourist
+      });
+    }
+  }, [bookingData]);
   
   useEffect(() => {
     // אם אין נתוני הזמנה, נווט לדף הבית
@@ -85,6 +117,8 @@ const RothschildConfirmationPage = () => {
       }
     }
   };
+  
+
   
   return (
     <PublicSiteLayout location="rothschild">
