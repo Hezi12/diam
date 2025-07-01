@@ -754,15 +754,15 @@ const BookingsCalendar = ({
       // 4. חישוב הרוחב באחוזים מתוך הרוחב הכולל של התצוגה
       const bookingWidth = (displayDays / daysInRange.length) * 100;
       
-      // 5. חישוב המיקום בתצוגה RTL (כאשר 0 הוא הקצה הימני)
-      const rtlStartPosition = (daysInRange.length - effectiveStartIndex - displayDays) / daysInRange.length * 100;
+      // 5. חישוב המיקום הרגיל (effectiveStartIndex הוא המיקום הנכון)
+      const startPosition = (effectiveStartIndex / daysInRange.length) * 100;
       
       console.log('נתוני הצגת ההזמנה (מתוקנים):', {
         actualNights,
         displayDays,
         effectiveStartIndex,
         effectiveEndIndex,
-        rtlStartPosition: `${rtlStartPosition}%`,
+        startPosition: `${startPosition}%`,
         bookingWidth: `${bookingWidth}%`
       });
       
@@ -799,7 +799,7 @@ const BookingsCalendar = ({
         <GanttBar
           key={booking._id}
           status={booking.status}
-          startOffset={rtlStartPosition}
+          startOffset={startPosition}
           length={bookingWidth}
           variant="full"
           isDragging={dragState.isDragging && dragState.draggedBooking?._id === booking._id}
