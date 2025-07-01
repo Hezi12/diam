@@ -917,6 +917,16 @@ exports.createPublicBooking = async (req, res) => {
       
       console.log('הזמנה נשמרה בהצלחה:', newBooking._id);
       
+      // 📧 שליחת מייל אישור הזמנה
+      try {
+        const emailService = require('../services/emailService');
+        await emailService.sendBookingConfirmation(newBooking, language);
+        console.log('✅ מייל אישור נשלח בהצלחה ל-', newBooking.email);
+      } catch (emailError) {
+        console.error('❌ שגיאה בשליחת מייל אישור (ההזמנה נשמרה):', emailError.message);
+        // לא נקרוס את ההזמנה בגלל שגיאת מייל
+      }
+      
       // החזרת אישור יצירת ההזמנה
       res.status(201).json({
         success: true,

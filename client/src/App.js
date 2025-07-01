@@ -20,6 +20,7 @@ import QuickBooking from './pages/QuickBooking';
 import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
+import EmailPreview from './pages/email/EmailPreview';
 
 // עמודי אתר ציבורי - Airport
 import HomePage from './pages/public-site/HomePage';
@@ -275,6 +276,16 @@ const AppContent = () => {
                   <ProtectedRoute>
                     <Layout>
                       <CapitalManagement />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/email-preview"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <EmailPreview />
                     </Layout>
                   </ProtectedRoute>
                 }

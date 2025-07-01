@@ -31,7 +31,8 @@ import {
   Menu as MenuIcon,
   AccountBalanceWallet as AccountBalanceWalletIcon,
   SwapHoriz as MigrationIcon,
-  Description as DocumentsIcon
+  Description as DocumentsIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -257,6 +258,7 @@ const Sidebar = () => {
     revenue: '#9C27B0', // סגול
     rothschild: '#304dbd', // צבע רוטשילד מקורי
     airport: '#0059b3', // צבע אייפורט מקורי 
+    email: '#FF5722', // כתום - מיילים
     settings: '#F5B400', // צהוב/כתום
     logout: '#EA4335', // אדום
     icount: '#00C853' // ירוק-iCount
@@ -406,6 +408,13 @@ const Sidebar = () => {
             to="/airport-booking"
             title="אתר Airport Guest House"
             iconColor={iconColors.airport}
+            onClick={isMobile ? toggleDrawer(false) : undefined}
+          />
+          <SidebarItem
+            icon={<EmailIcon />}
+            to="/email-preview"
+            title="תצוגה מקדימה - מיילים"
+            iconColor={iconColors.email}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
           <SidebarItem
