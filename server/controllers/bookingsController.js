@@ -3,7 +3,6 @@ const Room = require('../models/Room');
 const Counter = require('../models/Counter');
 const capitalController = require('./capitalController');
 const { deleteBookingImages } = require('../middleware/bookingImageUpload');
-const emailService = require('../services/emailService');
 const path = require('path');
 
 // קבלת כל ההזמנות
@@ -917,45 +916,6 @@ exports.createPublicBooking = async (req, res) => {
       }
       
       console.log('הזמנה נשמרה בהצלחה:', newBooking._id);
-      
-      // שליחת מיילים - אישור לאורח והודעה למנהל
-      try {
-        const emailData = {
-          bookingNumber,
-          firstName,
-          lastName,  
-          email,
-          phone,
-          checkIn: newBooking.checkIn,
-          checkOut: newBooking.checkOut,
-          nights: newBooking.nights,
-          price: newBooking.price,
-          roomType: roomData.category,
-          roomNumber: roomData.roomNumber,
-          guests: guestsCount,
-          notes,
-          language, // 🔥 הוספת שפת הלקוח לנתוני המייל
-          location: roomData.location // 🔥 הוספת המיקום לנתוני המייל
-        };
-        
-        console.log('📧 שולח מיילים להזמנה:', bookingNumber);
-        
-        // שליחת המיילים ברקע (לא חוסם את התגובה)
-        emailService.sendBookingEmails(emailData)
-          .then(results => {
-            console.log('✅ תוצאות שליחת מיילים:', {
-              guest: results.guest.success ? 'נשלח' : 'נכשל',
-              admin: results.admin.success ? 'נשלח' : 'נכשל'
-            });
-          })
-          .catch(error => {
-            console.error('❌ שגיאה בשליחת מיילים:', error);
-          });
-          
-      } catch (emailError) {
-        console.error('❌ שגיאה במערכת המיילים:', emailError);
-        // לא עוצר את התהליך - ההזמנה נשמרה בהצלחה
-      }
       
       // החזרת אישור יצירת ההזמנה
       res.status(201).json({

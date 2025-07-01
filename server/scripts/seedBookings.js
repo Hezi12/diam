@@ -44,7 +44,9 @@ const createSampleBookings = async () => {
 
     // הזמנה 1: הזמנה של לילה אחד להיום
     const booking1 = {
-      guestName: 'ישראל ישראלי',
+      bookingNumber: Math.floor(Math.random() * 1000000) + 100000,
+      firstName: 'ישראל',
+      lastName: 'ישראלי',
       email: 'israel@example.com',
       phone: '054-1234567',
       checkIn: today,
@@ -62,7 +64,9 @@ const createSampleBookings = async () => {
 
     // הזמנה 2: הזמנה של 3 לילות מחר
     const booking2 = {
-      guestName: 'שרה כהן',
+      bookingNumber: Math.floor(Math.random() * 1000000) + 100000,
+      firstName: 'שרה',
+      lastName: 'כהן',
       email: 'sarah@example.com',
       phone: '052-9876543',
       checkIn: addDays(today, 1),

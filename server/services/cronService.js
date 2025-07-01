@@ -1,7 +1,6 @@
 const cron = require('node-cron');
 const icalService = require('./icalService');
 const ICalSettings = require('../models/ICalSettings');
-const emailService = require('./emailService');
 
 class CronService {
     constructor() {
@@ -237,32 +236,8 @@ class CronService {
      */
     async sendNewBookingNotification(settings, roomConfig, newBookings) {
         try {
-            if (!settings.globalSettings.notifications?.email) {
-                return;
-            }
-
-            const subject = `🎉 הזמנות חדשות מבוקינג - ${settings.location.toUpperCase()}`;
-            
-            let message = `התקבלו ${newBookings.length} הזמנות חדשות מבוקינג עבור חדר ${roomConfig.roomName}:\n\n`;
-            
-            newBookings.forEach((booking, index) => {
-                message += `${index + 1}. הזמנה #${booking.bookingNumber}\n`;
-                message += `   אורח: ${booking.firstName || 'אורח'}\n`;
-                const checkIn = new Date(booking.checkIn);
-                const checkOut = new Date(booking.checkOut);
-                message += `   תאריכים: ${checkIn.toLocaleDateString('he-IL')} - ${checkOut.toLocaleDateString('he-IL')}\n`;
-                message += `   חדר: ${roomConfig.roomName}\n\n`;
-            });
-
-            message += `זמן הסנכרון: ${new Date().toLocaleString('he-IL')}\n`;
-            message += `מיקום: ${settings.location.toUpperCase()}`;
-
-            await emailService.sendNotificationEmail(
-                settings.globalSettings.notifications.email,
-                subject,
-                message
-            );
-
+            console.log(`📧 התראה על ${newBookings.length} הזמנות חדשות ב-${settings.location.toUpperCase()}`);
+            console.log('(מערכת המיילים הוסרה זמנית)');
         } catch (error) {
             console.error('שגיאה בשליחת התראה על הזמנות חדשות:', error);
         }
@@ -273,25 +248,8 @@ class CronService {
      */
     async sendSyncErrorNotification(settings, roomConfig, error) {
         try {
-            if (!settings.globalSettings.notifications?.email) {
-                return;
-            }
-
-            const subject = `⚠️ שגיאה בסנכרון בוקינג - ${settings.location.toUpperCase()}`;
-            
-            let message = `אירעה שגיאה בסנכרון עם בוקינג:\n\n`;
-            message += `מיקום: ${settings.location.toUpperCase()}\n`;
-            message += `חדר: ${roomConfig.roomName} (${roomConfig.roomId})\n`;
-            message += `שגיאה: ${error.message}\n`;
-            message += `זמן: ${new Date().toLocaleString('he-IL')}\n\n`;
-            message += `אנא בדוק את קישור iCal ואת הגדרות הסנכרון.`;
-
-            await emailService.sendNotificationEmail(
-                settings.globalSettings.notifications.email,
-                subject,
-                message
-            );
-
+            console.log(`⚠️ שגיאה בסנכרון ב-${settings.location.toUpperCase()}: ${error.message}`);
+            console.log('(מערכת המיילים הוסרה זמנית)');
         } catch (emailError) {
             console.error('שגיאה בשליחת התראה על שגיאת סנכרון:', emailError);
         }

@@ -49,7 +49,7 @@ const createSampleRooms = async () => {
           'כספת',
           'מקלחת'
         ],
-        status: true
+        isActive: true
       },
       {
         roomNumber: '102',
@@ -71,7 +71,7 @@ const createSampleRooms = async () => {
           'מקלחת',
           'מרפסת'
         ],
-        status: true
+        isActive: true
       },
       {
         roomNumber: '103',
@@ -93,7 +93,7 @@ const createSampleRooms = async () => {
           'מקלחת',
           'מיטה זוגית + ספה נפתחת'
         ],
-        status: true
+        isActive: true
       }
     ];
 
@@ -118,7 +118,7 @@ const createSampleRooms = async () => {
           'כספת',
           'מקלחת'
         ],
-        status: true
+        isActive: true
       },
       {
         roomNumber: '202',
@@ -140,7 +140,7 @@ const createSampleRooms = async () => {
           'מקלחת',
           'מרפסת'
         ],
-        status: true
+        isActive: true
       }
     ];
 

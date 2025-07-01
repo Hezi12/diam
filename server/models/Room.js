@@ -76,7 +76,7 @@ const RoomSchema = new mongoose.Schema(
     },
     
     // סטטוס פעילות
-    status: {
+    isActive: {
       type: Boolean,
       default: true
     }

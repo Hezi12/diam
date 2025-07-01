@@ -219,9 +219,6 @@ const ConfirmationPage = () => {
           <Divider sx={{ my: 3 }} />
           
           <Box sx={{ mt: 3, mb: 1, textAlign: 'center' }}>
-            <Typography variant="body1" color="text.primary" paragraph sx={{ fontWeight: 500 }}>
-{t('confirmation.emailSent')}
-            </Typography>
             <Typography variant="body1" fontWeight={500}>
               {t('confirmation.airportSeeYouSoon')}
             </Typography>

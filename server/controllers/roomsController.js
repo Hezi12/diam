@@ -79,7 +79,7 @@ exports.getAvailableRooms = async (req, res) => {
     // קריאה לכל החדרים במיקום הנבחר
     const rooms = await Room.find({ 
       location,
-      status: true // רק חדרים פעילים
+      isActive: true // רק חדרים פעילים
     }).sort({ roomNumber: 1 });
     
     // מציאת כל ההזמנות בטווח התאריכים
