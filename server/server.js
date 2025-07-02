@@ -141,6 +141,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/icount', icountRoutes);
 app.use('/api/ical', icalRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/discounts', require('./routes/discounts'));
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {

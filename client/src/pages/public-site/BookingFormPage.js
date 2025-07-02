@@ -33,6 +33,7 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
+import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 
 // שלבי הטופס - יעודכנו בתרגום
 const steps = [];
@@ -192,8 +193,14 @@ const BookingFormPage = () => {
     }
   };
   
-  // מחיר סופי מחושב עם התאריכים
-  const roomPricing = room ? calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist, checkIn, checkOut) : { pricePerNight: 0, totalPrice: 0 };
+  // מצב עבור מחיר מחושב עם הנחות
+  const [pricingWithDiscounts, setPricingWithDiscounts] = useState({
+    pricePerNight: 0,
+    totalPrice: 0,
+    originalPrice: 0,
+    discountAmount: 0,
+    appliedDiscounts: []
+  });
   
   // עדכון הפונקציה submitBooking
   const submitBooking = async () => {
@@ -246,10 +253,10 @@ const BookingFormPage = () => {
             checkOut: checkOutStr,
             roomCategory: room.category || room.roomType || 'חדר רגיל',
             roomNumber: room.roomNumber,
-            totalPrice: roomPricing.totalPrice,
-            guests: bookingData.guests,
-            nights: response.data.data.nights || nightsCount,
-            price: response.data.data.price || roomPricing.totalPrice
+                    totalPrice: pricingWithDiscounts.totalPrice,
+        guests: bookingData.guests,
+        nights: response.data.data.nights || nightsCount,
+        price: response.data.data.price || pricingWithDiscounts.totalPrice
           }
         }
       });
@@ -710,7 +717,7 @@ const BookingFormPage = () => {
                     {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {roomPricing.totalPrice} ₪
+                    {pricingWithDiscounts.totalPrice} ₪
                   </Typography>
                 </Grid>
               </Grid>
@@ -885,47 +892,20 @@ const BookingFormPage = () => {
                         
                         <Divider sx={{ mb: 1.5 }} />
                         
-                        {/* פירוט מחירים בטבלה קומפקטית */}
-                        <Box sx={{ 
-                          bgcolor: '#f8fafc', 
-                          borderRadius: 1, 
-                          p: 1.5, 
-                          mb: 1.5,
-                          border: '1px solid #e2e8f0'
-                        }}>
-                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr auto 1fr auto' }, gap: 1, alignItems: 'center' }}>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
-₪{roomPricing.pricePerNight}{t('common.perNight')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary' }}>×</Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
-{nightsCount} {t('common.nights')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary' }}>×</Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', color: 'text.primary', fontWeight: 500 }}>
-{bookingData.guests} {t('common.guests')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '1rem', fontWeight: 600, color: 'primary.main' }}>
-                              = ₪{roomPricing.totalPrice}
-                            </Typography>
-                          </Box>
-                          {roomPricing.extraGuests > 0 && (
-                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'warning.main', mt: 0.5, textAlign: 'center' }}>
-{t('common.includesExtra')} {roomPricing.extraGuests} {roomPricing.extraGuests > 1 ? t('common.extraGuests') : t('common.extraGuest')} (+₪{roomPricing.extraCharge})
-                            </Typography>
-                          )}
-                        </Box>
-                        
-                        <Divider sx={{ mb: 2 }} />
-                        
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="body1" fontWeight={600}>
-{t('common.totalPayment')}
-                          </Typography>
-                          <Typography variant="h6" fontWeight={700} color="primary.main">
-                            {roomPricing.totalPrice} ₪
-                          </Typography>
-                        </Box>
+                        {/* מחשבון מחירים עם הנחות */}
+                        <PriceCalculatorWithDiscounts
+                          room={room}
+                          checkIn={checkIn}
+                          checkOut={checkOut}
+                          guests={bookingData.guests}
+                          isTourist={isTourist}
+                          location="airport"
+                          nights={nightsCount}
+                          onPriceCalculated={setPricingWithDiscounts}
+                          showDiscountBadges={true}
+                          compact={true}
+                          style={{ marginBottom: 16 }}
+                        />
 
                         <Divider sx={{ mb: 1.5 }} />
 

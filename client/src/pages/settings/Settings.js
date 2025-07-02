@@ -5,6 +5,7 @@ import ApartmentIcon from '@mui/icons-material/Apartment';
 import FlightIcon from '@mui/icons-material/Flight';
 import SyncIcon from '@mui/icons-material/Sync';
 import EmailIcon from '@mui/icons-material/Email';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import ICalSettings from '../../components/settings/ICalSettings';
 
 /**
@@ -103,6 +104,50 @@ const Settings = () => {
               }}
             >
               <ApartmentIcon fontSize="large" />
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* ניהול הנחות */}
+        <Grid item xs={12} sm={6}>
+          <Paper
+            component={RouterLink}
+            to="/settings/discounts"
+            sx={{
+              p: 3,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: 2,
+              transition: 'all 0.2s',
+              '&:hover': {
+                transform: 'translateY(-3px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                bgcolor: 'rgba(255, 152, 0, 0.04)'
+              }
+            }}
+          >
+            <Box sx={{ maxWidth: '70%' }}>
+              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+                ניהול הנחות
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                יצירה ועריכה של הנחות לאתרי ההזמנות
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                bgcolor: 'rgba(255, 152, 0, 0.1)',
+                color: '#ff9800',
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 2,
+              }}
+            >
+              <LocalOfferIcon fontSize="large" />
             </Box>
           </Paper>
         </Grid>
