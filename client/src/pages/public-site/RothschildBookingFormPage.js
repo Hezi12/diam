@@ -184,7 +184,7 @@ const RothschildBookingFormPage = () => {
       
       console.log('התקבלה תשובה מהשרת:', response.data);
       
-      // מעבר לדף אישור
+              // מעבר לדף אישור
               navigate('/rothschild-booking/confirmation', {
         state: {
           bookingData: {
@@ -193,10 +193,10 @@ const RothschildBookingFormPage = () => {
             checkOut: checkOutStr,
             roomCategory: room.category || room.roomType || 'חדר רגיל',
             roomNumber: room.roomNumber,
-                    totalPrice: pricingWithDiscounts.totalPrice,
-        guests: bookingData.guests,
-        nights: response.data.data.nights || nightsCount,
-        price: response.data.data.price || pricingWithDiscounts.totalPrice
+            totalPrice: pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice,
+            guests: bookingData.guests,
+            nights: response.data.data.nights || nightsCount,
+            price: response.data.data.price || pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice
           }
         }
       });
@@ -625,7 +625,7 @@ const RothschildBookingFormPage = () => {
                     {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {pricingWithDiscounts.totalPrice} ₪
+                    {pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice || 0} ₪
                   </Typography>
                 </Grid>
               </Grid>
@@ -719,6 +719,7 @@ const RothschildBookingFormPage = () => {
               showDiscountBadges={true}
               compact={true}
               style={{ marginBottom: 16 }}
+              onPriceCalculated={setPricingWithDiscounts}
             />
 
             <Divider sx={{ mb: 1.5 }} />
@@ -763,7 +764,7 @@ const RothschildBookingFormPage = () => {
         </>
       )}
     </Card>
-  ), [room, checkIn, checkOut, nightsCount, isTourist, roomLoading, urlGuests, formattedCheckIn, formattedCheckOut, formattedCancellationDate]);
+  ), [room, checkIn, checkOut, nightsCount, isTourist, roomLoading, urlGuests, formattedCheckIn, formattedCheckOut, formattedCancellationDate, setPricingWithDiscounts]);
 
 
   

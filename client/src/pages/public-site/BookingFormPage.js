@@ -159,7 +159,7 @@ const BookingFormPage = () => {
           cvv: bookingData.creditCard.cvv
         },
         // 🆕 הוספת נתוני הנחות ממערכת PriceCalculatorWithDiscounts
-        finalPrice: pricingWithDiscounts.totalPrice,
+        finalPrice: pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice,
         originalPrice: pricingWithDiscounts.originalPrice,
         appliedDiscounts: pricingWithDiscounts.appliedDiscounts || [],
         discountAmount: pricingWithDiscounts.discountAmount || 0
@@ -189,16 +189,16 @@ const BookingFormPage = () => {
       // מעבר לדף אישור
       navigate('/airport-booking/confirmation', {
         state: {
-          bookingData: {
+                    bookingData: {
             bookingNumber: response.data.data.bookingNumber,
             checkIn: checkInStr,
             checkOut: checkOutStr,
             roomCategory: room.category || room.roomType || 'חדר רגיל',
             roomNumber: room.roomNumber,
-                    totalPrice: pricingWithDiscounts.totalPrice,
-        guests: bookingData.guests,
-        nights: response.data.data.nights || nightsCount,
-        price: response.data.data.price || pricingWithDiscounts.totalPrice
+            totalPrice: pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice,
+            guests: bookingData.guests,
+            nights: response.data.data.nights || nightsCount,
+            price: response.data.data.price || pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice
           }
         }
       });
@@ -365,6 +365,7 @@ const BookingFormPage = () => {
               showDiscountBadges={true}
               compact={true}
               style={{ marginBottom: 16 }}
+              onPriceCalculated={setPricingWithDiscounts}
             />
 
             <Divider sx={{ mb: 1.5 }} />
@@ -409,7 +410,7 @@ const BookingFormPage = () => {
         </>
       )}
     </Card>
-  ), [room, checkIn, checkOut, nightsCount, isTourist, roomLoading, urlGuests, formattedCheckIn, formattedCheckOut, formattedCancellationDate]);
+  ), [room, checkIn, checkOut, nightsCount, isTourist, roomLoading, urlGuests, formattedCheckIn, formattedCheckOut, formattedCancellationDate, setPricingWithDiscounts]);
   
   // עדכון נתוני הטופס
   const handleChange = (e) => {
@@ -784,7 +785,7 @@ const BookingFormPage = () => {
                     {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {pricingWithDiscounts.totalPrice} ₪
+                    {pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice || 0} ₪
                   </Typography>
                 </Grid>
               </Grid>
