@@ -33,6 +33,7 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
+import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 
 // שלבי הטופס - יעודכנו בתרגום
 const steps = [];
@@ -110,12 +111,15 @@ const BookingFormPage = () => {
   const cancellationDate = checkIn ? new Date(checkIn.getTime() - 3 * 24 * 60 * 60 * 1000) : null;
   const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
   
-  // הורדה: הפונקציה calculateRoomPrice הישנה הוסרה - עכשיו משתמשים במחיר בסיסי
+  // הורדה: הפונקציה calculateRoomPrice הישנה הוסרה - עכשיו משתמשים רק ב-PriceCalculatorWithDiscounts
   
-  // מצב עבור מחיר בסיסי
-  const [basicPricing, setBasicPricing] = useState({
+  // מצב עבור מחיר מחושב עם הנחות
+  const [pricingWithDiscounts, setPricingWithDiscounts] = useState({
     pricePerNight: 0,
-    totalPrice: 0
+    totalPrice: 0,
+    originalPrice: 0,
+    discountAmount: 0,
+    appliedDiscounts: []
   });
   
   // עדכון הפונקציה submitBooking
@@ -142,9 +146,11 @@ const BookingFormPage = () => {
           expiryDate: bookingData.creditCard.expiryDate,
           cvv: bookingData.creditCard.cvv
         },
-        // מחיר בסיסי
-        finalPrice: basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0),
-        originalPrice: basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0)
+        // 🆕 הוספת נתוני הנחות ממערכת PriceCalculatorWithDiscounts
+        finalPrice: pricingWithDiscounts.totalPrice,
+        originalPrice: pricingWithDiscounts.originalPrice,
+        appliedDiscounts: pricingWithDiscounts.appliedDiscounts || [],
+        discountAmount: pricingWithDiscounts.discountAmount || 0
       };
       
       console.log('שולח בקשת הזמנה עם הנתונים:', {
@@ -156,8 +162,11 @@ const BookingFormPage = () => {
         checkOut: bookingPayload.checkOut,
         guests: bookingPayload.guests,
         hasCreditCard: bookingPayload.creditCard ? 'כן' : 'לא',
-        // מחיר בסיסי
-        finalPrice: bookingPayload.finalPrice
+        // 🆕 הוספת נתוני הנחות ללוגינג
+        originalPrice: bookingPayload.originalPrice,
+        finalPrice: bookingPayload.finalPrice,
+        discountAmount: bookingPayload.discountAmount,
+        hasDiscounts: bookingPayload.appliedDiscounts.length > 0
       });
       
       // שליחת ההזמנה לשרת דרך ה-API הציבורי
@@ -174,10 +183,10 @@ const BookingFormPage = () => {
             checkOut: checkOutStr,
             roomCategory: room.category || room.roomType || 'חדר רגיל',
             roomNumber: room.roomNumber,
-                    totalPrice: basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0),
+                    totalPrice: pricingWithDiscounts.totalPrice,
         guests: bookingData.guests,
         nights: response.data.data.nights || nightsCount,
-        price: response.data.data.price || basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0)
+        price: response.data.data.price || pricingWithDiscounts.totalPrice
           }
         }
       });
@@ -253,7 +262,7 @@ const BookingFormPage = () => {
     fetchRoom();
   }, [roomId, checkInStr, checkOutStr, nightsCount, validParams]);
   
-          // הורדה: ה-useEffect לעדכון מחיר הוסר - עכשיו משתמשים במחיר בסיסי
+  // הורדה: ה-useEffect לעדכון מחיר הוסר - PriceCalculatorWithDiscounts דואג לכל העדכונים
   
   // פורמט תאריכים לתצוגה
   const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
@@ -632,7 +641,7 @@ const BookingFormPage = () => {
                     {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {room?.pricePerNight ? room.pricePerNight * nightsCount : 0} ₪
+                    {pricingWithDiscounts.totalPrice} ₪
                   </Typography>
                 </Grid>
               </Grid>
@@ -807,15 +816,20 @@ const BookingFormPage = () => {
                         
                         <Divider sx={{ mb: 1.5 }} />
                         
-                        {/* מחשבון מחירים בסיסי */}
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="h6" sx={{ mb: 1 }}>
-                            מחיר: ₪{room?.pricePerNight ? room.pricePerNight * nightsCount : 0}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {nightsCount} לילות × ₪{room?.pricePerNight || 0} ללילה
-                          </Typography>
-                        </Box>
+                        {/* מחשבון מחירים עם הנחות */}
+                        <PriceCalculatorWithDiscounts
+                          room={room}
+                          checkIn={checkIn}
+                          checkOut={checkOut}
+                          guests={bookingData.guests}
+                          isTourist={isTourist}
+                          location="airport"
+                          nights={nightsCount}
+                          onPriceCalculated={setPricingWithDiscounts}
+                          showDiscountBadges={true}
+                          compact={true}
+                          style={{ marginBottom: 16 }}
+                        />
 
                         <Divider sx={{ mb: 1.5 }} />
 

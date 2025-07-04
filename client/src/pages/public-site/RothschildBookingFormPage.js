@@ -33,6 +33,7 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
+import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 
 // שלבי הטופס - יעודכנו בתרגום
 const steps = [];
@@ -110,92 +111,15 @@ const RothschildBookingFormPage = () => {
   const cancellationDate = checkIn ? new Date(checkIn.getTime() - 3 * 24 * 60 * 60 * 1000) : null;
   const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
   
-  /**
-   * חישוב מחיר עם אורחים נוספים וסטטוס תייר וימים מיוחדים
-   * @param {Object} room - נתוני החדר
-   * @param {number} guests - מספר אורחים
-   * @param {number} nights - מספר לילות
-   * @param {boolean} isTourist - האם תייר
-   * @param {Date} checkIn - תאריך כניסה
-   * @param {Date} checkOut - תאריך יציאה
-   * @returns {Object} - אובייקט עם המחירים המחושבים
-   */
-  const calculateRoomPrice = (room, guests, nights, isTourist, checkIn = null, checkOut = null) => {
-    if (!room) return { pricePerNight: 0, totalPrice: 0 };
-    
-    let totalPrice = 0;
-    
-    // אם יש תאריכי כניסה ויציאה, נחשב מחיר מדויק לכל יום
-    if (checkIn && checkOut) {
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-      
-      // מעבר על כל יום בתקופת השהייה
-      for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
-        const dayOfWeek = date.getDay();
-        let dailyBasePrice;
-        
-        if (dayOfWeek === 5) { // יום שישי
-          dailyBasePrice = isTourist ? 
-            (room.fridayPrice || room.basePrice || 0) : 
-            (room.fridayVatPrice || room.vatPrice || 0);
-        } else if (dayOfWeek === 6) { // יום שבת
-          dailyBasePrice = isTourist ? 
-            (room.saturdayPrice || room.basePrice || 0) : 
-            (room.saturdayVatPrice || room.vatPrice || 0);
-        } else { // שאר הימים
-          dailyBasePrice = isTourist ? 
-            (room.basePrice || 0) : 
-            (room.vatPrice || 0);
-        }
-        
-        // הוספת תוספת לאורחים נוספים
-        const baseOccupancy = room.baseOccupancy || 2;
-        const extraGuestCharge = room.extraGuestCharge || 0;
-        const extraGuests = Math.max(0, guests - baseOccupancy);
-        const extraCharge = extraGuests * extraGuestCharge;
-        
-        totalPrice += dailyBasePrice + extraCharge;
-      }
-      
-      // חישוב מחיר ממוצע ללילה
-      const avgPricePerNight = nights > 0 ? totalPrice / nights : 0;
-      
-      return {
-        pricePerNight: parseFloat(avgPricePerNight.toFixed(2)),
-        totalPrice: parseFloat(totalPrice.toFixed(2)),
-        extraGuests: Math.max(0, guests - (room.baseOccupancy || 2)),
-        extraCharge: Math.max(0, guests - (room.baseOccupancy || 2)) * (room.extraGuestCharge || 0)
-      };
-    } else {
-      // חישוב פשוט ללא תאריכים מדויקים - משתמש במחיר בסיס
-      const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
-      
-      // חישוב תוספת לאורחים נוספים
-      const baseOccupancy = room.baseOccupancy || 2;
-      const extraGuestCharge = room.extraGuestCharge || 0;
-      const extraGuests = Math.max(0, guests - baseOccupancy);
-      const extraCharge = extraGuests * extraGuestCharge;
-      
-      // מחיר סופי ללילה
-      const pricePerNight = basePricePerNight + extraCharge;
-      
-      // מחיר כולל
-      const totalPrice = pricePerNight * nights;
-      
-      return {
-        pricePerNight,
-        totalPrice,
-        extraGuests,
-        extraCharge
-      };
-    }
-  };
+  // הוסר: calculateRoomPrice - עכשיו משתמשים רק ב-PriceCalculatorWithDiscounts
   
-  // מצב עבור מחיר בסיסי
-  const [basicPricing, setBasicPricing] = useState({
+  // מצב עבור מחיר מחושב עם הנחות
+  const [pricingWithDiscounts, setPricingWithDiscounts] = useState({
     pricePerNight: 0,
-    totalPrice: 0
+    totalPrice: 0,
+    originalPrice: 0,
+    discountAmount: 0,
+    appliedDiscounts: []
   });
   
   // עדכון הפונקציה submitBooking
@@ -203,7 +127,7 @@ const RothschildBookingFormPage = () => {
     setLoading(true);
     
     try {
-      // יצירת אובייקט ההזמנה
+      // יצירת אובייקט ההזמנה עם נתוני הנחות
       const bookingPayload = {
         firstName: bookingData.firstName,
         lastName: bookingData.lastName,
@@ -216,7 +140,12 @@ const RothschildBookingFormPage = () => {
         checkIn: checkInStr,
         checkOut: checkOutStr,
         isTourist: isTourist,
-        language: currentLanguage, // 🔥 הוספת שפת הלקוח
+        language: currentLanguage,
+        // 🆕 נתוני מחיר והנחות מה-PriceCalculatorWithDiscounts
+        finalPrice: pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice,
+        originalPrice: pricingWithDiscounts.originalPrice,
+        appliedDiscounts: pricingWithDiscounts.appliedDiscounts || [],
+        discountAmount: pricingWithDiscounts.totalDiscount || (pricingWithDiscounts.originalPrice - (pricingWithDiscounts.finalPrice || pricingWithDiscounts.totalPrice)),
         creditCard: {
           cardNumber: bookingData.creditCard.cardNumber.replace(/\s/g, ''),
           expiryDate: bookingData.creditCard.expiryDate,
@@ -232,7 +161,12 @@ const RothschildBookingFormPage = () => {
         checkIn: bookingPayload.checkIn,
         checkOut: bookingPayload.checkOut,
         guests: bookingPayload.guests,
-        hasCreditCard: bookingPayload.creditCard ? 'כן' : 'לא'
+        hasCreditCard: bookingPayload.creditCard ? 'כן' : 'לא',
+        // 💰 נתוני מחיר
+        finalPrice: bookingPayload.finalPrice,
+        originalPrice: bookingPayload.originalPrice,
+        discountAmount: bookingPayload.discountAmount,
+        appliedDiscountsCount: bookingPayload.appliedDiscounts.length
       });
       
       // שליחת ההזמנה לשרת דרך ה-API הציבורי
@@ -249,10 +183,10 @@ const RothschildBookingFormPage = () => {
             checkOut: checkOutStr,
             roomCategory: room.category || room.roomType || 'חדר רגיל',
             roomNumber: room.roomNumber,
-                    totalPrice: basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0),
+                    totalPrice: pricingWithDiscounts.totalPrice,
         guests: bookingData.guests,
         nights: response.data.data.nights || nightsCount,
-        price: response.data.data.price || basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0)
+        price: response.data.data.price || pricingWithDiscounts.totalPrice
           }
         }
       });
@@ -328,13 +262,7 @@ const RothschildBookingFormPage = () => {
     fetchRoom();
   }, [roomId, checkInStr, checkOutStr, nightsCount, validParams]);
   
-  // עדכון המחיר כשמספר האורחים משתנה
-  useEffect(() => {
-    if (room && bookingData.guests) {
-      const newPricing = calculateRoomPrice(room, bookingData.guests, nightsCount, isTourist, checkIn, checkOut);
-      // כאן אפשר להוסיף לוגיקה נוספת אם נדרש
-    }
-  }, [bookingData.guests, room, nightsCount, isTourist, checkIn, checkOut]);
+  // הוסר: useEffect לעדכון מחיר - PriceCalculatorWithDiscounts דואג לכל החישובים
   
   // פורמט תאריכים לתצוגה
   const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
@@ -713,7 +641,7 @@ const RothschildBookingFormPage = () => {
                     {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {room?.pricePerNight ? room.pricePerNight * nightsCount : 0} ₪
+                    {pricingWithDiscounts.totalPrice} ₪
                   </Typography>
                 </Grid>
               </Grid>
@@ -888,15 +816,20 @@ const RothschildBookingFormPage = () => {
                         
                         <Divider sx={{ mb: 1.5 }} />
                         
-                        {/* מחשבון מחירים בסיסי */}
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="h6" sx={{ mb: 1 }}>
-                            מחיר: ₪{room?.pricePerNight ? room.pricePerNight * nightsCount : 0}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {nightsCount} לילות × ₪{room?.pricePerNight || 0} ללילה
-                          </Typography>
-                        </Box>
+                        {/* מחשבון מחירים עם הנחות */}
+                        <PriceCalculatorWithDiscounts
+                          room={room}
+                          checkIn={checkIn}
+                          checkOut={checkOut}
+                          guests={bookingData.guests}
+                          isTourist={isTourist}
+                          location="rothschild"
+                          nights={nightsCount}
+                          onPriceCalculated={setPricingWithDiscounts}
+                          showDiscountBadges={true}
+                          compact={true}
+                          style={{ marginBottom: 16 }}
+                        />
 
                         <Divider sx={{ mb: 1.5 }} />
 

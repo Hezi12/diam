@@ -110,7 +110,24 @@ class DiscountService {
     }
   }
 
-
+  /**
+   * חישוב מחיר עם הנחות
+   */
+  static async calculatePriceWithDiscounts(priceParams) {
+    try {
+      console.log('🎯 DiscountService.calculatePriceWithDiscounts: מתחיל חישוב מחיר עם פרמטרים:', priceParams);
+      
+      const response = await axios.post('/api/discounts/calculate-price', priceParams);
+      
+      console.log('✅ DiscountService.calculatePriceWithDiscounts: תוצאת חישוב מהשרת:', response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ DiscountService.calculatePriceWithDiscounts: שגיאה בחישוב מחיר עם הנחות:', error);
+      console.error('❌ פרטי השגיאה:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'שגיאה בחישוב המחיר');
+    }
+  }
 
   /**
    * רישום שימוש בהנחה
@@ -286,7 +303,90 @@ class DiscountService {
     }
   }
 
+  /**
+   * חישוב מחיר רגיל (ללא הנחות) - שיטת עזר
+   */
+  static calculateBasePrice(params) {
+    const {
+      room,
+      checkIn,
+      checkOut,
+      nights,
+      guests,
+      isTourist
+    } = params;
 
+    console.log('💰 DiscountService.calculateBasePrice: מתחיל חישוב מחיר בסיסי:', {
+      roomId: room?._id,
+      roomCategory: room?.category,
+      checkIn,
+      checkOut,
+      nights,
+      guests,
+      isTourist
+    });
+
+    if (!room || !nights) {
+      console.log('🚫 DiscountService.calculateBasePrice: חסרים פרמטרים - מחזיר 0');
+      return 0;
+    }
+
+    let totalPrice = 0;
+    const checkInDate = new Date(checkIn);
+
+    console.log('🏨 DiscountService.calculateBasePrice: מחירי החדר:', {
+      basePrice: room.basePrice,
+      vatPrice: room.vatPrice,
+      fridayPrice: room.fridayPrice,
+      fridayVatPrice: room.fridayVatPrice,
+      saturdayPrice: room.saturdayPrice,
+      saturdayVatPrice: room.saturdayVatPrice,
+      extraGuestCharge: room.extraGuestCharge,
+      baseOccupancy: room.baseOccupancy
+    });
+
+    // חישוב מחיר לכל לילה
+    for (let i = 0; i < nights; i++) {
+      const currentDate = new Date(checkInDate);
+      currentDate.setDate(currentDate.getDate() + i);
+      
+      const dayOfWeek = currentDate.getDay();
+      let dayPrice = 0;
+
+      if (dayOfWeek === 5) { // שישי
+        dayPrice = isTourist ? 
+          (room.fridayPrice || room.basePrice || 0) : 
+          (room.fridayVatPrice || room.vatPrice || 0);
+      } else if (dayOfWeek === 6) { // שבת
+        dayPrice = isTourist ? 
+          (room.saturdayPrice || room.basePrice || 0) : 
+          (room.saturdayVatPrice || room.vatPrice || 0);
+      } else { // ימים רגילים
+        dayPrice = isTourist ? 
+          (room.basePrice || 0) : 
+          (room.vatPrice || 0);
+      }
+
+      console.log(`📅 יום ${i + 1} (${currentDate.toDateString()}): יום ${dayOfWeek}, מחיר: ${dayPrice}₪`);
+      totalPrice += dayPrice;
+    }
+
+    // הוספת תשלום לאורחים נוספים
+    const baseOccupancy = room.baseOccupancy || 2;
+    const extraGuestCharge = room.extraGuestCharge || 0;
+    const extraGuests = Math.max(0, guests - baseOccupancy);
+    
+    if (extraGuests > 0) {
+      const extraCharge = extraGuests * extraGuestCharge * nights;
+      console.log(`👥 תוספת ${extraGuests} אורחים נוספים: ${extraCharge}₪ (${extraGuestCharge}₪ × ${extraGuests} × ${nights} לילות)`);
+      totalPrice += extraCharge;
+    }
+
+    const finalPrice = Math.round(totalPrice);
+    console.log(`✅ DiscountService.calculateBasePrice: מחיר סופי מחושב: ${finalPrice}₪`);
+
+    return finalPrice;
+  }
 
   /**
    * חישוב חיסכון באחוזים
@@ -296,7 +396,34 @@ class DiscountService {
     return Math.round(((originalPrice - finalPrice) / originalPrice) * 100);
   }
 
-
+  /**
+   * קבלת הנחות מומלצות לחדר
+   */
+  static async getRecommendedDiscounts(roomParams) {
+    try {
+      const applicableDiscounts = await this.getApplicableDiscounts(roomParams);
+      
+      // מיון לפי עדיפות וערך החיסכון
+      return applicableDiscounts
+        .filter(discount => discount.isActive)
+        .sort((a, b) => {
+          // קודם לפי עדיפות
+          if (a.priority !== b.priority) {
+            return b.priority - a.priority;
+          }
+          
+          // אחר כך לפי ערך ההנחה
+          const aValue = a.discountType === 'percentage' ? a.discountValue : 0;
+          const bValue = b.discountType === 'percentage' ? b.discountValue : 0;
+          return bValue - aValue;
+        })
+        .slice(0, 3); // רק 3 הנחות מומלצות
+        
+    } catch (error) {
+      console.error('שגיאה בקבלת הנחות מומלצות:', error);
+      return [];
+    }
+  }
 
   /**
    * יצוא נתוני הנחות לקובץ
