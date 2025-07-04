@@ -86,6 +86,9 @@ class ICalService {
             // פיענוח קובץ iCal
             const events = this.parseICalData(icalData);
             
+            /*
+            ========== BACKUP - הקוד המקורי לפני השינוי ==========
+            
             // **שלב 1: מחיקת כל ההזמנות הישנות מבוקינג לחדר זה**
             console.log(`מוחק הזמנות ישנות מבוקינג עבור חדר ${roomId}...`);
             const deletedBookings = await Booking.deleteMany({
@@ -102,6 +105,77 @@ class ICalService {
             
             // **שלב 2: הוספת כל ההזמנות הנוכחיות מבוקינג**
             for (const event of events) {
+                // ... יצירת הזמנה חדשה עבור כל אירוע
+            }
+            
+            ========== סוף BACKUP ==========
+            */
+            
+            // **הלוגיקה החדשה - חכמה יותר עם UID**
+            console.log('🔄 מתחיל סנכרון חכם עם זיהוי UID...');
+            
+            // שלב 1: איסוף כל ה-UIDs מהקובץ החדש
+            const newUIDs = events.map(event => event.uid).filter(uid => uid); // מסנן UIDs ריקים
+            console.log(`📋 נמצאו ${newUIDs.length} UIDs בקובץ החדש מבוקינג`);
+            
+            // שלב 2: מחיקת הזמנות שבוטלו בבוקינג (לא קיימות יותר)
+            console.log('🗑️ מחפש הזמנות שבוטלו בבוקינג...');
+            
+            // חיפוש הזמנות קיימות מבוקינג
+            const existingBookings = await Booking.find({
+                roomNumber: roomId,
+                location: location,
+                source: 'booking'
+            });
+            
+            let deletedCount = 0;
+            
+            // בדיקה עבור כל הזמנה קיימת - האם היא עדיין קיימת בבוקינג?
+            for (const booking of existingBookings) {
+                const bookingUID = this.extractUIDFromNotes(booking.notes);
+                
+                if (bookingUID && !newUIDs.includes(bookingUID)) {
+                    // ההזמנה לא קיימת יותר בבוקינג - בוטלה
+                    console.log(`❌ מוחק הזמנה מבוטלת: ${booking.bookingNumber} (UID: ${bookingUID})`);
+                    await Booking.findByIdAndDelete(booking._id);
+                    deletedCount++;
+                } else if (!bookingUID) {
+                    // הזמנה ישנה ללא UID - מוחקים אותה גם כן
+                    console.log(`⚠️ מוחק הזמנה ישנה ללא UID: ${booking.bookingNumber}`);
+                    await Booking.findByIdAndDelete(booking._id);
+                    deletedCount++;
+                }
+            }
+            
+            console.log(`🗑️ נמחקו ${deletedCount} הזמנות מבוטלות/ישנות`);
+            
+            // שלב 3: הוספת הזמנות חדשות בלבד
+            console.log('➕ מחפש הזמנות חדשות להוספה...');
+            
+            const newBookings = [];
+            
+            for (const event of events) {
+                // בדיקה אם ההזמנה כבר קיימת לפי UID
+                const eventUID = event.uid;
+                if (!eventUID) {
+                    console.log('⚠️ אירוע ללא UID, מדלג...');
+                    continue;
+                }
+                
+                const existingBooking = await Booking.findOne({
+                    roomNumber: roomId,
+                    location: location,
+                    source: 'booking',
+                    notes: { $regex: eventUID }
+                });
+                
+                if (existingBooking) {
+                    console.log(`✅ הזמנה קיימת (UID: ${eventUID}), משאיר ללא שינוי`);
+                    continue; // הזמנה קיימת - לא נוגעים בה!
+                }
+                
+                console.log(`🆕 הזמנה חדשה נמצאה (UID: ${eventUID}), יוצר...`);
+                
                 // חיפוש החדר כדי לקבל את ה-ObjectId
                 const room = await Room.findOne({ roomNumber: roomId, location: location });
                 if (!room) {
@@ -176,20 +250,6 @@ class ICalService {
                 if (event.location) notes += `\nמיקום: ${event.location}`;
                 if (event.organizer) notes += `\nארגן: ${event.organizer}`;
                 if (event.contact) notes += `\nיצירת קשר: ${event.contact}`;
-                
-                // בדיקה אם ההזמנה כבר קיימת (מניעת כפילויות)
-                const existingBooking = await Booking.findOne({
-                    roomNumber: roomId,
-                    location: location,
-                    checkIn: event.start,
-                    checkOut: event.end,
-                    source: 'booking'
-                });
-                
-                if (existingBooking) {
-                    console.log(`⚠️ הזמנה כבר קיימת עבור תאריכים ${event.start.toLocaleDateString()} - ${event.end.toLocaleDateString()}, מדלג...`);
-                    continue;
-                }
 
                 const newBooking = new Booking({
                     bookingNumber: parseInt(bookingNumber.replace('BK', '')), // המודל מצפה למספר
@@ -211,10 +271,12 @@ class ICalService {
                 await newBooking.save();
                 newBookings.push(newBooking);
                 
-                console.log(`נוצרה הזמנה חדשה מבוקינג: ${newBooking.bookingNumber}`);
+                console.log(`✅ נוצרה הזמנה חדשה מבוקינג: ${newBooking.bookingNumber}`);
             }
 
-            console.log(`סנכרון הושלם: ${deletedBookings.deletedCount} נמחקו, ${newBookings.length} נוספו`);
+            console.log(`🎉 סנכרון חכם הושלם: ${deletedCount} נמחקו, ${newBookings.length} נוספו`);
+            console.log('💡 הזמנות שנערכו ידנית נשמרו ללא שינוי');
+            
             return newBookings;
 
         } catch (error) {
@@ -366,6 +428,18 @@ class ICalService {
         } catch (error) {
             console.error('שגיאה בסנכרון אוטומטי:', error);
         }
+    }
+
+    /**
+     * חילוץ UID מהערות ההזמנה
+     * @param {string} notes - הערות ההזמנה
+     * @returns {string|null} - UID או null אם לא נמצא
+     */
+    extractUIDFromNotes(notes) {
+        if (!notes) return null;
+        
+        const uidMatch = notes.match(/UID:\s*([^\n\r]+)/);
+        return uidMatch ? uidMatch[1].trim() : null;
     }
 }
 
