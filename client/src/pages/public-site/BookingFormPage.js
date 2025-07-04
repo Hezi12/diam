@@ -11,7 +11,6 @@ import {
   Stepper, 
     Step, 
   StepLabel,
-
   Alert,
   Card,
   CardMedia,
@@ -19,7 +18,8 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import { 
   Payment as PaymentIcon,
@@ -93,6 +93,12 @@ const BookingFormPage = () => {
   const guestsStr = searchParams.get('guests');
   const isTouristStr = searchParams.get('isTourist');
   
+  // מחיר מחושב מראש מדף התוצאות
+  const preCalculatedOriginalPrice = parseFloat(searchParams.get('originalPrice')) || 0;
+  const preCalculatedFinalPrice = parseFloat(searchParams.get('finalPrice')) || 0;
+  const preCalculatedSavings = parseFloat(searchParams.get('savings')) || 0;
+  const preCalculatedTotalDiscount = parseFloat(searchParams.get('totalDiscount')) || 0;
+  
   // בדיקת תקינות פרמטרים
   const validParams = roomId && checkInStr && checkOutStr;
   
@@ -116,9 +122,11 @@ const BookingFormPage = () => {
   // מצב עבור מחיר מחושב עם הנחות
   const [pricingWithDiscounts, setPricingWithDiscounts] = useState({
     pricePerNight: 0,
-    totalPrice: 0,
-    originalPrice: 0,
-    discountAmount: 0,
+    totalPrice: preCalculatedFinalPrice,
+    originalPrice: preCalculatedOriginalPrice,
+    discountAmount: preCalculatedTotalDiscount,
+    finalPrice: preCalculatedFinalPrice,
+    savings: preCalculatedSavings,
     appliedDiscounts: []
   });
   
@@ -824,19 +832,87 @@ const BookingFormPage = () => {
                         <Divider sx={{ mb: 1.5 }} />
                         
                         {/* מחשבון מחירים עם הנחות */}
-                        <PriceCalculatorWithDiscounts
-                          room={room}
-                          checkIn={checkIn}
-                          checkOut={checkOut}
-                          guests={bookingData.guests}
-                          isTourist={isTourist}
-                          location="airport"
-                          nights={nightsCount}
-                          onPriceCalculated={setPricingWithDiscounts}
-                          showDiscountBadges={true}
-                          compact={true}
-                          style={{ marginBottom: 16 }}
-                        />
+                        {preCalculatedFinalPrice > 0 ? (
+                          // תצוגת מחיר מחושב מראש
+                          <Box sx={{ 
+                            bgcolor: preCalculatedSavings > 0 ? 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
+                            borderRadius: 2, 
+                            p: 2, 
+                            border: `1px solid ${preCalculatedSavings > 0 ? '#4caf50' : '#cbd5e1'}`,
+                            mb: 2,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                          }}>
+                            {/* תג הנחה אם יש */}
+                            {preCalculatedSavings > 0 && (
+                              <Box sx={{ mb: 1 }}>
+                                <Chip
+                                  label={`חיסכון של ₪${preCalculatedSavings}!`}
+                                  color="success"
+                                  size="small"
+                                  variant="filled"
+                                  sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+                                />
+                              </Box>
+                            )}
+                            
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                {preCalculatedSavings > 0 ? (
+                                  <Box>
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontSize: '0.85rem' }}>
+                                      ₪{Math.round(preCalculatedOriginalPrice / nightsCount)} × {nightsCount} {t('common.nights')}
+                                    </Typography>
+                                    <Typography variant="body1" color="success.main" sx={{ fontWeight: 600, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
+                                      ₪{Math.round(preCalculatedFinalPrice / nightsCount)} × {nightsCount} {t('common.nights')}
+                                    </Typography>
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
+                                    ₪{Math.round(preCalculatedFinalPrice / nightsCount)} × {nightsCount} {t('common.nights')}
+                                  </Typography>
+                                )}
+                              </Box>
+                              <Box sx={{ textAlign: 'right' }}>
+                                {preCalculatedSavings > 0 && (
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ textDecoration: 'line-through', color: 'text.secondary', fontSize: '0.9rem', lineHeight: 1 }}
+                                  >
+                                    ₪{preCalculatedOriginalPrice}
+                                  </Typography>
+                                )}
+                                <Typography 
+                                  variant="h6" 
+                                  fontWeight={700} 
+                                  color={preCalculatedSavings > 0 ? "success.main" : "success.main"} 
+                                  sx={{ lineHeight: 1, fontSize: { xs: '1.3rem', sm: '1.5rem' } }}
+                                >
+                                  ₪{preCalculatedFinalPrice}
+                                </Typography>
+                                {isTourist && (
+                                  <Typography variant="caption" color="success.main" sx={{ fontSize: '0.75rem' }}>
+                                    {t('common.vatExempt')}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+                        ) : (
+                          // חישוב מחיר אם לא מחושב מראש
+                          <PriceCalculatorWithDiscounts
+                            room={room}
+                            checkIn={checkIn}
+                            checkOut={checkOut}
+                            guests={bookingData.guests}
+                            isTourist={isTourist}
+                            location="airport"
+                            nights={nightsCount}
+                            onPriceCalculated={setPricingWithDiscounts}
+                            showDiscountBadges={true}
+                            compact={true}
+                            style={{ marginBottom: 16 }}
+                          />
+                        )}
 
                         <Divider sx={{ mb: 1.5 }} />
 
