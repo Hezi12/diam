@@ -39,6 +39,7 @@ import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 import SEOHead from '../../components/public-site/SEOHead';
+import LaunchPromotionBanner from '../../components/public-site/LaunchPromotionBanner';
 
 const HomePage = () => {
   const t = usePublicTranslation();
@@ -67,6 +68,10 @@ const HomePage = () => {
         description={t('airportHome.seoDescription')}
         keywords={t('airportHome.seoKeywords')}
       />
+      
+      {/* Launch Promotion Banner */}
+      <LaunchPromotionBanner />
+      
       {/* Hero Section - טופס חיפוש בלבד */}
       <Box
         sx={{

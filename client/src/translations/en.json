@@ -1,4 +1,11 @@
 {
+  "promotion": {
+    "title": "🌟 Our New Website is Live!",
+    "discount": "25% OFF",
+    "description": "To celebrate our new website launch - get 25% discount on every booking",
+    "limitation": "Limited to first-time bookings - book now and enjoy special prices",
+    "button": "Book Now"
+  },
   "header": {
     "title": "Airport Guest House",
     "faq": "FAQ",

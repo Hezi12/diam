@@ -1,4 +1,11 @@
 {
+  "promotion": {
+    "title": "🌟 האתר החדש שלנו בהרצה!",
+    "discount": "25% הנחה",
+    "description": "לרגל השקת האתר החדש - קבלו 25% הנחה על כל הזמנה",
+    "limitation": "מבצע מוגבל להזמנות ראשונות - הזמינו עכשיו ותיהנו מהמחירים המיוחדים",
+    "button": "הזמינו עכשיו"
+  },
   "header": {
     "title": "Airport Guest House",
     "faq": "שאלות נפוצות",

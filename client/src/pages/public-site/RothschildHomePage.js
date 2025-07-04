@@ -33,6 +33,7 @@ import LocationMap from '../../components/public-site/LocationMap';
 import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
+import LaunchPromotionBanner from '../../components/public-site/LaunchPromotionBanner';
 
 const RothschildHomePage = () => {
   const t = usePublicTranslation();
@@ -56,6 +57,10 @@ const RothschildHomePage = () => {
         description={t('rothschildHome.seoDescription')}
         keywords={t('rothschildHome.seoKeywords')}
       />
+      
+      {/* Launch Promotion Banner */}
+      <LaunchPromotionBanner />
+      
       {/* Hero Section - טופס חיפוש בלבד */}
       <Box
         sx={{
