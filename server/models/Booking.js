@@ -117,6 +117,38 @@ const BookingSchema = new mongoose.Schema(
       default: 0
     },
     
+    // 🆕 מערכת הנחות מתקדמת
+    originalPrice: {
+      type: Number,
+      default: function() {
+        // אם אין מחיר מקורי, המחיר הנוכחי הוא המחיר המקורי
+        return this.price;
+      }
+    },
+    discountAmount: {
+      type: Number,
+      default: 0
+    },
+    appliedDiscounts: [{
+      discountId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Discount'
+      },
+      discountName: {
+        type: String
+      },
+      discountType: {
+        type: String,
+        enum: ['percentage', 'fixed']
+      },
+      discountValue: {
+        type: Number
+      },
+      appliedAmount: {
+        type: Number
+      }
+    }],
+    
     // סטטוס
     status: {
       type: String,

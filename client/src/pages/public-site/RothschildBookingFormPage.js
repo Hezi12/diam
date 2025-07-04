@@ -33,7 +33,6 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
-import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 
 // שלבי הטופס - יעודכנו בתרגום
 const steps = [];
@@ -193,13 +192,10 @@ const RothschildBookingFormPage = () => {
     }
   };
   
-  // מצב עבור מחיר מחושב עם הנחות
-  const [pricingWithDiscounts, setPricingWithDiscounts] = useState({
+  // מצב עבור מחיר בסיסי
+  const [basicPricing, setBasicPricing] = useState({
     pricePerNight: 0,
-    totalPrice: 0,
-    originalPrice: 0,
-    discountAmount: 0,
-    appliedDiscounts: []
+    totalPrice: 0
   });
   
   // עדכון הפונקציה submitBooking
@@ -253,10 +249,10 @@ const RothschildBookingFormPage = () => {
             checkOut: checkOutStr,
             roomCategory: room.category || room.roomType || 'חדר רגיל',
             roomNumber: room.roomNumber,
-                    totalPrice: pricingWithDiscounts.totalPrice,
+                    totalPrice: basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0),
         guests: bookingData.guests,
         nights: response.data.data.nights || nightsCount,
-        price: response.data.data.price || pricingWithDiscounts.totalPrice
+        price: response.data.data.price || basicPricing.totalPrice || (room?.pricePerNight ? room.pricePerNight * nightsCount : 0)
           }
         }
       });
@@ -717,7 +713,7 @@ const RothschildBookingFormPage = () => {
                     {t('booking.totalPrice')}
                   </Typography>
                   <Typography variant="body1" fontWeight={700} color="primary.main">
-                    {pricingWithDiscounts.totalPrice} ₪
+                    {room?.pricePerNight ? room.pricePerNight * nightsCount : 0} ₪
                   </Typography>
                 </Grid>
               </Grid>
@@ -892,20 +888,15 @@ const RothschildBookingFormPage = () => {
                         
                         <Divider sx={{ mb: 1.5 }} />
                         
-                        {/* מחשבון מחירים עם הנחות */}
-                        <PriceCalculatorWithDiscounts
-                          room={room}
-                          checkIn={checkIn}
-                          checkOut={checkOut}
-                          guests={bookingData.guests}
-                          isTourist={isTourist}
-                          location="rothschild"
-                          nights={nightsCount}
-                          onPriceCalculated={setPricingWithDiscounts}
-                          showDiscountBadges={true}
-                          compact={true}
-                          style={{ marginBottom: 16 }}
-                        />
+                        {/* מחשבון מחירים בסיסי */}
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="h6" sx={{ mb: 1 }}>
+                            מחיר: ₪{room?.pricePerNight ? room.pricePerNight * nightsCount : 0}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {nightsCount} לילות × ₪{room?.pricePerNight || 0} ללילה
+                          </Typography>
+                        </Box>
 
                         <Divider sx={{ mb: 1.5 }} />
 

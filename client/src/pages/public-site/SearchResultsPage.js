@@ -380,62 +380,19 @@ const SearchResultsPage = () => {
           setLoading(true);
           
           // חישוב מחיר בסיס
-          const basePrice = DiscountService.calculateBasePrice({
-            room,
-            checkIn,
-            checkOut,
-            nights,
-            guests,
-            isTourist
-          });
+          const basePrice = room?.pricePerNight ? room.pricePerNight * nights : 0;
 
-          // חיפוש הנחות
-          const discounts = await DiscountService.getApplicableDiscounts({
-            location: "airport",
-            roomId: room._id,
-            roomCategory: room.category,
-            checkIn,
-            checkOut,
-            nights,
-            guests,
-            isTourist
+          // חישוב מחיר בסיסי ללא הנחות
+          setPriceData({
+            originalPrice: basePrice,
+            finalPrice: basePrice,
+            savings: 0,
+            totalDiscount: 0
           });
-
-          if (discounts.length > 0) {
-            // חישוב מחיר עם הנחות
-            const priceWithDiscounts = await DiscountService.calculatePriceWithDiscounts({
-              originalPrice: basePrice,
-              location: "airport",
-              roomId: room._id,
-              roomCategory: room.category,
-              checkIn,
-              checkOut,
-              nights,
-              guests,
-              isTourist,
-              selectedDiscountIds: [discounts[0]._id] // בחירת ההנחה הטובה ביותר
-            });
-            
-            setPriceData(priceWithDiscounts);
-          } else {
-            setPriceData({
-              originalPrice: basePrice,
-              finalPrice: basePrice,
-              savings: 0,
-              totalDiscount: 0
-            });
-          }
         } catch (error) {
           console.error('שגיאה בחישוב מחיר:', error);
           // אם יש שגיאה, נחזיר מחיר בסיס
-          const basePrice = DiscountService.calculateBasePrice({
-            room,
-            checkIn,
-            checkOut,
-            nights,
-            guests,
-            isTourist
-          });
+          const basePrice = room?.pricePerNight ? room.pricePerNight * nights : 0;
           
           setPriceData({
             originalPrice: basePrice,

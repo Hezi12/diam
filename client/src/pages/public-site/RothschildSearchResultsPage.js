@@ -46,7 +46,6 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import SearchBox from '../../components/public-site/SearchBox';
-import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 import SEOHead from '../../components/public-site/SEOHead';
 import bookingService from '../../services/bookingService';

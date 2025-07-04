@@ -713,7 +713,12 @@ exports.createPublicBooking = async (req, res) => {
       notes,
       creditCard,
       isTourist,
-      language = 'he' // 🔥 הוספת שפת הלקוח עם ברירת מחדל עברית
+      language = 'he', // 🔥 הוספת שפת הלקוח עם ברירת מחדל עברית
+      // 🆕 פרמטרים חדשים למערכת הנחות
+      finalPrice,
+      originalPrice,
+      appliedDiscounts = [],
+      discountAmount = 0
     } = req.body;
     
     // בדיקת שדות חובה
@@ -769,7 +774,7 @@ exports.createPublicBooking = async (req, res) => {
     
     console.log('מחפש את החדר במסד הנתונים:', room);
     
-    // קבלת נתוני החדר לחישוב המחיר
+    // קבלת נתוני החדר לחישוב ואימות המחיר
     try {
       const roomData = await Room.findById(room);
       if (!roomData) {
@@ -785,17 +790,24 @@ exports.createPublicBooking = async (req, res) => {
         basePrice: roomData.basePrice
       });
       
-      // חישוב מספר הלילות ומחיר סופי עם אורחים נוספים וימים מיוחדים
+      // חישוב מספר הלילות ופרמטרים בסיסיים
       const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
       const guestsCount = parseInt(guests, 10) || 2;
       
-      // הגדרת משתנים לחישוב מחיר
+      console.log('פרמטרי הזמנה:', { 
+        nights, 
+        guests: guestsCount, 
+        isTourist
+      });
+      
+      // חישוב מחיר בסיסי
+      let calculatedOriginalPrice = 0;
+      let validatedFinalPrice = 0;
+      
+      // חישוב מחיר בסיסי ללא הנחות
       const baseOccupancy = roomData.baseOccupancy || 2;
       const extraGuestCharge = roomData.extraGuestCharge || 0;
       const extraGuests = Math.max(0, guestsCount - baseOccupancy);
-      
-      // חישוב מחיר מדויק עם ימים מיוחדים
-      let totalPrice = 0;
       
       // מעבר על כל יום בתקופת השהייה
       for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
@@ -803,37 +815,90 @@ exports.createPublicBooking = async (req, res) => {
         let dailyBasePrice;
         
         if (dayOfWeek === 5) { // יום שישי
-          dailyBasePrice = roomData.fridayVatPrice || roomData.vatPrice || 0;
+          dailyBasePrice = isTourist ? 
+            (roomData.fridayPrice || roomData.basePrice || 0) : 
+            (roomData.fridayVatPrice || roomData.vatPrice || 0);
         } else if (dayOfWeek === 6) { // יום שבת
-          dailyBasePrice = roomData.saturdayVatPrice || roomData.vatPrice || 0;
+          dailyBasePrice = isTourist ? 
+            (roomData.saturdayPrice || roomData.basePrice || 0) : 
+            (roomData.saturdayVatPrice || roomData.vatPrice || 0);
         } else { // שאר הימים
-          dailyBasePrice = roomData.vatPrice || 0;
+          dailyBasePrice = isTourist ? 
+            (roomData.basePrice || 0) : 
+            (roomData.vatPrice || 0);
         }
         
-        // חישוב תוספת לאורחים נוספים ליום הזה
         const extraCharge = extraGuests * extraGuestCharge;
-        
-        totalPrice += dailyBasePrice + extraCharge;
+        calculatedOriginalPrice += dailyBasePrice + extraCharge;
       }
       
-      // חישוב מחיר ממוצע ללילה
-      const pricePerNight = nights > 0 ? parseFloat((totalPrice / nights).toFixed(2)) : 0;
-      const pricePerNightNoVat = parseFloat((pricePerNight / 1.18).toFixed(2)); // מחיר ללא מע"מ
-      const price = parseFloat(totalPrice.toFixed(2));
+      validatedFinalPrice = finalPrice && finalPrice > 0 ? finalPrice : calculatedOriginalPrice;
       
-      // חישוב תוספת כוללת לאורחים נוספים
-      const totalExtraCharge = extraGuests * extraGuestCharge * nights;
+      console.log('💰 חישוב מחיר בסיסי:', {
+        originalPrice: calculatedOriginalPrice,
+        finalPrice: validatedFinalPrice,
+        nights,
+        guests: guestsCount,
+        isTourist
+      });
       
-      console.log('חישוב תמחור:', { 
-          nights, 
-          guests: guestsCount, 
-          baseOccupancy: roomData.baseOccupancy || 2, 
-          extraGuests, 
-          extraGuestCharge,
-          totalExtraCharge, 
-          pricePerNight, 
-          price 
+      // חישוב מחירים נוספים
+      const pricePerNight = nights > 0 ? parseFloat((validatedFinalPrice / nights).toFixed(2)) : 0;
+      const pricePerNightNoVat = parseFloat((pricePerNight / 1.18).toFixed(2));
+      const finalPriceRounded = parseFloat(validatedFinalPrice.toFixed(2));
+      
+      console.log('💰 מחירים סופיים:', { 
+        originalPrice: calculatedOriginalPrice,
+        finalPrice: finalPriceRounded,
+        pricePerNight
+      });
+      
+      // 🔐 ולידציה מתקדמת של נתוני המחיר
+      const priceValidation = {
+        isValid: true,
+        errors: [],
+        warnings: []
+      };
+      
+      // בדיקה 1: מחיר סופי חיובי
+      if (finalPriceRounded < 0) {
+        priceValidation.isValid = false;
+        priceValidation.errors.push('מחיר סופי לא יכול להיות שלילי');
+      }
+      
+      // בדיקה 2: מחיר סופי לא גבוה מהמחיר המקורי
+      if (finalPriceRounded > calculatedOriginalPrice + 1) { // טולרנציה של 1 שקל
+        priceValidation.warnings.push(`מחיר סופי (${finalPriceRounded}) גבוה מהמחיר המקורי (${calculatedOriginalPrice})`);
+      }
+      
+      // בדיקה 3: מחיר סופי לא יותר מדי שונה מהמחיר המקורי
+      if (Math.abs(finalPriceRounded - calculatedOriginalPrice) > 50) { // טולרנציה של 50 שקל
+        priceValidation.warnings.push(`הפרש מחיר גדול מהצפוי: מקורי ${calculatedOriginalPrice}, סופי ${finalPriceRounded}`);
+      }
+      
+      // בדיקה 4: מחיר בתחום הסביר
+      if (finalPriceRounded > 0 && finalPriceRounded < 50) {
+        priceValidation.warnings.push(`מחיר חשוד נמוך מאוד: ${finalPriceRounded}`);
+      }
+      
+      if (finalPriceRounded > 5000) {
+        priceValidation.warnings.push(`מחיר חשוד גבוה מאוד: ${finalPriceRounded}`);
+      }
+      
+      // לוגינג תוצאות הולידציה
+      if (priceValidation.errors.length > 0) {
+        console.error('❌ שגיאות בולידציה של מחיר:', priceValidation.errors);
+        return res.status(400).json({ 
+          message: 'שגיאה בנתוני המחיר', 
+          errors: priceValidation.errors 
         });
+      }
+      
+      if (priceValidation.warnings.length > 0) {
+        console.warn('⚠️  אזהרות בולידציה של מחיר:', priceValidation.warnings);
+      }
+      
+      console.log('✅ ולידציה של מחיר עברה בהצלחה');
       
       // יצירת מספר הזמנה רץ באופן atomic עם retry במקרה של כפילות
       const locationKey = `bookingNumber_${roomData.location}`;
@@ -860,7 +925,7 @@ exports.createPublicBooking = async (req, res) => {
             checkIn: checkInDate,
             checkOut: checkOutDate,
             nights,
-            price,
+            price: finalPriceRounded, // 🆕 המחיר הסופי עם הנחות
             pricePerNight: pricePerNight,
             pricePerNightNoVat: pricePerNightNoVat,
             notes,
@@ -870,8 +935,10 @@ exports.createPublicBooking = async (req, res) => {
             paymentStatus: 'unpaid',
             status: 'pending',
             isTourist: isTourist || false,
-            language: language, // 🔥 שמירת שפת הלקוח
-            // שמירת נתוני כרטיס האשראי מלאים (כמו בהזמנות רגילות)
+            language: language,
+            // מחיר בסיסי
+            originalPrice: calculatedOriginalPrice,
+            // שמירת נתוני כרטיס האשראי מלאים
             creditCard: creditCard ? {
               cardNumber: creditCard.cardNumber,
               expiryDate: creditCard.expiryDate,
@@ -884,7 +951,8 @@ exports.createPublicBooking = async (req, res) => {
             roomNumber: newBookingData.roomNumber,
             guest: `${newBookingData.firstName} ${newBookingData.lastName}`,
             dates: `${newBookingData.checkIn} - ${newBookingData.checkOut}`,
-            price: newBookingData.price
+            originalPrice: newBookingData.originalPrice,
+            finalPrice: newBookingData.price
           });
           
           newBooking = new Booking(newBookingData);
@@ -937,6 +1005,7 @@ exports.createPublicBooking = async (req, res) => {
           checkOut: newBooking.checkOut,
           nights: newBooking.nights,
           price: newBooking.price,
+          originalPrice: newBooking.originalPrice,
           roomType: roomData.category,
           roomNumber: roomData.roomNumber
         }
