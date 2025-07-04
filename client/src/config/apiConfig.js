@@ -8,7 +8,7 @@ const isLocalhost = window.location.hostname === 'localhost' ||
 
 // כתובות בסיס לשרת ה-API
 const API_URLS = {
-  development: 'http://localhost:3200',
+  development: 'http://localhost:3201',
   production: 'https://diam-loy6.onrender.com'
 };
 
