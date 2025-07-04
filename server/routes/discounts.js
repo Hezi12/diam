@@ -252,11 +252,148 @@ router.post('/applicable', async (req, res) => {
   }
 });
 
+/**
+ * חישוב מחיר עם הנחות
+ * POST /api/discounts/calculate-price
+ */
+router.post('/calculate-price', async (req, res) => {
+  try {
+    const {
+      originalPrice,
+      location,
+      roomId,
+      roomCategory,
+      checkIn,
+      checkOut,
+      nights,
+      guests,
+      isTourist,
+      selectedDiscountIds = []
+    } = req.body;
+    
+    if (!originalPrice) {
+      return res.status(400).json({ message: 'מחיר מקורי נדרש' });
+    }
+    
+    let applicableDiscounts = [];
+    
+    if (selectedDiscountIds.length > 0) {
+      // שימוש בהנחות שנבחרו ספציפית
+      applicableDiscounts = await Discount.find({
+        _id: { $in: selectedDiscountIds },
+        isActive: true
+      }).sort({ priority: -1 });
+    } else {
+      // חיפוש אוטומטי של הנחות ישימות
+      applicableDiscounts = await Discount.findApplicableDiscounts({
+        location,
+        roomId,
+        roomCategory,
+        checkIn,
+        checkOut,
+        nights,
+        guests,
+        isTourist: isTourist || false
+      });
+    }
+    
+    // חישוב הנחות
+    let totalDiscount = 0;
+    const appliedDiscounts = [];
+    let currentPrice = originalPrice;
+    
+    for (const discount of applicableDiscounts) {
+      // בדיקה אם ההנחה ניתנת לשילוב
+      if (appliedDiscounts.length > 0 && !discount.combinable) {
+        continue;
+      }
+      
+      const discountAmount = discount.calculateDiscountAmount(currentPrice);
+      
+      if (discountAmount > 0) {
+        totalDiscount += discountAmount;
+        appliedDiscounts.push({
+          id: discount._id,
+          name: discount.name,
+          type: discount.discountType,
+          value: discount.discountValue,
+          amount: discountAmount
+        });
+        
+        // אם ההנחה לא ניתנת לשילוב, נפסיק כאן
+        if (!discount.combinable) {
+          break;
+        }
+        
+        currentPrice -= discountAmount;
+      }
+    }
+    
+    const finalPrice = Math.max(0, originalPrice - totalDiscount);
+    
+    res.json({
+      originalPrice,
+      totalDiscount,
+      finalPrice,
+      appliedDiscounts,
+      savings: totalDiscount,
+      savingsPercentage: originalPrice > 0 ? Math.round((totalDiscount / originalPrice) * 100) : 0
+    });
+  } catch (error) {
+    console.error('שגיאה בחישוב מחיר עם הנחות:', error);
+    res.status(500).json({ message: 'שגיאה בחישוב המחיר' });
+  }
+});
 
+/**
+ * רישום שימוש בהנחה
+ * POST /api/discounts/:id/record-usage
+ */
+router.post('/:id/record-usage', auth, async (req, res) => {
+  try {
+    const { bookingId, discountAmount, originalPrice, finalPrice } = req.body;
+    
+    const discount = await Discount.findById(req.params.id);
+    
+    if (!discount) {
+      return res.status(404).json({ message: 'הנחה לא נמצאה' });
+    }
+    
+    if (discount.isUsageLimitReached) {
+      return res.status(400).json({ message: 'הגבלת השימוש בהנחה הושגה' });
+    }
+    
+    await discount.recordUsage(bookingId, discountAmount, originalPrice, finalPrice);
+    
+    res.json({ message: 'השימוש בהנחה נרשם בהצלחה' });
+  } catch (error) {
+    console.error('שגיאה ברישום שימוש בהנחה:', error);
+    res.status(500).json({ message: 'שגיאה ברישום השימוש' });
+  }
+});
 
-
-
-
+/**
+ * ביטול שימוש בהנחה
+ * POST /api/discounts/:id/cancel-usage
+ */
+router.post('/:id/cancel-usage', auth, async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+    
+    const discount = await Discount.findById(req.params.id);
+    
+    if (!discount) {
+      return res.status(404).json({ message: 'הנחה לא נמצאה' });
+    }
+    
+    await discount.cancelUsage(bookingId);
+    
+    res.json({ message: 'השימוש בהנחה בוטל בהצלחה' });
+  } catch (error) {
+    console.error('שגיאה בביטול שימוש בהנחה:', error);
+    res.status(500).json({ message: 'שגיאה בביטול השימוש' });
+  }
+});
 
 /**
  * סטטיסטיקות הנחות

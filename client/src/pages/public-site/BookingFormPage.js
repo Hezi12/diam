@@ -244,11 +244,18 @@ const BookingFormPage = () => {
         const roomResponse = await axios.get(`${API_URL}${API_ENDPOINTS.rooms.public.byId(roomId)}`);
         setRoom(roomResponse.data);
         
-        // עדכון מספר האורחים הראשוני לפי הפרמטר מה-URL או ברירת המחדל של החדר
-        setBookingData(prev => ({
-          ...prev,
-          guests: urlGuests || roomResponse.data.baseOccupancy || 1
-        }));
+        // עדכון מספר האורחים הראשוני רק אם צריך
+        const newGuestCount = urlGuests || roomResponse.data.baseOccupancy || 1;
+        setBookingData(prev => {
+          // עדכן רק אם הערך באמת שונה כדי למנוע לולאה אינסופית
+          if (prev.guests !== newGuestCount) {
+            return {
+              ...prev,
+              guests: newGuestCount
+            };
+          }
+          return prev;
+        });
         
       } catch (err) {
         console.error('שגיאה בטעינת נתוני החדר:', err);
