@@ -51,6 +51,7 @@ const PriceCalculatorWithDiscounts = ({
   location,
   onPriceCalculated,
   showDiscountDetails = true,
+  showDiscountBadges = false,
   allowDiscountSelection = false
 }) => {
   
@@ -86,6 +87,7 @@ const PriceCalculatorWithDiscounts = ({
   // טעינת הנחות ישימות
   const loadApplicableDiscounts = async () => {
     if (!room || !checkIn || !checkOut || nights <= 0) {
+      console.log('🚫 PriceCalculatorWithDiscounts: לא נטענו הנחות - חסרים פרמטרים:', { room: !!room, checkIn, checkOut, nights });
       setApplicableDiscounts([]);
       return;
     }
@@ -93,6 +95,17 @@ const PriceCalculatorWithDiscounts = ({
     try {
       setLoading(true);
       setError('');
+
+      console.log('🔍 PriceCalculatorWithDiscounts: מחפש הנחות ישימות:', {
+        location,
+        roomId: room._id,
+        roomCategory: room.category,
+        checkIn,
+        checkOut,
+        nights,
+        guests,
+        isTourist
+      });
 
       const discounts = await DiscountService.getApplicableDiscounts({
         location,
@@ -105,15 +118,18 @@ const PriceCalculatorWithDiscounts = ({
         isTourist
       });
 
+      console.log('✅ PriceCalculatorWithDiscounts: נמצאו הנחות ישימות:', discounts);
+
       setApplicableDiscounts(discounts);
       
       // בחירה אוטומטית של ההנחה הטובה ביותר אם לא מותר לבחור ידנית
       if (!allowDiscountSelection && discounts.length > 0) {
+        console.log('🎯 PriceCalculatorWithDiscounts: נבחרה הנחה אוטומטית:', discounts[0]);
         setSelectedDiscounts([discounts[0]._id]);
       }
 
     } catch (err) {
-      console.error('שגיאה בטעינת הנחות:', err);
+      console.error('❌ PriceCalculatorWithDiscounts: שגיאה בטעינת הנחות:', err);
       setError('שגיאה בטעינת הנחות זמינות');
     } finally {
       setLoading(false);
@@ -123,6 +139,7 @@ const PriceCalculatorWithDiscounts = ({
   // חישוב מחיר סופי עם הנחות
   const calculateFinalPrice = async () => {
     if (!room || !checkIn || !checkOut || nights <= 0) {
+      console.log('🚫 calculateFinalPrice: מגדיר מחיר 0 - חסרים פרמטרים');
       setPriceData({
         originalPrice: 0,
         totalDiscount: 0,
@@ -136,8 +153,10 @@ const PriceCalculatorWithDiscounts = ({
 
     try {
       const originalPrice = calculateBasePrice;
+      console.log('💰 calculateFinalPrice: מחיר מקורי מחושב:', originalPrice);
       
       if (selectedDiscounts.length === 0) {
+        console.log('⚪ calculateFinalPrice: אין הנחות נבחרות, מחזיר מחיר מקורי');
         const priceResult = {
           originalPrice,
           totalDiscount: 0,
@@ -150,6 +169,8 @@ const PriceCalculatorWithDiscounts = ({
         onPriceCalculated?.(priceResult);
         return;
       }
+
+      console.log('🎯 calculateFinalPrice: מחשב מחיר עם הנחות:', selectedDiscounts);
 
       const priceResult = await DiscountService.calculatePriceWithDiscounts({
         originalPrice,
@@ -164,11 +185,13 @@ const PriceCalculatorWithDiscounts = ({
         selectedDiscountIds: selectedDiscounts
       });
 
+      console.log('✅ calculateFinalPrice: תוצאת חישוב עם הנחות:', priceResult);
+
       setPriceData(priceResult);
       onPriceCalculated?.(priceResult);
 
     } catch (err) {
-      console.error('שגיאה בחישוב מחיר:', err);
+      console.error('❌ calculateFinalPrice: שגיאה בחישוב מחיר:', err);
       setError('שגיאה בחישוב המחיר הסופי');
     }
   };
@@ -401,6 +424,15 @@ const PriceCalculatorWithDiscounts = ({
                 <Typography variant="body2" color="success.main">
                   חיסכון של ₪{priceData.savings} ({priceData.savingsPercentage}%)
                 </Typography>
+                {showDiscountBadges && (
+                  <Chip
+                    label="הנחה פעילה!"
+                    color="success"
+                    size="small"
+                    variant="filled"
+                    sx={{ fontWeight: 600 }}
+                  />
+                )}
               </Box>
             )}
 

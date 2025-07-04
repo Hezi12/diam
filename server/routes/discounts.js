@@ -122,6 +122,44 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 /**
+ * עדכון הנחה (גם בשיטת PATCH)
+ * PATCH /api/discounts/:id
+ */
+router.patch('/:id', auth, async (req, res) => {
+  try {
+    const discount = await Discount.findById(req.params.id);
+    
+    if (!discount) {
+      return res.status(404).json({ message: 'הנחה לא נמצאה' });
+    }
+    
+    // עדכון השדות
+    Object.keys(req.body).forEach(key => {
+      if (key !== '_id' && key !== 'createdBy' && key !== 'usageHistory') {
+        discount[key] = req.body[key];
+      }
+    });
+    
+    await discount.save();
+    
+    // populate הנתונים החזרה
+    await discount.populate('applicableRooms', 'roomNumber category');
+    await discount.populate('createdBy', 'name email');
+    
+    res.json(discount);
+  } catch (error) {
+    console.error('שגיאה בעדכון הנחה:', error);
+    
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: 'שגיאות ולידציה', errors });
+    }
+    
+    res.status(500).json({ message: 'שגיאה בעדכון ההנחה' });
+  }
+});
+
+/**
  * מחיקת הנחה
  * DELETE /api/discounts/:id
  */
