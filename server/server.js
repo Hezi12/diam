@@ -60,7 +60,9 @@ const corsOptions = {
       'https://diam-git-main-schwartzHezi-gmailcoms-projects.vercel.app',
       'https://diam-client.vercel.app',
       'https://diam-client-git-main.vercel.app',
-      'https://diam-client-git-main-bhowmiks-projects.vercel.app'
+      'https://diam-client-git-main-bhowmiks-projects.vercel.app',
+      'https://www.diamhotels.com',
+      'https://diamhotels.com'
     ];
     
     // בדיקה אם הדומיין שממנו מגיעה הבקשה מאושר
