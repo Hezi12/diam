@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   Box, 
@@ -109,7 +109,19 @@ const BookingFormPage = () => {
   
   // חישוב תאריך ביטול (3 ימים לפני צ'ק-אין)
   const cancellationDate = checkIn ? new Date(checkIn.getTime() - 3 * 24 * 60 * 60 * 1000) : null;
-  const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  
+  // תאריכים מפורמטים עם useMemo - פתרון לולאה אינסופית
+  const formattedCheckIn = useMemo(() => {
+    return validParams ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  }, [checkIn, validParams, dateLocale]);
+  
+  const formattedCheckOut = useMemo(() => {
+    return validParams ? format(checkOut, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  }, [checkOut, validParams, dateLocale]);
+  
+  const formattedCancellationDate = useMemo(() => {
+    return cancellationDate ? format(cancellationDate, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  }, [cancellationDate, dateLocale]);
   
   // הורדה: הפונקציה calculateRoomPrice הישנה הוסרה - עכשיו משתמשים רק ב-PriceCalculatorWithDiscounts
   
@@ -271,9 +283,133 @@ const BookingFormPage = () => {
   
   // הורדה: ה-useEffect לעדכון מחיר הוסר - PriceCalculatorWithDiscounts דואג לכל העדכונים
   
-  // פורמט תאריכים לתצוגה
-  const formattedCheckIn = validParams ? format(checkIn, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
-  const formattedCheckOut = validParams ? format(checkOut, 'EEEE, d MMMM yyyy', { locale: dateLocale }) : '';
+  // סיכום הזמנה מוכן מראש למניעת רי-רנדר מיותר
+  const bookingSummary = useMemo(() => (
+    <Card elevation={2} sx={{ borderRadius: '10px', position: { xs: 'static', md: 'sticky' }, top: 20 }}>
+      {roomLoading ? (
+        <Box sx={{ p: 3 }}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : (
+        <>
+          {/* תמונת חדר */}
+          {room?.images && room.images.length > 0 && room.images[0] ? (
+            <CardMedia
+              component="img"
+              height="160"
+              image={room.images[0]}
+              alt={room?.category}
+            />
+          ) : (
+            <Box
+              sx={{
+                height: 160,
+                background: 'linear-gradient(135deg, #f3f4f6 25%, #e5e7eb 25%, #e5e7eb 50%, #f3f4f6 50%, #f3f4f6 75%, #e5e7eb 75%, #e5e7eb 100%)',
+                backgroundSize: '20px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280'
+              }}
+            >
+              <Typography variant="body2" sx={{ backgroundColor: 'rgba(255,255,255,0.7)', p: 1, borderRadius: 1 }}>
+                {room ? `${room.category}` : t('common.loading')}
+              </Typography>
+            </Box>
+          )}
+          
+          <CardContent>
+            <Typography variant="h6" component="h2" fontWeight={600} sx={{ fontSize: '1.1rem', mb: 2 }}>
+              {room?.category}
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <EventAvailableIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
+              <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
+                {formattedCheckIn} - {formattedCheckOut}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <PersonOutlineIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
+              <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
+{t('common.upToGuests')} {room?.maxOccupancy} {t('common.guests')}
+              </Typography>
+            </Box>
+            
+            {isTourist && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Typography variant="body2" sx={{ 
+                  bgcolor: 'success.light', 
+                  color: 'success.contrastText', 
+                  px: 1, 
+                  py: 0.5, 
+                  borderRadius: 1,
+                  fontSize: '0.7rem'
+                }}>
+{t('common.touristPrices')}
+                </Typography>
+              </Box>
+            )}
+            
+            <Divider sx={{ mb: 1.5 }} />
+            
+            {/* מחשבון מחירים עם הנחות - חישוב פעם אחת בלבד */}
+            <PriceCalculatorWithDiscounts
+              room={room}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              guests={urlGuests}
+              isTourist={isTourist}
+              location="airport"
+              nights={nightsCount}
+              showDiscountBadges={true}
+              compact={true}
+              style={{ marginBottom: 16 }}
+            />
+
+            <Divider sx={{ mb: 1.5 }} />
+
+            {/* מדיניות התשלום - קומפקטית */}
+            <Box sx={{ mb: 1.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                <Typography component="span" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.9rem' }}>
+{t('common.paymentDetails')}
+                </Typography>
+                {' '}
+                <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
+                  {t('common.priceIncludes')}
+                </Typography>
+              </Typography>
+            </Box>
+
+            <Box sx={{ mb: 1.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
+                <Typography component="span" sx={{ fontWeight: 600, color: 'warning.main', fontSize: '0.9rem' }}>
+{t('common.cancellationPolicy')}
+                </Typography>
+                {' '}
+                <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
+                  {t('common.cancellationPolicyShort')} {formattedCancellationDate} {t('common.cancellationAfter')}
+                </Typography>
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+                <Typography component="span" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.9rem' }}>
+{t('common.checkInOutTimes')}
+                </Typography>
+                {' '}
+                <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
+                  {t('common.checkInOutShort')}
+                </Typography>
+              </Typography>
+            </Box>
+          </CardContent>
+        </>
+      )}
+    </Card>
+  ), [room, checkIn, checkOut, nightsCount, isTourist, roomLoading, urlGuests, formattedCheckIn, formattedCheckOut, formattedCancellationDate]);
   
   // עדכון נתוני הטופס
   const handleChange = (e) => {
@@ -777,108 +913,9 @@ const BookingFormPage = () => {
                 </Paper>
               </Grid>
               
-              {/* סיכום הזמנה */}
+              {/* סיכום הזמנה - מוכן מראש ללא רי-רנדר מיותר */}
               <Grid item xs={12} md={6} order={{ xs: 1, md: 2 }}>
-                <Card elevation={2} sx={{ borderRadius: '10px', position: { xs: 'static', md: 'sticky' }, top: 20 }}>
-                  {roomLoading ? (
-                    <Box sx={{ p: 3 }}>
-                      <CircularProgress size={24} />
-                    </Box>
-                  ) : (
-                    <>
-                      {renderRoomImage()}
-                      
-                      <CardContent>
-                        <Typography variant="h6" component="h2" fontWeight={600} sx={{ fontSize: '1.1rem', mb: 2 }}>
-                          {room?.category}
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <EventAvailableIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
-                          <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
-                            {formattedCheckIn} - {formattedCheckOut}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <PersonOutlineIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} />
-                          <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '0.85rem' } }}>
-{t('common.upToGuests')} {room?.maxOccupancy} {t('common.guests')}
-                          </Typography>
-                        </Box>
-                        
-                        {isTourist && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="body2" sx={{ 
-                              bgcolor: 'success.light', 
-                              color: 'success.contrastText', 
-                              px: 1, 
-                              py: 0.5, 
-                              borderRadius: 1,
-                              fontSize: '0.7rem'
-                            }}>
-{t('common.touristPrices')}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        <Divider sx={{ mb: 1.5 }} />
-                        
-                        {/* מחשבון מחירים עם הנחות - חישוב פעם אחת בלבד */}
-                        <PriceCalculatorWithDiscounts
-                          room={room}
-                          checkIn={checkIn}
-                          checkOut={checkOut}
-                          guests={bookingData.guests}
-                          isTourist={isTourist}
-                          location="airport"
-                          nights={nightsCount}
-                          showDiscountBadges={true}
-                          compact={true}
-                          style={{ marginBottom: 16 }}
-                        />
-
-                        <Divider sx={{ mb: 1.5 }} />
-
-                        {/* מדיניות התשלום - קומפקטית */}
-                        <Box sx={{ mb: 1.5 }}>
-                          <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-                            <Typography component="span" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.9rem' }}>
-{t('common.paymentDetails')}
-                            </Typography>
-                            {' '}
-                            <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
-                              {t('common.priceIncludes')}
-                            </Typography>
-                          </Typography>
-                        </Box>
-
-                        <Box sx={{ mb: 1.5 }}>
-                          <Typography variant="body2" sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-                            <Typography component="span" sx={{ fontWeight: 600, color: 'warning.main', fontSize: '0.9rem' }}>
-{t('common.cancellationPolicy')}
-                            </Typography>
-                            {' '}
-                            <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
-                              {t('common.cancellationPolicyShort')} {formattedCancellationDate} {t('common.cancellationAfter')}
-                            </Typography>
-                          </Typography>
-                        </Box>
-
-                        <Box>
-                          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                            <Typography component="span" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.9rem' }}>
-{t('common.checkInOutTimes')}
-                            </Typography>
-                            {' '}
-                            <Typography component="span" sx={{ color: 'text.primary', fontSize: '0.9rem' }}>
-                              {t('common.checkInOutShort')}
-                            </Typography>
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </>
-                  )}
-                </Card>
+                {bookingSummary}
               </Grid>
             </Grid>
           )}
