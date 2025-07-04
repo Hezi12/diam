@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -85,7 +85,7 @@ const PriceCalculatorWithDiscounts = ({
   }, [room, checkIn, checkOut, nights, guests, isTourist]);
 
   // טעינת הנחות ישימות
-  const loadApplicableDiscounts = async () => {
+  const loadApplicableDiscounts = useCallback(async () => {
     if (!room || !checkIn || !checkOut || nights <= 0) {
       console.log('🚫 PriceCalculatorWithDiscounts: לא נטענו הנחות - חסרים פרמטרים:', { room: !!room, checkIn, checkOut, nights });
       setApplicableDiscounts([]);
@@ -134,20 +134,22 @@ const PriceCalculatorWithDiscounts = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [room?._id, checkIn, checkOut, nights, guests, isTourist, location, allowDiscountSelection]);
 
   // חישוב מחיר סופי עם הנחות
-  const calculateFinalPrice = async () => {
+  const calculateFinalPrice = useCallback(async () => {
     if (!room || !checkIn || !checkOut || nights <= 0) {
       console.log('🚫 calculateFinalPrice: מגדיר מחיר 0 - חסרים פרמטרים');
-      setPriceData({
+      const priceResult = {
         originalPrice: 0,
         totalDiscount: 0,
         finalPrice: 0,
         appliedDiscounts: [],
         savings: 0,
         savingsPercentage: 0
-      });
+      };
+      setPriceData(priceResult);
+      onPriceCalculated?.(priceResult);
       return;
     }
 
@@ -194,16 +196,16 @@ const PriceCalculatorWithDiscounts = ({
       console.error('❌ calculateFinalPrice: שגיאה בחישוב מחיר:', err);
       setError('שגיאה בחישוב המחיר הסופי');
     }
-  };
+  }, [room?._id, checkIn, checkOut, nights, guests, isTourist, location, selectedDiscounts, calculateBasePrice]);
 
   // אפקטים
   useEffect(() => {
     loadApplicableDiscounts();
-  }, [room?._id, checkIn, checkOut, nights, guests, isTourist, location]);
+  }, [loadApplicableDiscounts]);
 
   useEffect(() => {
     calculateFinalPrice();
-  }, [selectedDiscounts, room?._id, checkIn, checkOut, nights, guests, isTourist]);
+  }, [calculateFinalPrice]);
 
   // פונקציות טיפול באירועים
   const handleDiscountToggle = (discountId) => {
