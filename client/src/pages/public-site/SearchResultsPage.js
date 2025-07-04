@@ -46,6 +46,7 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import SearchBox from '../../components/public-site/SearchBox';
+import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 import SEOHead from '../../components/public-site/SEOHead';
 import bookingService from '../../services/bookingService';
@@ -368,86 +369,63 @@ const SearchResultsPage = () => {
     );
   };
   
-  /**
-   * חישוב מחיר עם אורחים נוספים וסטטוס תייר וימים מיוחדים
-   * @param {Object} room - נתוני החדר
-   * @param {number} guests - מספר אורחים
-   * @param {number} nights - מספר לילות
-   * @param {boolean} isTourist - האם תייר
-   * @param {Date} checkIn - תאריך כניסה
-   * @param {Date} checkOut - תאריך יציאה
-   * @returns {Object} - אובייקט עם המחירים המחושבים
-   */
-  const calculateRoomPrice = (room, guests, nights, isTourist, checkIn = null, checkOut = null) => {
-    if (!room) return { pricePerNight: 0, totalPrice: 0 };
-    
-    let totalPrice = 0;
-    
-    // אם יש תאריכי כניסה ויציאה, נחשב מחיר מדויק לכל יום
-    if (checkIn && checkOut) {
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-      
-      // מעבר על כל יום בתקופת השהייה
-      for (let date = new Date(checkInDate); date < checkOutDate; date.setDate(date.getDate() + 1)) {
-        const dayOfWeek = date.getDay();
-        let dailyBasePrice;
+  // קומפוננט להצגת מחיר עם הנחות
+  const RoomPriceDisplay = ({ room, guests, nights, isTourist, checkIn, checkOut }) => {
+    const [priceData, setPriceData] = useState({ finalPrice: 0, originalPrice: 0, savings: 0 });
+    const [loading, setLoading] = useState(true);
+
+    return (
+      <Box sx={{ 
+        bgcolor: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
+        borderRadius: 2, 
+        p: 2, 
+        border: '1px solid #cbd5e1',
+        mb: 1,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+      }}>
+        <PriceCalculatorWithDiscounts
+          room={room}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          guests={guests}
+          isTourist={isTourist}
+          location="airport"
+          showDiscountDetails={false}
+          showDiscountBadges={true}
+          onPriceCalculated={(data) => {
+            setPriceData(data);
+            setLoading(false);
+          }}
+        />
         
-        if (dayOfWeek === 5) { // יום שישי
-          dailyBasePrice = isTourist ? 
-            (room.fridayPrice || room.basePrice || 0) : 
-            (room.fridayVatPrice || room.vatPrice || 0);
-        } else if (dayOfWeek === 6) { // יום שבת
-          dailyBasePrice = isTourist ? 
-            (room.saturdayPrice || room.basePrice || 0) : 
-            (room.saturdayVatPrice || room.vatPrice || 0);
-        } else { // שאר הימים
-          dailyBasePrice = isTourist ? 
-            (room.basePrice || 0) : 
-            (room.vatPrice || 0);
-        }
-        
-        // הוספת תוספת לאורחים נוספים
-        const baseOccupancy = room.baseOccupancy || 2;
-        const extraGuestCharge = room.extraGuestCharge || 0;
-        const extraGuests = Math.max(0, guests - baseOccupancy);
-        const extraCharge = extraGuests * extraGuestCharge;
-        
-        totalPrice += dailyBasePrice + extraCharge;
-      }
-      
-      // חישוב מחיר ממוצע ללילה
-      const avgPricePerNight = nights > 0 ? totalPrice / nights : 0;
-      
-      return {
-        pricePerNight: parseFloat(avgPricePerNight.toFixed(2)),
-        totalPrice: parseFloat(totalPrice.toFixed(2)),
-        extraGuests: Math.max(0, guests - (room.baseOccupancy || 2)),
-        extraCharge: Math.max(0, guests - (room.baseOccupancy || 2)) * (room.extraGuestCharge || 0)
-      };
-    } else {
-      // חישוב פשוט ללא תאריכים מדויקים - משתמש במחיר בסיס
-      const basePricePerNight = isTourist ? (room.basePrice || 0) : (room.vatPrice || 0);
-      
-      // חישוב תוספת לאורחים נוספים
-      const baseOccupancy = room.baseOccupancy || 2;
-      const extraGuestCharge = room.extraGuestCharge || 0;
-      const extraGuests = Math.max(0, guests - baseOccupancy);
-      const extraCharge = extraGuests * extraGuestCharge;
-      
-      // מחיר סופי ללילה
-      const pricePerNight = basePricePerNight + extraCharge;
-      
-      // מחיר כולל
-      const totalPrice = pricePerNight * nights;
-      
-      return {
-        pricePerNight,
-        totalPrice,
-        extraGuests,
-        extraCharge
-      };
-    }
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
+              ₪{loading ? '...' : Math.round(priceData.finalPrice / nights)} × {nights} {t('common.nights')}
+            </Typography>
+            <Tooltip title={t('common.paymentPolicy')} arrow>
+              <IconButton 
+                size="small" 
+                onClick={() => handleOpenPolicyDialog(room)}
+                sx={{ color: 'primary.main' }}
+              >
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography variant="h6" fontWeight={700} color="success.main" sx={{ lineHeight: 1, fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
+              ₪{loading ? '...' : priceData.finalPrice}
+            </Typography>
+            {isTourist && (
+              <Typography variant="caption" color="success.main" sx={{ fontSize: '0.75rem' }}>
+                {t('common.vatExempt')}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Box>
+    );
   };
   
   return (
@@ -504,8 +482,6 @@ const SearchResultsPage = () => {
         ) : (
           <Grid container spacing={3}>
             {availableRooms.map((room) => {
-              const roomPricing = calculateRoomPrice(room, guests, nightsCount, isTourist, checkIn, checkOut);
-              
               return (
                 <Grid item xs={12} md={6} lg={4} key={room._id}>
                   <Card 
@@ -531,49 +507,15 @@ const SearchResultsPage = () => {
                           <strong>{room.category}</strong> - {t(`rooms.categoryDescriptions.${room.category}`) || t('rooms.categoryDescriptions.Standard')}
                         </Typography>
                         
-                        {roomPricing.extraGuests > 0 && (
+                        {guests > (room.baseOccupancy || 2) && (
                           <Typography variant="body2" sx={{ mb: 2, color: '#f57c00', fontWeight: 500 }}>
-                            {t('common.includes')} {roomPricing.extraGuests} {roomPricing.extraGuests > 1 ? t('common.extraGuests') : t('common.extraGuest')}
+                            {t('common.includes')} {guests - (room.baseOccupancy || 2)} {guests - (room.baseOccupancy || 2) > 1 ? t('common.extraGuests') : t('common.extraGuest')}
                           </Typography>
                         )}
                       </Box>
                       
                       {/* תצוגת מחירים מקצועית - שורה אחת */}
-                      <Box sx={{ 
-                        bgcolor: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
-                        borderRadius: 2, 
-                        p: 2, 
-                        border: '1px solid #cbd5e1',
-                        mb: 1,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-                      }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
-                              ₪{roomPricing.pricePerNight} × {nightsCount} {t('common.nights')}
-                            </Typography>
-                                                          <Tooltip title={t('common.paymentPolicy')} arrow>
-                              <IconButton 
-                                size="small" 
-                                onClick={() => handleOpenPolicyDialog(room)}
-                                sx={{ color: 'primary.main' }}
-                              >
-                                <InfoIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                          <Box sx={{ textAlign: 'right' }}>
-                            <Typography variant="h6" fontWeight={700} color="success.main" sx={{ lineHeight: 1, fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
-                              ₪{roomPricing.totalPrice}
-                            </Typography>
-                            {isTourist && (
-                              <Typography variant="caption" color="success.main" sx={{ fontSize: '0.75rem' }}>
-                                {t('common.vatExempt')}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      </Box>
+                      <RoomPriceDisplay room={room} guests={guests} nights={nightsCount} isTourist={isTourist} checkIn={checkIn} checkOut={checkOut} />
                     </CardContent>
                     
                     <Divider />
