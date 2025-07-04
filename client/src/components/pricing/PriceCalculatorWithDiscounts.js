@@ -42,7 +42,7 @@ import DiscountService from '../../services/discountService';
 /**
  * קלקולטור מחירים מתקדם עם תמיכה בהנחות
  */
-const PriceCalculatorWithDiscounts = ({
+const PriceCalculatorWithDiscounts = React.memo(({
   room,
   checkIn,
   checkOut,
@@ -52,7 +52,10 @@ const PriceCalculatorWithDiscounts = ({
   onPriceCalculated,
   showDiscountDetails = true,
   showDiscountBadges = false,
-  allowDiscountSelection = false
+  allowDiscountSelection = false,
+  nights,
+  compact = false,
+  style = {}
 }) => {
   
   // State נתונים
@@ -64,16 +67,23 @@ const PriceCalculatorWithDiscounts = ({
   const [showDiscounts, setShowDiscounts] = useState(false);
   const [discountDetailsOpen, setDiscountDetailsOpen] = useState(false);
   
-  // חישוב מספר הלילות
-  const nights = useMemo(() => {
+  // חישוב מספר הלילות עם useMemo להימנעות מחישוב מיותר
+  const calculatedNights = useMemo(() => {
+    if (nights) return nights; // אם nights מועבר כ-prop
     if (!checkIn || !checkOut) return 0;
     return differenceInDays(new Date(checkOut), new Date(checkIn));
-  }, [checkIn, checkOut]);
+  }, [checkIn, checkOut, nights]);
+
+  // ערכים פרימיטיביים למניעת rerenders
+  const roomId = room?._id;
+  const roomCategory = room?.category;
+  const checkInStr = checkIn?.toString();
+  const checkOutStr = checkOut?.toString();
 
   // חישוב מחיר בסיסי - פונקציה פשוטה ללא dependencies
-  const calculateBasePrice = (params = {}) => {
+  const calculateBasePrice = useCallback((params = {}) => {
     const roomToUse = params.room || room;
-    const nightsToUse = params.nights || nights;
+    const nightsToUse = params.nights || calculatedNights;
     const checkInToUse = params.checkIn || checkIn;
     const checkOutToUse = params.checkOut || checkOut;
     const guestsToUse = params.guests || guests;
@@ -89,12 +99,12 @@ const PriceCalculatorWithDiscounts = ({
       guests: guestsToUse,
       isTourist: isTouristToUse
     });
-  };
+  }, [room, calculatedNights, checkIn, checkOut, guests, isTourist]);
 
-  // טעינת הנחות ישימות - dependencies מוקטנות
+  // טעינת הנחות ישימות - dependencies מוקטנות לערכים פרימיטיביים
   const loadApplicableDiscounts = useCallback(async () => {
-    if (!room || !checkIn || !checkOut || nights <= 0) {
-      console.log('🚫 PriceCalculatorWithDiscounts: לא נטענו הנחות - חסרים פרמטרים:', { room: !!room, checkIn, checkOut, nights });
+    if (!roomId || !checkInStr || !checkOutStr || calculatedNights <= 0) {
+      console.log('🚫 PriceCalculatorWithDiscounts: לא נטענו הנחות - חסרים פרמטרים:', { room: !!roomId, checkIn: checkInStr, checkOut: checkOutStr, nights: calculatedNights });
       setApplicableDiscounts([]);
       return;
     }
@@ -105,22 +115,22 @@ const PriceCalculatorWithDiscounts = ({
 
       console.log('🔍 PriceCalculatorWithDiscounts: מחפש הנחות ישימות:', {
         location,
-        roomId: room._id,
-        roomCategory: room.category,
+        roomId,
+        roomCategory,
         checkIn,
         checkOut,
-        nights,
+        nights: calculatedNights,
         guests,
         isTourist
       });
 
       const discounts = await DiscountService.getApplicableDiscounts({
         location,
-        roomId: room._id,
-        roomCategory: room.category,
+        roomId,
+        roomCategory,
         checkIn,
         checkOut,
-        nights,
+        nights: calculatedNights,
         guests,
         isTourist
       });
@@ -141,11 +151,11 @@ const PriceCalculatorWithDiscounts = ({
     } finally {
       setLoading(false);
     }
-  }, [room?._id, checkIn, checkOut, nights, guests, isTourist, location, allowDiscountSelection]);
+  }, [roomId, checkInStr, checkOutStr, calculatedNights, guests, isTourist, location, allowDiscountSelection, roomCategory]);
 
-  // חישוב מחיר סופי עם הנחות - ללא dependencies מיותרות
+  // חישוב מחיר סופי עם הנחות - dependencies מוקטנות
   const calculateFinalPrice = useCallback(async () => {
-    if (!room || !checkIn || !checkOut || nights <= 0) {
+    if (!roomId || !checkInStr || !checkOutStr || calculatedNights <= 0) {
       console.log('🚫 calculateFinalPrice: מגדיר מחיר 0 - חסרים פרמטרים');
       const priceResult = {
         originalPrice: 0,
@@ -185,11 +195,11 @@ const PriceCalculatorWithDiscounts = ({
       const priceResult = await DiscountService.calculatePriceWithDiscounts({
         originalPrice,
         location,
-        roomId: room._id,
-        roomCategory: room.category,
+        roomId,
+        roomCategory,
         checkIn,
         checkOut,
-        nights,
+        nights: calculatedNights,
         guests,
         isTourist,
         selectedDiscountIds: selectedDiscounts
@@ -204,7 +214,7 @@ const PriceCalculatorWithDiscounts = ({
       console.error('❌ calculateFinalPrice: שגיאה בחישוב מחיר:', err);
       setError('שגיאה בחישוב המחיר הסופי');
     }
-  }, [selectedDiscounts]); // רק selectedDiscounts - כל השאר יקרא מהסקופ הנוכחי
+  }, [selectedDiscounts, roomId, checkInStr, checkOutStr, calculatedNights, guests, isTourist, location, roomCategory, calculateBasePrice, onPriceCalculated]);
 
   // אפקט לטעינת הנחות - רק כשהפרמטרים העיקריים משתנים
   useEffect(() => {
@@ -387,7 +397,7 @@ const PriceCalculatorWithDiscounts = ({
         {/* פירוט בסיסי */}
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            {`${nights} לילות • ${guests} ${guests === 1 ? 'אורח' : 'אורחים'} • ${isTourist ? 'תייר' : 'ישראלי'}`}
+            {`${calculatedNights} לילות • ${guests} ${guests === 1 ? 'אורח' : 'אורחים'} • ${isTourist ? 'תייר' : 'ישראלי'}`}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {format(new Date(checkIn), 'dd/MM/yyyy', { locale: he })} - {format(new Date(checkOut), 'dd/MM/yyyy', { locale: he })}
@@ -497,6 +507,6 @@ const PriceCalculatorWithDiscounts = ({
       </Dialog>
     </Box>
   );
-};
+});
 
 export default PriceCalculatorWithDiscounts; 
