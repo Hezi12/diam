@@ -67,9 +67,6 @@ const SearchResultsPage = () => {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   
-  // שמירת מחירים מחושבים לכל חדר
-  const [roomPrices, setRoomPrices] = useState({});
-  
   // בחירת locale לפי שפה נוכחית
   const dateLocale = currentLanguage === 'he' ? he : enUS;
   
@@ -404,7 +401,6 @@ const SearchResultsPage = () => {
             isTourist
           });
 
-          let finalPriceData;
           if (discounts.length > 0) {
             // חישוב מחיר עם הנחות
             const priceWithDiscounts = await DiscountService.calculatePriceWithDiscounts({
@@ -420,23 +416,15 @@ const SearchResultsPage = () => {
               selectedDiscountIds: [discounts[0]._id] // בחירת ההנחה הטובה ביותר
             });
             
-            finalPriceData = priceWithDiscounts;
+            setPriceData(priceWithDiscounts);
           } else {
-            finalPriceData = {
+            setPriceData({
               originalPrice: basePrice,
               finalPrice: basePrice,
               savings: 0,
               totalDiscount: 0
-            };
+            });
           }
-          
-          setPriceData(finalPriceData);
-          
-          // שמירת המחיר המחושב ב-state הראשי
-          setRoomPrices(prev => ({
-            ...prev,
-            [room._id]: finalPriceData
-          }));
         } catch (error) {
           console.error('שגיאה בחישוב מחיר:', error);
           // אם יש שגיאה, נחזיר מחיר בסיס
@@ -449,20 +437,12 @@ const SearchResultsPage = () => {
             isTourist
           });
           
-          const fallbackPriceData = {
+          setPriceData({
             originalPrice: basePrice,
             finalPrice: basePrice,
             savings: 0,
             totalDiscount: 0
-          };
-          
-          setPriceData(fallbackPriceData);
-          
-          // שמירת המחיר המחושב ב-state הראשי
-          setRoomPrices(prev => ({
-            ...prev,
-            [room._id]: fallbackPriceData
-          }));
+          });
         } finally {
           setLoading(false);
         }
@@ -665,7 +645,7 @@ const SearchResultsPage = () => {
                       <Button 
                         variant="contained" 
                         component={Link}
-                        to={`/airport-booking/book?roomId=${room._id}&checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${guests}&isTourist=${isTourist}&originalPrice=${roomPrices[room._id]?.originalPrice || 0}&finalPrice=${roomPrices[room._id]?.finalPrice || 0}&savings=${roomPrices[room._id]?.savings || 0}&totalDiscount=${roomPrices[room._id]?.totalDiscount || 0}`}
+                        to={`/airport-booking/book?roomId=${room._id}&checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${guests}&isTourist=${isTourist}`}
                         sx={{ fontWeight: 500, width: '100%' }}
                         size="large"
                       >
