@@ -199,11 +199,11 @@ const PriceCalculatorWithDiscounts = ({
   // אפקטים
   useEffect(() => {
     loadApplicableDiscounts();
-  }, [room, checkIn, checkOut, nights, guests, isTourist, location]);
+  }, [room?._id, checkIn, checkOut, nights, guests, isTourist, location]);
 
   useEffect(() => {
     calculateFinalPrice();
-  }, [selectedDiscounts, calculateBasePrice]);
+  }, [selectedDiscounts, room?._id, checkIn, checkOut, nights, guests, isTourist]);
 
   // פונקציות טיפול באירועים
   const handleDiscountToggle = (discountId) => {

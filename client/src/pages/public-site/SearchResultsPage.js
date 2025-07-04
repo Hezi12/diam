@@ -46,10 +46,10 @@ import { API_URL, API_ENDPOINTS } from '../../config/apiConfig';
 
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import SearchBox from '../../components/public-site/SearchBox';
-import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculatorWithDiscounts';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 import SEOHead from '../../components/public-site/SEOHead';
 import bookingService from '../../services/bookingService';
+import DiscountService from '../../services/discountService';
 
 const SearchResultsPage = () => {
   const theme = useTheme();
@@ -371,51 +371,172 @@ const SearchResultsPage = () => {
   
   // קומפוננט להצגת מחיר עם הנחות
   const RoomPriceDisplay = ({ room, guests, nights, isTourist, checkIn, checkOut }) => {
-    const [priceData, setPriceData] = useState({ finalPrice: 0, originalPrice: 0, savings: 0 });
+    const [priceData, setPriceData] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const calculatePrice = async () => {
+        try {
+          setLoading(true);
+          
+          // חישוב מחיר בסיס
+          const basePrice = DiscountService.calculateBasePrice({
+            room,
+            checkIn,
+            checkOut,
+            nights,
+            guests,
+            isTourist
+          });
+
+          // חיפוש הנחות
+          const discounts = await DiscountService.getApplicableDiscounts({
+            location: "airport",
+            roomId: room._id,
+            roomCategory: room.category,
+            checkIn,
+            checkOut,
+            nights,
+            guests,
+            isTourist
+          });
+
+          if (discounts.length > 0) {
+            // חישוב מחיר עם הנחות
+            const priceWithDiscounts = await DiscountService.calculatePriceWithDiscounts({
+              originalPrice: basePrice,
+              location: "airport",
+              roomId: room._id,
+              roomCategory: room.category,
+              checkIn,
+              checkOut,
+              nights,
+              guests,
+              isTourist,
+              selectedDiscountIds: [discounts[0]._id] // בחירת ההנחה הטובה ביותר
+            });
+            
+            setPriceData(priceWithDiscounts);
+          } else {
+            setPriceData({
+              originalPrice: basePrice,
+              finalPrice: basePrice,
+              savings: 0,
+              totalDiscount: 0
+            });
+          }
+        } catch (error) {
+          console.error('שגיאה בחישוב מחיר:', error);
+          // אם יש שגיאה, נחזיר מחיר בסיס
+          const basePrice = DiscountService.calculateBasePrice({
+            room,
+            checkIn,
+            checkOut,
+            nights,
+            guests,
+            isTourist
+          });
+          
+          setPriceData({
+            originalPrice: basePrice,
+            finalPrice: basePrice,
+            savings: 0,
+            totalDiscount: 0
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      calculatePrice();
+    }, [room._id, checkIn, checkOut, nights, guests, isTourist]);
+
+    if (loading) {
+      return (
+        <Box sx={{ 
+          bgcolor: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
+          borderRadius: 2, 
+          p: 2, 
+          border: '1px solid #cbd5e1',
+          mb: 1,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body1" color="text.secondary">
+              מחשב מחיר...
+            </Typography>
+            <Typography variant="h6" color="text.secondary">
+              ₪...
+            </Typography>
+          </Box>
+        </Box>
+      );
+    }
 
     return (
       <Box sx={{ 
-        bgcolor: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
+        bgcolor: priceData?.savings > 0 ? 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', 
         borderRadius: 2, 
         p: 2, 
-        border: '1px solid #cbd5e1',
+        border: `1px solid ${priceData?.savings > 0 ? '#4caf50' : '#cbd5e1'}`,
         mb: 1,
         boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
       }}>
-        <PriceCalculatorWithDiscounts
-          room={room}
-          checkIn={checkIn}
-          checkOut={checkOut}
-          guests={guests}
-          isTourist={isTourist}
-          location="airport"
-          showDiscountDetails={false}
-          showDiscountBadges={true}
-          onPriceCalculated={(data) => {
-            setPriceData(data);
-            setLoading(false);
-          }}
-        />
+        {/* תג הנחה אם יש */}
+        {priceData?.savings > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Chip
+              label={`חיסכון של ₪${priceData.savings}!`}
+              color="success"
+              size="small"
+              variant="filled"
+              sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+            />
+          </Box>
+        )}
         
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
-              ₪{loading ? '...' : Math.round(priceData.finalPrice / nights)} × {nights} {t('common.nights')}
-            </Typography>
+            {priceData?.savings > 0 ? (
+              <Box>
+                <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontSize: '0.85rem' }}>
+                  ₪{Math.round(priceData.originalPrice / nights)} × {nights} {t('common.nights')}
+                </Typography>
+                <Typography variant="body1" color="success.main" sx={{ fontWeight: 600, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
+                  ₪{Math.round(priceData.finalPrice / nights)} × {nights} {t('common.nights')}
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="body1" color="text.secondary" sx={{ mr: 1, fontSize: { xs: '0.9rem', sm: '0.95rem' } }}>
+                ₪{Math.round(priceData?.finalPrice / nights)} × {nights} {t('common.nights')}
+              </Typography>
+            )}
             <Tooltip title={t('common.paymentPolicy')} arrow>
               <IconButton 
                 size="small" 
                 onClick={() => handleOpenPolicyDialog(room)}
-                sx={{ color: 'primary.main' }}
+                sx={{ color: 'primary.main', ml: 1 }}
               >
                 <InfoIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>
           <Box sx={{ textAlign: 'right' }}>
-            <Typography variant="h6" fontWeight={700} color="success.main" sx={{ lineHeight: 1, fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
-              ₪{loading ? '...' : priceData.finalPrice}
+            {priceData?.savings > 0 && (
+              <Typography 
+                variant="body2" 
+                sx={{ textDecoration: 'line-through', color: 'text.secondary', fontSize: '0.9rem', lineHeight: 1 }}
+              >
+                ₪{priceData.originalPrice}
+              </Typography>
+            )}
+            <Typography 
+              variant="h6" 
+              fontWeight={700} 
+              color={priceData?.savings > 0 ? "success.main" : "success.main"} 
+              sx={{ lineHeight: 1, fontSize: { xs: '1.3rem', sm: '1.5rem' } }}
+            >
+              ₪{priceData?.finalPrice || 0}
             </Typography>
             {isTourist && (
               <Typography variant="caption" color="success.main" sx={{ fontSize: '0.75rem' }}>

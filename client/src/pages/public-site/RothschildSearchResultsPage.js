@@ -50,6 +50,7 @@ import PriceCalculatorWithDiscounts from '../../components/pricing/PriceCalculat
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 import SEOHead from '../../components/public-site/SEOHead';
 import bookingService from '../../services/bookingService';
+import DiscountService from '../../services/discountService';
 
 const RothschildSearchResultsPage = () => {
   const theme = useTheme();
