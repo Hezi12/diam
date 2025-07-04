@@ -20,12 +20,12 @@ exports.login = async (req, res) => {
     // אם אין חיבור ל-MongoDB ומדובר במצב פיתוח, אפשר לאפשר כניסה עם המשתמש הדיפולטיבי
     if (!isMongoConnected && process.env.NODE_ENV === 'development') {
       // נתוני משתמש קבועים לסביבת פיתוח
-      if (username === 'admin' && password === 'admin123') {
+      if (username === 'hezi' && password === 'hezi3225') {
         const token = jwt.sign(
           {
             id: 'dev-user-id',
-            username: 'admin',
-            name: 'מנהל המערכת',
+            username: 'hezi',
+            name: 'חזי - מנהל המערכת',
             role: 'admin'
           },
           process.env.JWT_SECRET || 'your_jwt_secret_key',
@@ -36,8 +36,8 @@ exports.login = async (req, res) => {
           token,
           user: {
             id: 'dev-user-id',
-            username: 'admin',
-            name: 'מנהל המערכת',
+            username: 'hezi',
+            name: 'חזי - מנהל המערכת',
             role: 'admin'
           }
         });
@@ -102,13 +102,13 @@ exports.initializeAdmin = async () => {
     if (usersCount === 0) {
       // יצירת משתמש מנהל ראשוני
       await User.create({
-        username: 'admin',
-        password: 'admin123',  // בהמשך יש לשנות לסיסמה חזקה יותר
-        name: 'מנהל המערכת',
+        username: 'hezi',
+        password: 'hezi3225',
+        name: 'חזי - מנהל המערכת',
         role: 'admin'
       });
       
-      console.log('Created initial admin user');
+      console.log('Created initial admin user: hezi');
     }
   } catch (error) {
     console.error('Error initializing admin user:', error);
