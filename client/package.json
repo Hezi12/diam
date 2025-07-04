@@ -59,7 +59,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:3200",
+  "proxy": "http://localhost:3201",
   "devDependencies": {
     "sharp-cli": "^5.1.0"
   }
