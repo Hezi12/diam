@@ -24,11 +24,7 @@ import {
   Schedule as ScheduleIcon,
   Lock as LockIcon,
   Hotel as HotelIcon,
-  BedroomParent as BedroomParentIcon,
-  Kitchen as KitchenIcon,
-  Tv as TvIcon,
-  LocalLaundryService as LaundryIcon,
-  Security as SecurityIcon
+  BedroomParent as BedroomParentIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
@@ -54,11 +50,7 @@ const HomePage = () => {
     { nameKey: 'faq.restaurants', icon: <RestaurantIcon />, color: '#ec4899' },
     { nameKey: 'faq.checkin24', icon: <ScheduleIcon />, color: '#06b6d4' },
     { nameKey: 'faq.privacy', icon: <LockIcon />, color: '#84cc16' },
-    { nameKey: 'faq.value', icon: <CheckCircleIcon />, color: '#059669' },
-    { nameKey: 'faq.kitchen', icon: <KitchenIcon />, color: '#8b5cf6' },
-    { nameKey: 'faq.tv', icon: <TvIcon />, color: '#10b981' },
-    { nameKey: 'faq.laundry', icon: <LaundryIcon />, color: '#f59e0b' },
-    { nameKey: 'faq.security', icon: <SecurityIcon />, color: '#ef4444' }
+    { nameKey: 'faq.value', icon: <CheckCircleIcon />, color: '#059669' }
   ];
 
   return (
@@ -97,7 +89,7 @@ const HomePage = () => {
         </Container>
       </Box>
 
-      {/* מידע על המלונית */}
+              {/* מידע על בית הארחה */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 } }}>
         <Grid container spacing={4} alignItems="flex-start">
           {/* מידע כללי */}

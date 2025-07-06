@@ -318,10 +318,10 @@
     "seoDescription": "Quality accommodation at Rothschild 79 in central Petah Tikva. Private clean rooms, free on-site parking, close to public transport and shopping. Excellent value for money with instant online booking. Perfect for business visits and leisure.",
     "seoKeywords": "Petah Tikva hotel, Petah Tikva accommodation, Rothschild 79, Petah Tikva rooms, Petah Tikva guest house, central Petah Tikva accommodation, cheap hotel Petah Tikva, private rooms Petah Tikva, business accommodation Petah Tikva"
   },
-  "location": {
-    "mapTitle": "Guest house location - Haarets 12, Or Yehuda",
-    "address": "Haarets 12, Or Yehuda",
-    "rothschildAddress": "Rothschild 79, Petah Tikva"
+      "location": {
+      "mapTitle": "Guest house location - HaErez St 12, Or Yehuda",
+      "address": "HaErez St 12, Or Yehuda",
+      "rothschildAddress": "Rothschild St 79, Petah Tikva"
   },
   "about": {
     "title": "About Airport Guest House",
@@ -346,10 +346,10 @@
       "checkOutTime": "until 11:00 AM",
       "lateCheckInNote": "Late check-in can be arranged in advance by phone."
     },
-    "imageAlt": "Airport Guest House",
-    "locationTitle": "Our Location",
-    "address": "5 Arava Street, Or Yehuda",
-    "distanceFromAirport": "15 minutes drive from Ben Gurion Airport",
+          "imageAlt": "Airport Guest House",
+      "locationTitle": "Our Location",
+      "address": "HaErez St 12, Or Yehuda",
+      "distanceFromAirport": "15 minutes drive from Ben Gurion Airport",
     "tabs": {
       "about": "About the Guest House",
       "contact": "Contact Us"

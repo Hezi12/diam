@@ -1,25 +1,28 @@
 import React from 'react';
 import { Box, Paper, Typography, Link } from '@mui/material';
 import { LocationOn as LocationOnIcon } from '@mui/icons-material';
-import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
+import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
 // במצב אמיתי, כאן תהיה אינטגרציה עם Google Maps או ספק מפות אחר
 // כרגע זו רק דוגמה ויזואלית
 
 const LocationMap = ({ location: siteLocation = 'airport' }) => {
   const t = usePublicTranslation();
+  const { currentLanguage } = usePublicLanguage();
   
   // פונקציה שתפתח את מיקום המלון ב-Google Maps
   const openInGoogleMaps = () => {
     // כתובת המלון - במצב אמיתי תהיה כאן כתובת אמיתית
     const addressKey = siteLocation === 'rothschild' ? 'location.rothschildAddress' : 'location.address';
     const address = t(addressKey);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    const country = currentLanguage === 'he' ? 'ישראל' : 'Israel';
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address + ', ' + country)}`, '_blank');
   };
   
   // יצירת iframe למפת גוגל עם כתובת פשוטה
   const addressKey = siteLocation === 'rothschild' ? 'location.rothschildAddress' : 'location.address';
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(t(addressKey) + ', ישראל')}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  const country = currentLanguage === 'he' ? 'ישראל' : 'Israel';
+  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(t(addressKey) + ', ' + country)}&t=&z=15&ie=UTF8&iwloc=&output=embed&hl=${currentLanguage}`;
   
   return (
     <Paper 

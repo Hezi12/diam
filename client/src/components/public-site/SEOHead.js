@@ -27,9 +27,9 @@ const SEOHead = ({
       address: 'הארז 12, אור יהודה',
       phone: '+972-3-1234567',
       email: 'airport@diamhotels.com',
-      defaultTitle: 'מלונית Airport Guest House - נמל התעופה בן גוריון | אור יהודה',
-      defaultDescription: 'מלונית מודרנית ונוחה ליד נמל התעופה בן גוריון. חדרים נקיים ומאובזרים, Wi-Fi חינם, חניה וקרבה לשדה התעופה. הזמנה מיידית אונליין.',
-      defaultKeywords: 'מלונית נמל התעופה, Airport Guest House, מלון בן גוריון, אירוח אור יהודה, מלונית שדה תעופה, חדרים ליד נתבג'
+      defaultTitle: 'בית הארחה Airport Guest House - נמל התעופה בן גוריון | אור יהודה',
+      defaultDescription: 'בית הארחה מודרני ונוח ליד נמל התעופה בן גוריון. חדרים נקיים ומאובזרים, Wi-Fi חינם, חניה וקרבה לשדה התעופה. הזמנה מיידית אונליין.',
+      defaultKeywords: 'בית הארחה נמל התעופה, Airport Guest House, מלון בן גוריון, אירוח אור יהודה, בית הארחה שדה תעופה, חדרים ליד נתבג'
     },
     rothschild: {
       name: 'Rothschild 79',
@@ -38,7 +38,7 @@ const SEOHead = ({
       email: 'rothschild@diamhotels.com',
       defaultTitle: 'Rothschild 79 - אירוח באמצע פתח תקווה | חדרים פרטיים',
       defaultDescription: 'אירוח איכותי במרכז פתח תקווה. חדרים פרטיים ונקיים, חניה במקום, קרוב לתחבורה ציבורית וקניות. תמורה מעולה למחיר.',
-      defaultKeywords: 'מלון פתח תקווה, אירוח פתח תקווה, Rothschild 79, חדרים פתח תקווה, מלונית פתח תקווה, אירוח מרכז'
+      defaultKeywords: 'מלון פתח תקווה, אירוח פתח תקווה, Rothschild 79, חדרים פתח תקווה, בית הארחה פתח תקווה, אירוח מרכז'
     }
   };
   

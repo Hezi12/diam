@@ -86,7 +86,7 @@ const RothschildHomePage = () => {
         </Container>
       </Box>
 
-      {/* מידע על המלונית */}
+              {/* מידע על בית הארחה */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 } }}>
         <Grid container spacing={4} alignItems="flex-start">
           {/* מידע כללי */}
