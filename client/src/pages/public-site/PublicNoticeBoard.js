@@ -10,6 +10,8 @@ import {
   Person
 } from '@mui/icons-material';
 
+
+
 const PublicNoticeBoard = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [todaysGuests, setTodaysGuests] = useState([]);
@@ -193,11 +195,19 @@ const PublicNoticeBoard = () => {
                           alignItems: 'center',
                           justifyContent: 'center',
                           mb: 1,
-                          backgroundColor: 'white'
+                          backgroundColor: 'white',
+                          borderRadius: 1,
+                          overflow: 'hidden'
                         }}>
-                          <Typography variant="body2" sx={{ fontSize: '10px', textAlign: 'center' }}>
-                            QR CODE<br/>PLACEHOLDER
-                          </Typography>
+                          <img 
+                            src="/images/gett-qr.png" 
+                            alt="Gett App QR Code" 
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'contain'
+                            }}
+                          />
                         </Box>
                         <Typography variant="body2" sx={{ fontSize: '0.9rem', color: '#6d4c41' }}>
                           Scan to Download
