@@ -60,3 +60,18 @@ root.render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// רישום Service Worker עבור PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((registration) => {
+        console.log('Service Worker נרשם בהצלחה:', registration.scope);
+        logService.info('Service Worker registered successfully');
+      })
+      .catch((error) => {
+        console.log('שגיאה ברישום Service Worker:', error);
+        logService.error('Service Worker registration failed:', error);
+      });
+  });
+}

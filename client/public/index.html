@@ -12,21 +12,21 @@
       gtag('config', 'G-FFD7NMTFY1');
     </script>
     
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicons/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicons/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicons/favicon-16x16.png" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="icon" href="%PUBLIC_URL%/icons/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/icons/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/icons/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/icons/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#1976D2" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="DIAM" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="דיאם" />
     <meta
       name="description"
-      content="מערכת ניהול מלון דיאם"
+      content="מערכת ניהול הזמנות ולוח מודעות ציבורי עבור דיאם Airport Guest House"
     />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-TileColor" content="#0071e3" />
@@ -85,43 +85,11 @@
         direction: rtl;
       }
     </style>
-    <title>מלון דיאם - מערכת ניהול</title>
+    <title>דיאם - Airport Guest House</title>
   </head>
   <body>
     <noscript>אתה צריך להפעיל JavaScript כדי להריץ את האפליקציה הזו.</noscript>
     <div id="root"></div>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          setTimeout(function() {
-            try {
-              navigator.serviceWorker.register('/service-worker.js', {
-                scope: '/'
-              })
-              .then(function(registration) {
-                console.log('Service Worker נרשם בהצלחה עם scope:', registration.scope);
-              })
-              .catch(function(error) {
-                console.log('רישום Service Worker נכשל:', error);
-              });
-            } catch (e) {
-              console.error('שגיאה ברישום Service Worker:', e);
-            }
-          }, 2000);
-        });
-        
-        navigator.serviceWorker.addEventListener('controllerchange', function() {
-          console.log('Service Worker עודכן');
-        });
-        
-        window.addEventListener('online', function() {
-          console.log('המכשיר מחובר לרשת');
-        });
-        
-        window.addEventListener('offline', function() {
-          console.log('המכשיר מנותק מהרשת');
-        });
-      }
-    </script>
+    <!-- Service Worker registration moved to index.js -->
   </body>
 </html> 
