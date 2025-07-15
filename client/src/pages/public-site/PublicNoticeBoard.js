@@ -184,6 +184,17 @@ const PublicNoticeBoard = () => {
   const timeOfDay = new Date().getHours();
   const greeting = timeOfDay < 12 ? 'Good Morning' : timeOfDay < 18 ? 'Good Afternoon' : 'Good Evening';
 
+  // זיהוי מסך טלוויזיה (39 אינץ HD Ready)
+  const isTvScreen = window.innerWidth >= 1200 && window.innerHeight >= 700;
+  const tvScale = isTvScreen ? 1.2 : 1;
+
+  // פונקציה לחזרת גודל טקסט מתאים לטלוויזיה
+  const getTvFontSize = (xs, md, lg) => ({
+    xs: xs,
+    md: isTvScreen ? `${parseFloat(md) * 1.3}rem` : md,
+    lg: isTvScreen ? `${parseFloat(lg || md) * 1.4}rem` : (lg || md)
+  });
+
   return (
     <Box
       sx={{
@@ -193,37 +204,21 @@ const PublicNoticeBoard = () => {
         flexDirection: 'column',
         fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
         direction: 'ltr',
-        // התאמה לטלוויזיות גדולות
-        '@media (min-width: 1200px)': {
-          padding: '2vh 4vw'
-        },
-        '@media (min-width: 1600px)': {
-          padding: '3vh 6vw'
-        },
-        '@media (min-width: 1920px)': {
-          padding: '4vh 8vw'
-        }
+        overflow: 'hidden', // מונע סקרול בטלוויזיה
+        transform: `scale(${tvScale})`,
+        transformOrigin: 'top left',
+        width: isTvScreen ? `${100 / tvScale}%` : '100%',
+        height: isTvScreen ? `${100 / tvScale}%` : '100%'
       }}
     >
       <Container 
         maxWidth={false} 
         sx={{ 
-          py: { xs: 2, md: 4, lg: 6, xl: 8 },
+          py: isTvScreen ? 2 : 4, 
+          px: isTvScreen ? 3 : 4,
           flex: 1,
           maxWidth: '100%',
-          // הפחתת padding במסכים גדולים
-          '@media (min-width: 1200px)': {
-            paddingLeft: '2rem',
-            paddingRight: '2rem'
-          },
-          '@media (min-width: 1600px)': {
-            paddingLeft: '3rem',
-            paddingRight: '3rem'
-          },
-          '@media (min-width: 1920px)': {
-            paddingLeft: '4rem',
-            paddingRight: '4rem'
-          }
+          width: '100%'
         }}
       >
         {/* Header */}
@@ -242,8 +237,8 @@ const PublicNoticeBoard = () => {
               top: 0,
               right: 0,
               zIndex: 1000,
-              width: { xs: 80, md: 90, lg: 100, xl: 120 },
-              height: { xs: 80, md: 90, lg: 100, xl: 120 },
+              width: 80,
+              height: 80,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -261,8 +256,8 @@ const PublicNoticeBoard = () => {
                   backgroundColor: isFullscreen ? '#1976D2' : '#ffffff',
                   border: '2px solid #1976D2',
                   borderRadius: 2,
-                  width: { xs: 56, md: 64, lg: 72, xl: 80 },
-                  height: { xs: 56, md: 64, lg: 72, xl: 80 },
+                  width: 56,
+                  height: 56,
                   color: isFullscreen ? '#ffffff' : '#1976D2',
                   opacity: 0,
                   transform: 'scale(0.8)',
@@ -273,39 +268,13 @@ const PublicNoticeBoard = () => {
                     color: '#ffffff',
                     transform: 'scale(1.1)',
                     boxShadow: '0 4px 12px rgba(25,118,210,0.4)'
-                  },
-                  '@media (min-width: 1200px)': {
-                    width: '80px',
-                    height: '80px'
-                  },
-                  '@media (min-width: 1600px)': {
-                    width: '96px',
-                    height: '96px'
                   }
                 }}
               >
                 {isFullscreen ? (
-                  <FullscreenExit sx={{ 
-                    fontSize: { xs: 28, md: 32, lg: 36, xl: 40 },
-                    color: 'inherit',
-                    '@media (min-width: 1200px)': {
-                      fontSize: '40px'
-                    },
-                    '@media (min-width: 1600px)': {
-                      fontSize: '48px'
-                    }
-                  }} />
+                  <FullscreenExit sx={{ fontSize: 28, color: 'inherit' }} />
                 ) : (
-                  <Fullscreen sx={{ 
-                    fontSize: { xs: 28, md: 32, lg: 36, xl: 40 },
-                    color: 'inherit',
-                    '@media (min-width: 1200px)': {
-                      fontSize: '40px'
-                    },
-                    '@media (min-width: 1600px)': {
-                      fontSize: '48px'
-                    }
-                  }} />
+                  <Fullscreen sx={{ fontSize: 28, color: 'inherit' }} />
                 )}
               </IconButton>
             </Tooltip>
@@ -317,22 +286,12 @@ const PublicNoticeBoard = () => {
               fontWeight: 700,
               fontSize: { 
                 xs: '2.5rem', 
-                md: '3.5rem',
-                lg: '4.5rem',
-                xl: '5.5rem'
+                md: isTvScreen ? '4.5rem' : '3.5rem',
+                lg: isTvScreen ? '5rem' : '3.5rem'
               },
               letterSpacing: '1px',
               mb: 1,
-              // התאמה לטלוויזיות גדולות
-              '@media (min-width: 1200px)': {
-                fontSize: '5rem'
-              },
-              '@media (min-width: 1600px)': {
-                fontSize: '6rem'
-              },
-              '@media (min-width: 1920px)': {
-                fontSize: '7rem'
-              }
+              textAlign: 'center'
             }}
           >
             <Box component="span" sx={{ color: '#1976D2' }}>Airport</Box>
@@ -343,21 +302,11 @@ const PublicNoticeBoard = () => {
             sx={{ 
               fontSize: { 
                 xs: '1.2rem', 
-                md: '1.5rem',
-                lg: '2rem',
-                xl: '2.5rem'
+                md: isTvScreen ? '2rem' : '1.5rem',
+                lg: isTvScreen ? '2.2rem' : '1.5rem'
               },
               fontWeight: 400,
-              // התאמה לטלוויזיות גדולות
-              '@media (min-width: 1200px)': {
-                fontSize: '2.2rem'
-              },
-              '@media (min-width: 1600px)': {
-                fontSize: '2.8rem'
-              },
-              '@media (min-width: 1920px)': {
-                fontSize: '3.2rem'
-              }
+              textAlign: 'center'
             }}
           >
             <Box component="span" sx={{ color: '#4CAF50' }}>{greeting}!</Box>
@@ -365,10 +314,10 @@ const PublicNoticeBoard = () => {
           </Typography>
         </Box>
 
-        <Grid container spacing={{ xs: 2, md: 4, lg: 6, xl: 8 }}>
+        <Grid container spacing={isTvScreen ? 2 : 4}>
           {/* Left Column - Information */}
           <Grid item xs={12} md={6}>
-            <Grid container spacing={{ xs: 2, md: 3, lg: 4, xl: 5 }}>
+            <Grid container spacing={isTvScreen ? 2 : 3}>
               {/* Contact Information */}
               <Grid item xs={12}>
                 <Card 
@@ -384,93 +333,39 @@ const PublicNoticeBoard = () => {
                     }
                   }}
                 >
-                  <CardContent sx={{ 
-                    p: { xs: 3, md: 4, lg: 6, xl: 8 }
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, md: 3, lg: 4 } }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
                         bgcolor: '#E8F5E8', 
-                        mr: { xs: 2, md: 3, lg: 4 },
-                        width: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        height: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        border: '2px solid #4CAF50',
-                        '@media (min-width: 1200px)': {
-                          width: '80px',
-                          height: '80px'
-                        },
-                        '@media (min-width: 1600px)': {
-                          width: '96px',
-                          height: '96px'
-                        },
-                        '@media (min-width: 1920px)': {
-                          width: '112px',
-                          height: '112px'
-                        }
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #4CAF50'
                       }}>
-                        <ContactSupport sx={{ 
-                          fontSize: { xs: 32, md: 36, lg: 42, xl: 48 },
-                          color: '#2E7D32',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '48px'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '56px'
-                          },
-                          '@media (min-width: 1920px)': {
-                            fontSize: '64px'
-                          }
-                        }} />
+                        <ContactSupport sx={{ fontSize: 32, color: '#2E7D32' }} />
                       </Avatar>
-                      <Typography 
-                        variant="h4" 
-                        sx={{ 
-                          fontWeight: 700,
-                          fontSize: { 
-                            xs: '1.8rem', 
-                            md: '2.2rem',
-                            lg: '2.8rem',
-                            xl: '3.2rem'
-                          },
-                          color: '#2E7D32',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '3.2rem'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '3.8rem'
-                          },
-                          '@media (min-width: 1920px)': {
-                            fontSize: '4.2rem'
-                          }
-                        }}
-                      >
-                        <Box component="span" sx={{ color: '#FF5722' }}>Need</Box>
-                        <Box component="span" sx={{ color: '#4CAF50', ml: 1 }}>Help?</Box>
-                      </Typography>
+                                          <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: getTvFontSize('1.8rem', '2.2rem', '2.5rem'),
+                        color: '#2E7D32'
+                      }}
+                    >
+                      <Box component="span" sx={{ color: '#FF5722' }}>Need</Box>
+                      <Box component="span" sx={{ color: '#4CAF50', ml: 1 }}>Help?</Box>
+                    </Typography>
                     </Box>
                     
                     <Typography 
                       variant="body1" 
                       sx={{ 
-                        fontSize: { 
-                          xs: '1.2rem', 
-                          md: '1.4rem',
-                          lg: '1.8rem',
-                          xl: '2.2rem'
-                        },
+                        fontSize: getTvFontSize('1.2rem', '1.4rem', '1.6rem'),
                         color: '#37474F',
-                        mb: { xs: 2, md: 3, lg: 4 },
+                        mb: 3,
                         lineHeight: 1.6,
                         direction: 'ltr',
-                        textAlign: 'left',
-                        '@media (min-width: 1200px)': {
-                          fontSize: '2.2rem'
-                        },
-                        '@media (min-width: 1600px)': {
-                          fontSize: '2.6rem'
-                        },
-                        '@media (min-width: 1920px)': {
-                          fontSize: '3rem'
-                        }
+                        textAlign: 'left'
                       }}
                     >
                       For any <Box component="span" sx={{ color: '#FF5722', fontWeight: 600 }}>questions</Box> or <Box component="span" sx={{ color: '#4CAF50', fontWeight: 600 }}>assistance</Box>, feel free to call or send a WhatsApp message to:
@@ -480,7 +375,7 @@ const PublicNoticeBoard = () => {
                       sx={{
                         background: '#f8f9fa',
                         borderRadius: 2,
-                        p: { xs: 2, md: 3, lg: 4, xl: 5 },
+                        p: 3,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
                         border: '1px solid #dee2e6',
@@ -493,63 +388,18 @@ const PublicNoticeBoard = () => {
                       onClick={() => window.open(`https://wa.me/972506070260`)}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Phone sx={{ 
-                          fontSize: { xs: 28, md: 32, lg: 40, xl: 48 },
-                          mr: { xs: 1, md: 2, lg: 3 },
-                          color: '#2E7D32',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '48px'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '56px'
-                          },
-                          '@media (min-width: 1920px)': {
-                            fontSize: '64px'
-                          }
-                        }} />
+                        <Phone sx={{ fontSize: 28, mr: 2, color: '#2E7D32' }} />
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '1.6rem', 
-                              md: '1.8rem',
-                              lg: '2.4rem',
-                              xl: '2.8rem'
-                            },
+                            fontSize: getTvFontSize('1.6rem', '1.8rem', '2.1rem'),
                             fontWeight: 700,
-                            fontFamily: 'monospace',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '2.8rem'
-                            },
-                            '@media (min-width: 1600px)': {
-                              fontSize: '3.2rem'
-                            },
-                            '@media (min-width: 1920px)': {
-                              fontSize: '3.6rem'
-                            }
+                            fontFamily: 'monospace'
                           }}
                         >
                           <Box component="span" sx={{ color: '#1976D2' }}>+972 506070260</Box>
                           <Box component="span" sx={{ color: '#37474F', mx: 1 }}>-</Box>
-                          <Box component="span" sx={{ 
-                            color: '#4CAF50', 
-                            fontSize: { 
-                              xs: '1.6rem', 
-                              md: '1.8rem',
-                              lg: '2.4rem',
-                              xl: '2.8rem'
-                            },
-                            fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '2.8rem'
-                            },
-                            '@media (min-width: 1600px)': {
-                              fontSize: '3.2rem'
-                            },
-                            '@media (min-width: 1920px)': {
-                              fontSize: '3.6rem'
-                            }
-                          }}>David</Box>
+                          <Box component="span" sx={{ color: '#4CAF50', fontSize: getTvFontSize('1.6rem', '1.8rem', '2.1rem'), fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>David</Box>
                         </Typography>
                       </Box>
                     </Box>
@@ -572,51 +422,23 @@ const PublicNoticeBoard = () => {
                     }
                   }}
                 >
-                  <CardContent sx={{ p: { xs: 3, md: 4, lg: 6, xl: 8 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, md: 3, lg: 4 } }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Avatar sx={{ 
                         bgcolor: '#E3F2FD', 
-                        mr: { xs: 2, md: 3, lg: 4 },
-                        width: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        height: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        border: '2px solid #BBDEFB',
-                        '@media (min-width: 1200px)': {
-                          width: '80px',
-                          height: '80px'
-                        },
-                        '@media (min-width: 1600px)': {
-                          width: '96px',
-                          height: '96px'
-                        }
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #BBDEFB'
                       }}>
-                        <Wifi sx={{ 
-                          fontSize: { xs: 32, md: 36, lg: 42, xl: 48 },
-                          color: '#1976D2',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '48px'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '56px'
-                          }
-                        }} />
+                        <Wifi sx={{ fontSize: 32, color: '#1976D2' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: { 
-                            xs: '1.5rem', 
-                            md: '2rem',
-                            lg: '2.5rem',
-                            xl: '3rem'
-                          },
-                          color: '#1976D2',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '3rem'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '3.5rem'
-                          }
+                          fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                          color: '#1976D2'
                         }}
                       >
                         <Box component="span" sx={{ color: '#4CAF50' }}>Free</Box>
@@ -630,18 +452,17 @@ const PublicNoticeBoard = () => {
                         alignItems: 'center', 
                         justifyContent: 'space-between',
                         backgroundColor: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
-                        padding: { xs: '16px', md: '20px', lg: '24px' },
+                        padding: '16px',
                         borderRadius: 1,
                         border: '1px solid #BBDEFB'
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Typography 
                           variant="subtitle1" 
                           sx={{ 
                             color: '#1976D2',
-                            fontWeight: 600,
-                            fontSize: { xs: '1rem', md: '1.2rem', lg: '1.4rem', xl: '1.6rem' }
+                            fontWeight: 600
                           }}
                         >
                           Network:
@@ -649,34 +470,22 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '1.5rem', 
-                              md: '1.7rem',
-                              lg: '2rem',
-                              xl: '2.4rem'
-                            },
+                            fontSize: getTvFontSize('1.5rem', '1.7rem', '2rem'),
                             color: '#2E7D32',
                             fontWeight: 600,
-                            fontFamily: 'monospace',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '2.4rem'
-                            },
-                            '@media (min-width: 1600px)': {
-                              fontSize: '2.8rem'
-                            }
+                            fontFamily: 'monospace'
                           }}
                         >
                           {wifiInfo.ssid}
                         </Typography>
                       </Box>
                       
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Typography 
                           variant="subtitle1" 
                           sx={{ 
                             color: '#1976D2',
-                            fontWeight: 600,
-                            fontSize: { xs: '1rem', md: '1.2rem', lg: '1.4rem', xl: '1.6rem' }
+                            fontWeight: 600
                           }}
                         >
                           Password:
@@ -684,21 +493,10 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '1.5rem', 
-                              md: '1.7rem',
-                              lg: '2rem',
-                              xl: '2.4rem'
-                            },
+                            fontSize: getTvFontSize('1.5rem', '1.7rem', '2rem'),
                             color: '#2E7D32',
                             fontWeight: 600,
-                            fontFamily: 'monospace',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '2.4rem'
-                            },
-                            '@media (min-width: 1600px)': {
-                              fontSize: '2.8rem'
-                            }
+                            fontFamily: 'monospace'
                           }}
                         >
                           {wifiInfo.password}
@@ -724,42 +522,24 @@ const PublicNoticeBoard = () => {
                     }
                   }}
                 >
-                  <CardContent sx={{ p: { xs: 3, md: 4, lg: 6, xl: 8 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, md: 3, lg: 4 } }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
                         bgcolor: '#FFF3E0', 
-                        mr: { xs: 2, md: 3, lg: 4 },
-                        width: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        height: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        border: '2px solid #FFCC02',
-                        '@media (min-width: 1200px)': {
-                          width: '80px',
-                          height: '80px'
-                        }
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #FFCC02'
                       }}>
-                        <LocalTaxi sx={{ 
-                          fontSize: { xs: 32, md: 36, lg: 42, xl: 48 },
-                          color: '#FF9800',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '48px'
-                          }
-                        }} />
+                        <LocalTaxi sx={{ fontSize: 32, color: '#FF9800' }} />
                       </Avatar>
                       <Box>
                         <Typography 
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            fontSize: { 
-                              xs: '1.4rem', 
-                              md: '1.8rem',
-                              lg: '2.2rem',
-                              xl: '2.6rem'
-                            },
-                            color: '#E65100',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '2.6rem'
-                            }
+                            fontSize: getTvFontSize('1.4rem', '1.8rem', '2.1rem'),
+                            color: '#E65100'
                           }}
                         >
                           <Box component="span" sx={{ color: '#E65100' }}>Recommended</Box>
@@ -768,17 +548,9 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '1rem', 
-                              md: '1.2rem',
-                              lg: '1.6rem',
-                              xl: '1.8rem'
-                            },
+                            fontSize: getTvFontSize('1rem', '1.2rem', '1.4rem'),
                             color: '#FFCC02',
-                            fontWeight: 700,
-                            '@media (min-width: 1200px)': {
-                              fontSize: '1.8rem'
-                            }
+                            fontWeight: 700
                           }}
                         >
                           <Box component="span" sx={{ color: '#000', fontWeight: 800 }}>Gett</Box>
@@ -787,24 +559,16 @@ const PublicNoticeBoard = () => {
                       </Box>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, md: 3, lg: 4 }, mb: { xs: 1, md: 2 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '1.2rem', 
-                              md: '1.3rem',
-                              lg: '1.6rem',
-                              xl: '1.8rem'
-                            },
+                            fontSize: getTvFontSize('1.2rem', '1.3rem', '1.5rem'),
                             color: '#5D4037',
-                            mb: { xs: 0.5, md: 1 },
+                            mb: 1,
                             lineHeight: 1.5,
-                            textAlign: 'left',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '1.8rem'
-                            }
+                            textAlign: 'left'
                           }}
                         >
                           The <Box component="span" sx={{ color: '#4CAF50', fontWeight: 600 }}>safest</Box> and most <Box component="span" sx={{ color: '#2196F3', fontWeight: 600 }}>convenient</Box> way to travel.
@@ -812,18 +576,10 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '1.2rem', 
-                              md: '1.3rem',
-                              lg: '1.6rem',
-                              xl: '1.8rem'
-                            },
+                            fontSize: getTvFontSize('1.2rem', '1.3rem', '1.5rem'),
                             color: '#5D4037',
                             lineHeight: 1.5,
-                            textAlign: 'left',
-                            '@media (min-width: 1200px)': {
-                              fontSize: '1.8rem'
-                            }
+                            textAlign: 'left'
                           }}
                         >
                           Licensed drivers, fixed prices, and credit card payment.
@@ -837,20 +593,15 @@ const PublicNoticeBoard = () => {
                           src="/images/gett-qr.png" 
                           alt="Gett QR Code" 
                           style={{ 
-                            width: window.innerWidth < 1200 ? '90px' : window.innerWidth < 1600 ? '120px' : '150px', 
-                            height: window.innerWidth < 1200 ? '90px' : window.innerWidth < 1600 ? '120px' : '150px',
+                            width: '90px', 
+                            height: '90px',
                             borderRadius: '8px'
                           }}
                         />
                         <Typography 
                           variant="body2" 
                           sx={{ 
-                            fontSize: { 
-                              xs: '0.8rem',
-                              md: '0.9rem',
-                              lg: '1rem',
-                              xl: '1.1rem'
-                            },
+                            fontSize: '0.8rem',
                             color: '#E65100',
                             mt: 1,
                             fontWeight: 700
@@ -869,53 +620,27 @@ const PublicNoticeBoard = () => {
 
           {/* Right Column - Date, Time & Guests */}
           <Grid item xs={12} md={6}>
-            <Grid container spacing={3}>
+            <Grid container spacing={isTvScreen ? 2 : 3}>
               {/* Date and Time */}
               <Grid item xs={12}>
                 <Box
                   sx={{
                     textAlign: 'center',
-                    py: { xs: 2, md: 3, lg: 4, xl: 5 },
+                    py: 3,
                     backgroundColor: '#ffffff',
                     borderRadius: 2,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     border: '1px solid #e9ecef'
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 2, md: 3, lg: 4, xl: 5 } }}>
-                    <AccessTime sx={{ 
-                      fontSize: { xs: 28, md: 32, lg: 40, xl: 48 },
-                      color: '#FF9800',
-                      '@media (min-width: 1200px)': {
-                        fontSize: '48px'
-                      },
-                      '@media (min-width: 1600px)': {
-                        fontSize: '56px'
-                      },
-                      '@media (min-width: 1920px)': {
-                        fontSize: '64px'
-                      }
-                    }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                    <AccessTime sx={{ fontSize: 28, color: '#FF9800' }} />
                     <Typography 
                       variant="h4" 
                       sx={{ 
                         fontWeight: 600,
-                        fontSize: { 
-                          xs: '1.5rem', 
-                          md: '2rem',
-                          lg: '2.5rem',
-                          xl: '3rem'
-                        },
-                        color: '#1976D2',
-                        '@media (min-width: 1200px)': {
-                          fontSize: '3rem'
-                        },
-                        '@media (min-width: 1600px)': {
-                          fontSize: '3.5rem'
-                        },
-                        '@media (min-width: 1920px)': {
-                          fontSize: '4rem'
-                        }
+                        fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                        color: '#1976D2'
                       }}
                     >
                       {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
@@ -924,23 +649,9 @@ const PublicNoticeBoard = () => {
                       variant="h2" 
                       sx={{ 
                         fontWeight: 700,
-                        fontSize: { 
-                          xs: '2rem', 
-                          md: '2.5rem',
-                          lg: '3.5rem',
-                          xl: '4rem'
-                        },
+                        fontSize: getTvFontSize('2rem', '2.5rem', '2.8rem'),
                         color: '#2E7D32',
-                        fontFamily: 'monospace',
-                        '@media (min-width: 1200px)': {
-                          fontSize: '4rem'
-                        },
-                        '@media (min-width: 1600px)': {
-                          fontSize: '4.8rem'
-                        },
-                        '@media (min-width: 1920px)': {
-                          fontSize: '5.5rem'
-                        }
+                        fontFamily: 'monospace'
                       }}
                     >
                       {format(currentDateTime, 'HH:mm')}
@@ -960,64 +671,23 @@ const PublicNoticeBoard = () => {
                     border: '1px solid #e9ecef'
                   }}
                 >
-                  <CardContent sx={{ 
-                    p: { xs: 3, md: 4, lg: 6, xl: 8 },
-                    height: '100%'
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, md: 3, lg: 4 } }}>
+                  <CardContent sx={{ p: 4, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
                         bgcolor: '#F3E5F5', 
-                        mr: { xs: 2, md: 3, lg: 4 },
-                        width: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        height: { xs: 56, md: 64, lg: 72, xl: 80 },
-                        border: '2px solid #9C27B0',
-                        '@media (min-width: 1200px)': {
-                          width: '80px',
-                          height: '80px'
-                        },
-                        '@media (min-width: 1600px)': {
-                          width: '96px',
-                          height: '96px'
-                        },
-                        '@media (min-width: 1920px)': {
-                          width: '112px',
-                          height: '112px'
-                        }
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #9C27B0'
                       }}>
-                        <Person sx={{ 
-                          fontSize: { xs: 32, md: 36, lg: 42, xl: 48 },
-                          color: '#7B1FA2',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '48px'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '56px'
-                          },
-                          '@media (min-width: 1920px)': {
-                            fontSize: '64px'
-                          }
-                        }} />
+                        <Person sx={{ fontSize: 32, color: '#7B1FA2' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: { 
-                            xs: '1.5rem', 
-                            md: '2rem',
-                            lg: '2.5rem',
-                            xl: '3rem'
-                          },
-                          color: '#7B1FA2',
-                          '@media (min-width: 1200px)': {
-                            fontSize: '3rem'
-                          },
-                          '@media (min-width: 1600px)': {
-                            fontSize: '3.5rem'
-                          },
-                          '@media (min-width: 1920px)': {
-                            fontSize: '4rem'
-                          }
+                          fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                          color: '#7B1FA2'
                         }}
                       >
                         <Box component="span" sx={{ color: '#7B1FA2' }}>Guest</Box>
@@ -1030,28 +700,14 @@ const PublicNoticeBoard = () => {
                     display: 'flex', 
                     justifyContent: 'center', 
                     alignItems: 'center',
-                    height: { xs: '200px', md: '300px', lg: '400px' }
+                    height: '300px'
                   }}>
                     <Typography 
                       variant="h4" 
                       sx={{ 
-                        fontSize: { 
-                          xs: '1.5rem', 
-                          md: '2rem',
-                          lg: '2.5rem',
-                          xl: '3rem'
-                        },
+                        fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
                         color: '#9C27B0',
-                        textAlign: 'center',
-                        '@media (min-width: 1200px)': {
-                          fontSize: '3rem'
-                        },
-                        '@media (min-width: 1600px)': {
-                          fontSize: '3.5rem'
-                        },
-                        '@media (min-width: 1920px)': {
-                          fontSize: '4rem'
-                        }
+                        textAlign: 'center'
                       }}
                     >
                       <Box component="span" sx={{ color: '#7B1FA2' }}>Loading</Box>
@@ -1059,7 +715,7 @@ const PublicNoticeBoard = () => {
                     </Typography>
                   </Box>
                 ) : (
-                  <Grid container spacing={{ xs: 2, md: 3, lg: 4 }}>
+                  <Grid container spacing={isTvScreen ? 2 : 3}>
                     {todaysGuests.map((guest, index) => (
                       <Grid item xs={12} key={index}>
                         <Box
@@ -1067,7 +723,7 @@ const PublicNoticeBoard = () => {
                             background: '#f8f9fa',
                             borderRadius: 2,
                             border: '1px solid #dee2e6',
-                            p: { xs: 2, md: 3, lg: 4, xl: 5 },
+                            p: 3,
                             transition: 'all 0.2s ease',
                             '&:hover': {
                               background: '#e9ecef',
@@ -1080,58 +736,20 @@ const PublicNoticeBoard = () => {
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Avatar sx={{ 
                                 bgcolor: '#e9ecef', 
-                                mr: { xs: 2, md: 3, lg: 4 },
-                                width: { xs: 48, md: 56, lg: 64, xl: 72 },
-                                height: { xs: 48, md: 56, lg: 64, xl: 72 },
-                                border: '2px solid #6c757d',
-                                '@media (min-width: 1200px)': {
-                                  width: '72px',
-                                  height: '72px'
-                                },
-                                '@media (min-width: 1600px)': {
-                                  width: '80px',
-                                  height: '80px'
-                                },
-                                '@media (min-width: 1920px)': {
-                                  width: '96px',
-                                  height: '96px'
-                                }
+                                mr: 3, 
+                                width: 48, 
+                                height: 48,
+                                border: '2px solid #6c757d'
                               }}>
-                                <Person sx={{ 
-                                  fontSize: { xs: 24, md: 28, lg: 32, xl: 36 },
-                                  color: '#495057',
-                                  '@media (min-width: 1200px)': {
-                                    fontSize: '36px'
-                                  },
-                                  '@media (min-width: 1600px)': {
-                                    fontSize: '42px'
-                                  },
-                                  '@media (min-width: 1920px)': {
-                                    fontSize: '48px'
-                                  }
-                                }} />
+                                <Person sx={{ fontSize: 24, color: '#495057' }} />
                               </Avatar>
                               <Box>
                                 <Typography 
                                   variant="h4" 
                                   sx={{ 
                                     fontWeight: 700,
-                                    fontSize: { 
-                                      xs: '1.8rem', 
-                                      md: '2rem',
-                                      lg: '2.5rem',
-                                      xl: '3rem'
-                                    },
-                                    color: '#212529',
-                                    '@media (min-width: 1200px)': {
-                                      fontSize: '3rem'
-                                    },
-                                    '@media (min-width: 1600px)': {
-                                      fontSize: '3.5rem'
-                                    },
-                                    '@media (min-width: 1920px)': {
-                                      fontSize: '4rem'
-                                    }
+                                    fontSize: getTvFontSize('1.8rem', '2rem', '2.3rem'),
+                                    color: '#212529'
                                   }}
                                 >
                                   {guest.name}
@@ -1143,30 +761,16 @@ const PublicNoticeBoard = () => {
                               backgroundColor: '#ffffff',
                               border: '2px solid #6c757d',
                               borderRadius: 2,
-                              padding: { xs: '8px 16px', md: '12px 20px', lg: '16px 24px' },
-                              minWidth: { xs: '80px', md: '100px', lg: '120px', xl: '140px' }
+                              padding: '8px 16px',
+                              minWidth: '80px'
                             }}>
                               <Typography 
                                 variant="body2" 
                                 sx={{ 
                                   color: '#6c757d',
-                                  fontSize: { 
-                                    xs: '0.8rem', 
-                                    md: '1rem',
-                                    lg: '1.2rem',
-                                    xl: '1.4rem'
-                                  },
+                                  fontSize: '0.8rem',
                                   fontWeight: 600,
-                                  lineHeight: 1,
-                                  '@media (min-width: 1200px)': {
-                                    fontSize: '1.4rem'
-                                  },
-                                  '@media (min-width: 1600px)': {
-                                    fontSize: '1.6rem'
-                                  },
-                                  '@media (min-width: 1920px)': {
-                                    fontSize: '1.8rem'
-                                  }
+                                  lineHeight: 1
                                 }}
                               >
                                 Room
@@ -1175,23 +779,9 @@ const PublicNoticeBoard = () => {
                                 variant="h3" 
                                 sx={{ 
                                   fontWeight: 700,
-                                  fontSize: { 
-                                    xs: '1.8rem', 
-                                    md: '2rem',
-                                    lg: '2.5rem',
-                                    xl: '3rem'
-                                  },
+                                  fontSize: getTvFontSize('1.8rem', '2rem', '2.3rem'),
                                   color: '#212529',
-                                  lineHeight: 1,
-                                  '@media (min-width: 1200px)': {
-                                    fontSize: '3rem'
-                                  },
-                                  '@media (min-width: 1600px)': {
-                                    fontSize: '3.5rem'
-                                  },
-                                  '@media (min-width: 1920px)': {
-                                    fontSize: '4rem'
-                                  }
+                                  lineHeight: 1
                                 }}
                               >
                                 {guest.roomNumber}
