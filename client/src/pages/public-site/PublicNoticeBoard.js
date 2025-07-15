@@ -18,6 +18,7 @@ const PublicNoticeBoard = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [todaysGuests, setTodaysGuests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastRefreshCheck, setLastRefreshCheck] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wakeLock, setWakeLock] = useState(null);
 
@@ -192,6 +193,23 @@ const PublicNoticeBoard = () => {
     }
   }, [defaultGuests]);
 
+  // פונקציה לבדיקת בקשת רענון מהשרת
+  const checkRefreshStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/bookings/notice-board/refresh-status?lastCheck=${lastRefreshCheck}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.shouldRefresh) {
+          console.log('🔄 Refresh request detected, updating guests list...');
+          setLastRefreshCheck(data.timestamp);
+          fetchTodaysGuests();
+        }
+      }
+    } catch (error) {
+      console.error('שגיאה בבדיקת סטטוס רענון:', error);
+    }
+  }, [lastRefreshCheck, fetchTodaysGuests]);
+
   // עדכון שעה כל דקה
   useEffect(() => {
     const timer = setInterval(() => {
@@ -212,7 +230,16 @@ const PublicNoticeBoard = () => {
     return () => clearInterval(dataTimer);
   }, [fetchTodaysGuests]);
 
-  // האזנה להודעות רענון מדף ההגדרות
+  // בדיקת בקשת רענון מהשרת כל 3 שניות
+  useEffect(() => {
+    const refreshCheckTimer = setInterval(() => {
+      checkRefreshStatus();
+    }, 3000); // כל 3 שניות
+
+    return () => clearInterval(refreshCheckTimer);
+  }, [checkRefreshStatus]);
+
+  // האזנה להודעות רענון מדף ההגדרות (מיושן - נשמר לתאימות אחורה)
   useEffect(() => {
     const handleMessage = (event) => {
       if (event.data === 'refresh-guests') {

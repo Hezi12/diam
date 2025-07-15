@@ -1188,3 +1188,45 @@ exports.getBookingImage = async (req, res) => {
     });
   }
 };
+
+// משתנה לשמירת timestamp של רענון לוח המודעות
+let noticeBoardRefreshTimestamp = 0;
+
+// טריגר לרענון לוח המודעות
+exports.triggerNoticeBoardRefresh = async (req, res) => {
+  try {
+    noticeBoardRefreshTimestamp = Date.now();
+    console.log('🔄 Notice board refresh triggered:', new Date(noticeBoardRefreshTimestamp));
+    
+    res.json({ 
+      success: true, 
+      timestamp: noticeBoardRefreshTimestamp,
+      message: 'בקשת רענון נשלחה בהצלחה' 
+    });
+  } catch (error) {
+    console.error('❌ שגיאה בטריגר רענון לוח המודעות:', error);
+    res.status(500).json({ 
+      error: 'שגיאה בטריגר רענון לוח המודעות',
+      details: error.message 
+    });
+  }
+};
+
+// קבלת סטטוס רענון לוח המודעות
+exports.getNoticeBoardRefreshStatus = async (req, res) => {
+  try {
+    const { lastCheck } = req.query;
+    const lastCheckTimestamp = parseInt(lastCheck) || 0;
+    
+    res.json({
+      timestamp: noticeBoardRefreshTimestamp,
+      shouldRefresh: noticeBoardRefreshTimestamp > lastCheckTimestamp
+    });
+  } catch (error) {
+    console.error('❌ שגיאה בקבלת סטטוס רענון לוח המודעות:', error);
+    res.status(500).json({ 
+      error: 'שגיאה בקבלת סטטוס רענון לוח המודעות',
+      details: error.message 
+    });
+  }
+};

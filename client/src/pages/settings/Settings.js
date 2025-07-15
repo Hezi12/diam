@@ -24,17 +24,20 @@ const Settings = () => {
   const refreshGuestList = async () => {
     setRefreshing(true);
     try {
-      // שליחת אירוע לכל החלונות הפתוחים
-      if (typeof window !== 'undefined') {
-        // שליחת אירוע לכל החלונות הפתוחים
-        window.postMessage('refresh-guests', window.location.origin);
-        
-        // חיפוש וספירת חלונות לוח המודעות הפתוחים
-        localStorage.setItem('refresh-guests-trigger', Date.now().toString());
-      }
+      // שליחת בקשת רענון לשרת
+      const response = await fetch('/api/bookings/notice-board/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-      // הצגת הודעת הצלחה
-      enqueueSnackbar('בקשת רענון נשלחה', { variant: 'success' });
+      if (response.ok) {
+        const data = await response.json();
+        enqueueSnackbar('בקשת רענון נשלחה בהצלחה', { variant: 'success' });
+      } else {
+        throw new Error('שגיאה בשליחת בקשת הרענון');
+      }
     } catch (error) {
       console.error('שגיאה ברענון רשימת האורחים:', error);
       enqueueSnackbar('שגיאה ברענון רשימת האורחים', { variant: 'error' });

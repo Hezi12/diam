@@ -70,4 +70,8 @@ router.delete('/:id', bookingsController.deleteBooking);
 // נתיבים נוספים
 router.get('/search', bookingsController.searchBookings);
 
+// נתיבים לרענון לוח המודעות
+router.post('/notice-board/refresh', bookingsController.triggerNoticeBoardRefresh);
+router.get('/notice-board/refresh-status', bookingsController.getNoticeBoardRefreshStatus);
+
 module.exports = router; 
