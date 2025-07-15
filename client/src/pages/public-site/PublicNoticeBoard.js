@@ -344,49 +344,82 @@ const PublicNoticeBoard = () => {
                       </Box>
                     </Box>
                     
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        fontSize: { xs: '1rem', md: '1.1rem' },
-                        color: '#495057',
-                        mb: 3,
-                        lineHeight: 1.6
-                      }}
-                    >
-                      The safest and most convenient way to travel. Licensed drivers, fixed prices, and credit card payment.
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                      <Chip 
-                        icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
-                        label="Credit Card Payment"
-                        sx={{ 
-                          bgcolor: '#f8f9fa',
-                          color: '#495057',
-                          fontWeight: 600,
-                          border: '1px solid #e9ecef'
-                        }}
-                      />
-                      <Chip 
-                        icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
-                        label="Advance Booking"
-                        sx={{ 
-                          bgcolor: '#f8f9fa',
-                          color: '#495057',
-                          fontWeight: 600,
-                          border: '1px solid #e9ecef'
-                        }}
-                      />
-                      <Chip 
-                        icon={<Security sx={{ color: '#28a745 !important' }} />}
-                        label="Licensed Drivers"
-                        sx={{ 
-                          bgcolor: '#f8f9fa',
-                          color: '#495057',
-                          fontWeight: 600,
-                          border: '1px solid #e9ecef'
-                        }}
-                      />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            fontSize: { xs: '1rem', md: '1.1rem' },
+                            color: '#495057',
+                            mb: 2,
+                            lineHeight: 1.6
+                          }}
+                        >
+                          The safest and most convenient way to travel. Licensed drivers, fixed prices, and credit card payment.
+                        </Typography>
+                        
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                          <Chip 
+                            icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
+                            label="Credit Card Payment"
+                            sx={{ 
+                              bgcolor: '#f8f9fa',
+                              color: '#495057',
+                              fontWeight: 600,
+                              border: '1px solid #e9ecef'
+                            }}
+                          />
+                          <Chip 
+                            icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
+                            label="Advance Booking"
+                            sx={{ 
+                              bgcolor: '#f8f9fa',
+                              color: '#495057',
+                              fontWeight: 600,
+                              border: '1px solid #e9ecef'
+                            }}
+                          />
+                          <Chip 
+                            icon={<Security sx={{ color: '#28a745 !important' }} />}
+                            label="Licensed Drivers"
+                            sx={{ 
+                              bgcolor: '#f8f9fa',
+                              color: '#495057',
+                              fontWeight: 600,
+                              border: '1px solid #e9ecef'
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                      
+                      <Box sx={{ 
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: 2,
+                        border: '1px solid #e9ecef',
+                        p: 2,
+                        textAlign: 'center'
+                      }}>
+                        <img 
+                          src="/images/gett-qr.png" 
+                          alt="Gett QR Code" 
+                          style={{ 
+                            width: '100px', 
+                            height: '100px',
+                            borderRadius: '8px'
+                          }}
+                        />
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontSize: '0.9rem',
+                            color: '#6c757d',
+                            mt: 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          Scan to Download
+                        </Typography>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
