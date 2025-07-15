@@ -389,15 +389,15 @@ const PublicNoticeBoard = () => {
                       </Box>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: { xs: '1.3rem', md: '1.5rem' },
+                            fontSize: { xs: '1.2rem', md: '1.3rem' },
                             color: '#5D4037',
-                            mb: 2,
-                            lineHeight: 1.6,
+                            mb: 1,
+                            lineHeight: 1.5,
                             textAlign: 'left'
                           }}
                         >
@@ -406,9 +406,9 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: { xs: '1.3rem', md: '1.5rem' },
+                            fontSize: { xs: '1.2rem', md: '1.3rem' },
                             color: '#5D4037',
-                            lineHeight: 1.6,
+                            lineHeight: 1.5,
                             textAlign: 'left'
                           }}
                         >
@@ -423,15 +423,15 @@ const PublicNoticeBoard = () => {
                           src="/images/gett-qr.png" 
                           alt="Gett QR Code" 
                           style={{ 
-                            width: '100px', 
-                            height: '100px',
+                            width: '90px', 
+                            height: '90px',
                             borderRadius: '8px'
                           }}
                         />
                         <Typography 
                           variant="body2" 
                           sx={{ 
-                            fontSize: '0.9rem',
+                            fontSize: '0.8rem',
                             color: '#E65100',
                             mt: 1,
                             fontWeight: 700
