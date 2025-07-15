@@ -153,43 +153,7 @@ const PublicNoticeBoard = () => {
           </Typography>
         </Box>
 
-        {/* Date and Time */}
-        <Box
-          sx={{
-            mb: 4,
-            textAlign: 'center',
-            py: 3,
-            backgroundColor: '#ffffff',
-            borderRadius: 2,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: '1px solid #e9ecef'
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-            <AccessTime sx={{ fontSize: 28, color: '#495057' }} />
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                fontWeight: 600,
-                fontSize: { xs: '1.5rem', md: '2rem' },
-                color: '#212529'
-              }}
-            >
-              {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
-            </Typography>
-            <Typography 
-              variant="h2" 
-              sx={{ 
-                fontWeight: 700,
-                fontSize: { xs: '2rem', md: '2.5rem' },
-                color: '#212529',
-                fontFamily: 'monospace'
-              }}
-            >
-              {format(currentDateTime, 'HH:mm')}
-            </Typography>
-          </Box>
-        </Box>
+
 
         <Grid container spacing={4}>
           {/* Left Column - Information */}
@@ -512,39 +476,81 @@ const PublicNoticeBoard = () => {
             </Grid>
           </Grid>
 
-          {/* Right Column - Guests */}
+          {/* Right Column - Date, Time & Guests */}
           <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                height: '100%',
-                backgroundColor: '#ffffff',
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: '1px solid #e9ecef'
-              }}
-            >
-              <CardContent sx={{ p: 4, height: '100%' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <Avatar sx={{ 
-                    bgcolor: '#f8f9fa', 
-                    mr: 3, 
-                    width: 56, 
-                    height: 56,
-                    border: '2px solid #e9ecef'
-                  }}>
-                    <Person sx={{ fontSize: 32, color: '#495057' }} />
-                  </Avatar>
-                  <Typography 
-                    variant="h4" 
-                    sx={{ 
-                      fontWeight: 700,
-                      fontSize: { xs: '1.5rem', md: '2rem' },
-                      color: '#212529'
-                    }}
-                  >
-                    Today's Guests
-                  </Typography>
+            <Grid container spacing={3}>
+              {/* Date and Time */}
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    py: 3,
+                    backgroundColor: '#ffffff',
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    border: '1px solid #e9ecef'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                    <AccessTime sx={{ fontSize: 28, color: '#495057' }} />
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 600,
+                        fontSize: { xs: '1.5rem', md: '2rem' },
+                        color: '#212529'
+                      }}
+                    >
+                      {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
+                    </Typography>
+                    <Typography 
+                      variant="h2" 
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: { xs: '2rem', md: '2.5rem' },
+                        color: '#212529',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      {format(currentDateTime, 'HH:mm')}
+                    </Typography>
+                  </Box>
                 </Box>
+              </Grid>
+              
+              {/* Guests */}
+              <Grid item xs={12}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    backgroundColor: '#ffffff',
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    border: '1px solid #e9ecef'
+                  }}
+                >
+                  <CardContent sx={{ p: 4, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                      <Avatar sx={{ 
+                        bgcolor: '#f8f9fa', 
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #e9ecef'
+                      }}>
+                        <Person sx={{ fontSize: 32, color: '#495057' }} />
+                      </Avatar>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: { xs: '1.5rem', md: '2rem' },
+                          color: '#212529'
+                        }}
+                      >
+                        Today's Guests
+                      </Typography>
+                    </Box>
                 
                 {loading ? (
                   <Box sx={{ 
@@ -636,6 +642,8 @@ const PublicNoticeBoard = () => {
                 )}
               </CardContent>
             </Card>
+              </Grid>
+            </Grid>
           </Grid>
         </Grid>
 
