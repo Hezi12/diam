@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Typography, Paper, Container, Grid, Card, CardContent, Divider } from '@mui/material';
+import { Box, Typography, Paper, Container, Grid, Card, CardContent } from '@mui/material';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 import { 
   Wifi, 
   LocalTaxi, 
   Phone, 
-  AccessTime, 
   CheckCircle, 
   Person
 } from '@mui/icons-material';
@@ -33,17 +31,10 @@ const PublicNoticeBoard = () => {
     password: 'Besmile2'
   };
 
-  const taxiNumbers = [
-    { name: 'מונית חברת דן', number: '03-5333333' },
-    { name: 'מונית גט', number: '*3838' },
-    { name: 'מונית קבועה', number: '054-4444444' }
-  ];
-
   const contactInfo = {
-    reception: '03-9999999',
-    emergency: '100',
-    checkIn: '15:00',
-    checkOut: '11:00'
+    name: 'David',
+    phone: '+972 50-607-0260',
+    message: 'For any questions or assistance, feel free to call or send a WhatsApp message to:'
   };
 
   // שליפת אורחים שהצ'ק אין שלהם היום
@@ -156,62 +147,97 @@ const PublicNoticeBoard = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h5" sx={{ fontSize: '1.5rem', mb: 1, color: '#495057' }}>
-                      <strong>שם רשת:</strong> {wifiInfo.ssid}
+                      <strong>Network:</strong> {wifiInfo.ssid}
                     </Typography>
                     <Typography variant="h5" sx={{ fontSize: '1.5rem', color: '#495057' }}>
-                      <strong>סיסמה:</strong> {wifiInfo.password}
+                      <strong>Password:</strong> {wifiInfo.password}
                     </Typography>
                   </CardContent>
                 </Card>
               </Grid>
 
-              {/* מוניות */}
+              {/* Recommended Gett Taxi */}
               <Grid item xs={12}>
-                <Card elevation={3} sx={{ borderRadius: 3, background: '#ffffff', border: '1px solid #dee2e6' }}>
+                <Card elevation={3} sx={{ borderRadius: 3, background: '#fff8e1', border: '2px solid #ffc107' }}>
                   <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <LocalTaxi sx={{ fontSize: 42, mr: 2, color: '#6c757d' }} />
-                      <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '2rem', color: '#2c3e50' }}>
-                        מוניות
+                      <LocalTaxi sx={{ fontSize: 42, mr: 2, color: '#f57c00' }} />
+                      <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '2rem', color: '#f57c00' }}>
+                        Recommended: Gett Taxi App
                       </Typography>
                     </Box>
-                    {taxiNumbers.map((taxi, index) => (
-                      <Typography key={index} variant="h5" sx={{ mb: 1, fontSize: '1.5rem', color: '#495057' }}>
-                        <strong>{taxi.name}:</strong> {taxi.number}
-                      </Typography>
-                    ))}
+                    <Typography variant="h5" sx={{ fontSize: '1.4rem', mb: 2, color: '#6d4c41' }}>
+                      We recommend using Gett Taxi for the safest and most convenient transportation.
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <CheckCircle sx={{ fontSize: 24, mr: 1, color: '#4caf50' }} />
+                          <Typography variant="h6" sx={{ fontSize: '1.2rem', color: '#6d4c41' }}>
+                            Credit Card Payment
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <CheckCircle sx={{ fontSize: 24, mr: 1, color: '#4caf50' }} />
+                          <Typography variant="h6" sx={{ fontSize: '1.2rem', color: '#6d4c41' }}>
+                            Advance Booking
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{ 
+                          width: 80, 
+                          height: 80, 
+                          border: '2px solid #333',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mb: 1,
+                          backgroundColor: 'white'
+                        }}>
+                          <Typography variant="body2" sx={{ fontSize: '10px', textAlign: 'center' }}>
+                            QR CODE<br/>PLACEHOLDER
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ fontSize: '0.9rem', color: '#6d4c41' }}>
+                          Scan to Download
+                        </Typography>
+                      </Box>
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>
 
-              {/* מידע כללי */}
+              {/* Contact Information */}
               <Grid item xs={12}>
                 <Card elevation={3} sx={{ borderRadius: 3, background: '#ffffff', border: '1px solid #dee2e6' }}>
                   <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Phone sx={{ fontSize: 42, mr: 2, color: '#6c757d' }} />
                       <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '2rem', color: '#2c3e50' }}>
-                        מידע כללי
+                        Contact Me
                       </Typography>
                     </Box>
-                    <Typography variant="h5" sx={{ mb: 1, fontSize: '1.5rem', color: '#495057' }}>
-                      <strong>קבלה:</strong> {contactInfo.reception}
+                    <Typography variant="h5" sx={{ fontSize: '1.4rem', mb: 2, color: '#495057' }}>
+                      {contactInfo.message}
                     </Typography>
-                    <Typography variant="h5" sx={{ mb: 1, fontSize: '1.5rem', color: '#495057' }}>
-                      <strong>חירום:</strong> {contactInfo.emergency}
-                    </Typography>
-                    <Divider sx={{ my: 2, borderColor: '#dee2e6' }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <AccessTime sx={{ fontSize: 32, mr: 1, color: '#6c757d' }} />
-                      <Typography variant="h5" sx={{ fontSize: '1.5rem', color: '#495057' }}>
-                        <strong>צ'ק אין:</strong> {contactInfo.checkIn}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <CheckCircle sx={{ fontSize: 32, mr: 1, color: '#6c757d' }} />
-                      <Typography variant="h5" sx={{ fontSize: '1.5rem', color: '#495057' }}>
-                        <strong>צ'ק אאוט:</strong> {contactInfo.checkOut}
-                      </Typography>
+                    <Box sx={{ 
+                      display: 'inline-block',
+                      backgroundColor: '#495057',
+                      color: 'white',
+                      px: 3,
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontSize: '1.3rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: '#37474f'
+                      }
+                    }}
+                    onClick={() => window.open(`https://wa.me/972506070260`)}
+                    >
+                      {contactInfo.phone} - {contactInfo.name}
                     </Box>
                   </CardContent>
                 </Card>
@@ -243,17 +269,14 @@ const PublicNoticeBoard = () => {
                     textAlign: 'center'
                   }}
                 >
-                  <Typography variant="h4" sx={{ fontSize: '1.8rem', mb: 1, color: 'white' }}>
-                    {format(currentDateTime, 'EEEE, dd MMMM yyyy', { locale: he })}
-                  </Typography>
-                  <Typography variant="h3" sx={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'white' }}>
-                    {format(currentDateTime, 'HH:mm')}
+                  <Typography variant="h4" sx={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'white' }}>
+                    {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
                   </Typography>
                 </Paper>
                 
                 {loading ? (
                   <Typography variant="h4" sx={{ textAlign: 'center', py: 4, fontSize: '2rem', color: '#6c757d' }}>
-                    טוען נתונים...
+                    Loading data...
                   </Typography>
                 ) : (
                   <Grid container spacing={2}>
@@ -302,7 +325,7 @@ const PublicNoticeBoard = () => {
           }}
         >
           <Typography variant="h4" sx={{ color: '#6c757d', fontSize: '1.5rem' }}>
-            Airport Guest House - אור יהודה | עדכון אחרון: {format(currentDateTime, 'HH:mm')}
+            Airport Guest House - Or Yehuda | Last Updated: {format(currentDateTime, 'HH:mm')}
           </Typography>
         </Paper>
       </Container>
