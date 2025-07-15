@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography, Paper, Container, Grid, Card, CardContent, Divider } from '@mui/material';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import bookingService from '../../services/bookingService';
 import { 
-  Campaign, 
   Wifi, 
   LocalTaxi, 
   Phone, 
   AccessTime, 
   CheckCircle, 
-  Hotel,
   Person
 } from '@mui/icons-material';
 
@@ -20,14 +18,14 @@ const PublicNoticeBoard = () => {
   const [loading, setLoading] = useState(true);
 
   // אורחים ברירת מחדל באנגלית
-  const defaultGuests = [
+  const defaultGuests = useMemo(() => [
     { name: 'John Smith', roomNumber: '101', phone: '+1-555-0101' },
     { name: 'Sarah Johnson', roomNumber: '102', phone: '+1-555-0102' },
     { name: 'Michael Brown', roomNumber: '103', phone: '+1-555-0103' },
     { name: 'Emily Davis', roomNumber: '104', phone: '+1-555-0104' },
     { name: 'David Wilson', roomNumber: '105', phone: '+1-555-0105' },
     { name: 'Lisa Miller', roomNumber: '106', phone: '+1-555-0106' }
-  ];
+  ], []);
 
   // מידע קבוע - ניתן לעדכן לפי הצרכים
   const wifiInfo = {
@@ -87,7 +85,7 @@ const PublicNoticeBoard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [defaultGuests]);
 
   // עדכון שעה כל דקה
   useEffect(() => {
@@ -124,7 +122,7 @@ const PublicNoticeBoard = () => {
       }}
     >
       <Container maxWidth="xl" sx={{ py: 3, flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* כותרת וזמן */}
+        {/* כותרת ברוכים הבאים */}
         <Paper
           elevation={8}
           sx={{
@@ -137,82 +135,14 @@ const PublicNoticeBoard = () => {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-            <Campaign sx={{ fontSize: 64, mr: 2, color: 'white' }} />
             <Typography variant="h1" component="h1" sx={{ fontWeight: 'bold', fontSize: '4rem', color: 'white' }}>
-              לוח מודעות - Airport Guest House
+              Welcome to Airport Guest House
             </Typography>
           </Box>
-          <Typography variant="h3" sx={{ fontSize: '2.5rem', mb: 1, color: 'white' }}>
-            {format(currentDateTime, 'EEEE, dd MMMM yyyy', { locale: he })}
-          </Typography>
-          <Typography variant="h2" sx={{ fontSize: '3rem', fontWeight: 'bold', color: 'white' }}>
-            {format(currentDateTime, 'HH:mm')}
-          </Typography>
         </Paper>
 
         <Grid container spacing={3} sx={{ flex: 1 }}>
-          {/* עמודה שמאלית - אורחים */}
-          <Grid item xs={12} md={6}>
-            <Card
-              elevation={4}
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                background: 'rgba(255, 255, 255, 0.98)',
-                border: '1px solid rgba(0, 0, 0, 0.08)'
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <Hotel sx={{ fontSize: 48, mr: 2, color: '#495057' }} />
-                  <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', fontSize: '2.5rem', color: '#2c3e50' }}>
-                    אורחים המגיעים היום
-                  </Typography>
-                </Box>
-                
-                {loading ? (
-                  <Typography variant="h4" sx={{ textAlign: 'center', py: 4, fontSize: '2rem', color: '#6c757d' }}>
-                    טוען נתונים...
-                  </Typography>
-                ) : (
-                  <Grid container spacing={2}>
-                    {todaysGuests.map((guest, index) => (
-                      <Grid item xs={12} key={index}>
-                        <Paper
-                          elevation={2}
-                          sx={{
-                            p: 3,
-                            borderRadius: 2,
-                            background: '#ffffff',
-                            border: '1px solid #dee2e6'
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <Person sx={{ fontSize: 36, mr: 2, color: '#6c757d' }} />
-                            <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#2c3e50' }}>
-                              {guest.name}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h5" sx={{ fontSize: '1.4rem', color: '#495057' }}>
-                              <strong>חדר:</strong> {guest.roomNumber}
-                            </Typography>
-                            {guest.phone && (
-                              <Typography variant="h5" sx={{ fontSize: '1.4rem', color: '#495057' }}>
-                                <strong>טלפון:</strong> {guest.phone}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* עמודה ימנית - מידע שימושי */}
+          {/* עמודה שמאלית - מידע שימושי */}
           <Grid item xs={12} md={6}>
             <Grid container spacing={2}>
               {/* WiFi */}
@@ -287,6 +217,75 @@ const PublicNoticeBoard = () => {
                 </Card>
               </Grid>
             </Grid>
+          </Grid>
+
+          {/* עמודה ימנית - אורחים */}
+          <Grid item xs={12} md={6}>
+            <Card
+              elevation={4}
+              sx={{
+                height: '100%',
+                borderRadius: 3,
+                background: 'rgba(255, 255, 255, 0.98)',
+                border: '1px solid rgba(0, 0, 0, 0.08)'
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                {/* תאריך ושעה מעל האורחים */}
+                <Paper
+                  elevation={2}
+                  sx={{
+                    p: 2,
+                    mb: 3,
+                    background: 'linear-gradient(45deg, #2c3e50 30%, #34495e 90%)',
+                    color: 'white',
+                    borderRadius: 2,
+                    textAlign: 'center'
+                  }}
+                >
+                  <Typography variant="h4" sx={{ fontSize: '1.8rem', mb: 1, color: 'white' }}>
+                    {format(currentDateTime, 'EEEE, dd MMMM yyyy', { locale: he })}
+                  </Typography>
+                  <Typography variant="h3" sx={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'white' }}>
+                    {format(currentDateTime, 'HH:mm')}
+                  </Typography>
+                </Paper>
+                
+                {loading ? (
+                  <Typography variant="h4" sx={{ textAlign: 'center', py: 4, fontSize: '2rem', color: '#6c757d' }}>
+                    טוען נתונים...
+                  </Typography>
+                ) : (
+                  <Grid container spacing={2}>
+                    {todaysGuests.map((guest, index) => (
+                      <Grid item xs={12} key={index}>
+                        <Paper
+                          elevation={2}
+                          sx={{
+                            p: 3,
+                            borderRadius: 2,
+                            background: '#ffffff',
+                            border: '1px solid #dee2e6'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Person sx={{ fontSize: 36, mr: 2, color: '#6c757d' }} />
+                              <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#2c3e50' }}>
+                                {guest.name}
+                              </Typography>
+                            </Box>
+                            <Typography variant="h4" sx={{ fontSize: '1.8rem', color: '#495057', fontWeight: 'bold' }}>
+                              {guest.roomNumber}
+                            </Typography>
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
 

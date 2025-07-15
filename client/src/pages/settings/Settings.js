@@ -240,6 +240,50 @@ const Settings = () => {
             </Box>
           </Paper>
         </Grid>
+
+        {/* לוח מודעות - איירפורט */}
+        <Grid item xs={12} sm={6}>
+          <Paper
+            component={RouterLink}
+            to="/notice-board"
+            sx={{
+              p: 3,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: 2,
+              transition: 'all 0.2s',
+              '&:hover': {
+                transform: 'translateY(-3px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                bgcolor: 'rgba(33, 150, 243, 0.04)'
+              }
+            }}
+          >
+            <Box sx={{ maxWidth: '70%' }}>
+              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+                לוח מודעות - איירפורט
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                צפייה ופתיחת הלוח ציבורי על מסך טלוויזיה
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                bgcolor: 'rgba(33, 150, 243, 0.1)',
+                color: '#2196f3',
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 2,
+              }}
+            >
+              <CampaignIcon fontSize="large" />
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
 
       {/* הגדרות סנכרון iCal עם Booking.com */}

@@ -31,8 +31,7 @@ import {
   Menu as MenuIcon,
   AccountBalanceWallet as AccountBalanceWalletIcon,
   SwapHoriz as MigrationIcon,
-  Description as DocumentsIcon,
-  Campaign as NoticeBoardIcon
+  Description as DocumentsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
@@ -254,7 +253,6 @@ const Sidebar = () => {
   const iconColors = {
     dashboard: '#4A90E2', // כחול כהה יותר
     bookings: '#5E97F6', // כחול בהיר
-    noticeboard: '#FF9800', // כתום/זהב - לוח מודעות
     documents: '#34A853', // ירוק (היה invoices)
     revenue: '#9C27B0', // סגול
     rothschild: '#304dbd', // צבע רוטשילד מקורי
@@ -365,13 +363,6 @@ const Sidebar = () => {
             to="/bookings"
             title="ניהול הזמנות"
             iconColor={iconColors.bookings}
-            onClick={isMobile ? toggleDrawer(false) : undefined}
-          />
-          <SidebarItem
-            icon={<NoticeBoardIcon />}
-            to="/notice-board"
-            title="לוח מודעות - איירפורט"
-            iconColor={iconColors.noticeboard}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
           {/* הוסרו אייקוני מסמכים ומיגרציה */}
