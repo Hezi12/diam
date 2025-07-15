@@ -38,45 +38,24 @@ const PublicNoticeBoard = () => {
   };
 
   // פונקציות fullscreen
-  const enterFullscreen = async () => {
+  const enterFullscreen = () => {
     const elem = document.documentElement;
-    
-    // כניסה למסך מלא
     if (elem.requestFullscreen) {
-      await elem.requestFullscreen();
+      elem.requestFullscreen();
     } else if (elem.webkitRequestFullscreen) {
-      await elem.webkitRequestFullscreen();
+      elem.webkitRequestFullscreen();
     } else if (elem.msRequestFullscreen) {
-      await elem.msRequestFullscreen();
-    }
-
-    // מניעת מצב שינה
-    if ('wakeLock' in navigator) {
-      try {
-        const lock = await navigator.wakeLock.request('screen');
-        setWakeLock(lock);
-        console.log('Wake lock activated');
-      } catch (err) {
-        console.error('Wake lock failed:', err);
-      }
+      elem.msRequestFullscreen();
     }
   };
 
-  const exitFullscreen = async () => {
-    // יציאה ממסך מלא
+  const exitFullscreen = () => {
     if (document.exitFullscreen) {
-      await document.exitFullscreen();
+      document.exitFullscreen();
     } else if (document.webkitExitFullscreen) {
-      await document.webkitExitFullscreen();
+      document.webkitExitFullscreen();
     } else if (document.msExitFullscreen) {
-      await document.msExitFullscreen();
-    }
-
-    // שחרור wake lock
-    if (wakeLock) {
-      await wakeLock.release();
-      setWakeLock(null);
-      console.log('Wake lock released');
+      document.msExitFullscreen();
     }
   };
 
@@ -88,18 +67,52 @@ const PublicNoticeBoard = () => {
     }
   };
 
+  // מניעת כיבוי המסך
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        const lock = await navigator.wakeLock.request('screen');
+        setWakeLock(lock);
+        console.log('Screen wake lock activated');
+        
+        lock.addEventListener('release', () => {
+          console.log('Screen wake lock released');
+        });
+      } else {
+        // אלטרנטיבה - סימולציה של פעילות
+        const interval = setInterval(() => {
+          // הזזת העכבר באופן בלתי מורגש
+          const event = new MouseEvent('mousemove', {
+            clientX: 0,
+            clientY: 0
+          });
+          document.dispatchEvent(event);
+        }, 30000); // כל 30 שניות
+        
+        setWakeLock({ type: 'interval', id: interval });
+        console.log('Screen wake lock simulation activated');
+      }
+    } catch (err) {
+      console.error('Failed to request wake lock:', err);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLock) {
+      if (wakeLock.type === 'interval') {
+        clearInterval(wakeLock.id);
+      } else {
+        await wakeLock.release();
+      }
+      setWakeLock(null);
+      console.log('Screen wake lock released');
+    }
+  }, [wakeLock]);
+
   // האזנה לשינויים במצב fullscreen
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const isNowFullscreen = !!document.fullscreenElement;
-      setIsFullscreen(isNowFullscreen);
-      
-      // אם יצאנו מהמסך המלא, שחרר את ה-wake lock
-      if (!isNowFullscreen && wakeLock) {
-        wakeLock.release();
-        setWakeLock(null);
-        console.log('Wake lock released due to fullscreen exit');
-      }
+      setIsFullscreen(!!document.fullscreenElement);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -111,17 +124,27 @@ const PublicNoticeBoard = () => {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
-  }, [wakeLock]);
+  }, []);
 
-  // ניקוי wake lock בסגירת הדף
+  // הפעלת wake lock כשהקומפוננט נטען
   useEffect(() => {
+    requestWakeLock();
+    
     return () => {
-      if (wakeLock) {
-        wakeLock.release();
-        console.log('Wake lock released on component unmount');
-      }
+      releaseWakeLock();
     };
-  }, [wakeLock]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // חידוש wake lock כשהוא משתחרר
+  useEffect(() => {
+    if (wakeLock && wakeLock.type !== 'interval') {
+      wakeLock.addEventListener('release', () => {
+        console.log('Wake lock released, requesting new one...');
+        setTimeout(requestWakeLock, 1000);
+      });
+    }
+  }, [wakeLock, requestWakeLock]);
 
   // שליפת אורחים שהצ'ק אין שלהם היום
   const fetchTodaysGuests = useCallback(async () => {
@@ -184,17 +207,6 @@ const PublicNoticeBoard = () => {
   const timeOfDay = new Date().getHours();
   const greeting = timeOfDay < 12 ? 'Good Morning' : timeOfDay < 18 ? 'Good Afternoon' : 'Good Evening';
 
-  // זיהוי מסך טלוויזיה (39 אינץ HD Ready)
-  const isTvScreen = window.innerWidth >= 1200 && window.innerHeight >= 700;
-  const tvScale = isTvScreen ? 1.2 : 1;
-
-  // פונקציה לחזרת גודל טקסט מתאים לטלוויזיה
-  const getTvFontSize = (xs, md, lg) => ({
-    xs: xs,
-    md: isTvScreen ? `${parseFloat(md) * 1.3}rem` : md,
-    lg: isTvScreen ? `${parseFloat(lg || md) * 1.4}rem` : (lg || md)
-  });
-
   return (
     <Box
       sx={{
@@ -203,24 +215,10 @@ const PublicNoticeBoard = () => {
         display: 'flex',
         flexDirection: 'column',
         fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-        direction: 'ltr',
-        overflow: 'hidden', // מונע סקרול בטלוויזיה
-        transform: `scale(${tvScale})`,
-        transformOrigin: 'top left',
-        width: isTvScreen ? `${100 / tvScale}%` : '100%',
-        height: isTvScreen ? `${100 / tvScale}%` : '100%'
+        direction: 'ltr'
       }}
     >
-      <Container 
-        maxWidth={false} 
-        sx={{ 
-          py: isTvScreen ? 2 : 4, 
-          px: isTvScreen ? 3 : 4,
-          flex: 1,
-          maxWidth: '100%',
-          width: '100%'
-        }}
-      >
+      <Container maxWidth="xl" sx={{ py: 4, flex: 1 }}>
         {/* Header */}
         <Box
           sx={{
@@ -230,44 +228,41 @@ const PublicNoticeBoard = () => {
             position: 'relative'
           }}
         >
-          {/* כפתור Fullscreen - נראה רק בהעברת עכבר */}
+          {/* כפתור Fullscreen - מופיע רק בהובר */}
           <Box
             sx={{
               position: 'absolute',
               top: 0,
               right: 0,
               zIndex: 1000,
-              width: 80,
-              height: 80,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              '&:hover .fullscreen-button': {
-                opacity: 1,
-                transform: 'scale(1)'
+              width: 100,
+              height: 100,
+              opacity: 0,
+              transition: 'opacity 0.3s ease',
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 1
               }
             }}
           >
             <Tooltip title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}>
               <IconButton
                 onClick={toggleFullscreen}
-                className="fullscreen-button"
                 sx={{
                   backgroundColor: isFullscreen ? '#1976D2' : '#ffffff',
                   border: '2px solid #1976D2',
                   borderRadius: 2,
                   width: 56,
                   height: 56,
-                  color: isFullscreen ? '#ffffff' : '#1976D2',
-                  opacity: 0,
-                  transform: 'scale(0.8)',
+                  margin: '10px',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 2px 8px rgba(25,118,210,0.2)',
+                  color: isFullscreen ? '#ffffff' : '#1976D2',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   '&:hover': {
                     backgroundColor: isFullscreen ? '#1565C0' : '#1976D2',
                     color: '#ffffff',
                     transform: 'scale(1.1)',
-                    boxShadow: '0 4px 12px rgba(25,118,210,0.4)'
+                    boxShadow: '0 4px 16px rgba(25,118,210,0.4)'
                   }
                 }}
               >
@@ -284,14 +279,9 @@ const PublicNoticeBoard = () => {
             variant="h1" 
             sx={{ 
               fontWeight: 700,
-              fontSize: { 
-                xs: '2.5rem', 
-                md: isTvScreen ? '4.5rem' : '3.5rem',
-                lg: isTvScreen ? '5rem' : '3.5rem'
-              },
+              fontSize: { xs: '2.5rem', md: '3.5rem' },
               letterSpacing: '1px',
-              mb: 1,
-              textAlign: 'center'
+              mb: 1
             }}
           >
             <Box component="span" sx={{ color: '#1976D2' }}>Airport</Box>
@@ -300,13 +290,8 @@ const PublicNoticeBoard = () => {
           <Typography 
             variant="h4" 
             sx={{ 
-              fontSize: { 
-                xs: '1.2rem', 
-                md: isTvScreen ? '2rem' : '1.5rem',
-                lg: isTvScreen ? '2.2rem' : '1.5rem'
-              },
-              fontWeight: 400,
-              textAlign: 'center'
+              fontSize: { xs: '1.2rem', md: '1.5rem' },
+              fontWeight: 400
             }}
           >
             <Box component="span" sx={{ color: '#4CAF50' }}>{greeting}!</Box>
@@ -314,10 +299,10 @@ const PublicNoticeBoard = () => {
           </Typography>
         </Box>
 
-        <Grid container spacing={isTvScreen ? 2 : 4}>
+        <Grid container spacing={4}>
           {/* Left Column - Information */}
           <Grid item xs={12} md={6}>
-            <Grid container spacing={isTvScreen ? 2 : 3}>
+            <Grid container spacing={3}>
               {/* Contact Information */}
               <Grid item xs={12}>
                 <Card 
@@ -344,23 +329,23 @@ const PublicNoticeBoard = () => {
                       }}>
                         <ContactSupport sx={{ fontSize: 32, color: '#2E7D32' }} />
                       </Avatar>
-                                          <Typography 
-                      variant="h4" 
-                      sx={{ 
-                        fontWeight: 700,
-                        fontSize: getTvFontSize('1.8rem', '2.2rem', '2.5rem'),
-                        color: '#2E7D32'
-                      }}
-                    >
-                      <Box component="span" sx={{ color: '#FF5722' }}>Need</Box>
-                      <Box component="span" sx={{ color: '#4CAF50', ml: 1 }}>Help?</Box>
-                    </Typography>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: { xs: '1.8rem', md: '2.2rem' },
+                          color: '#2E7D32'
+                        }}
+                      >
+                        <Box component="span" sx={{ color: '#FF5722' }}>Need</Box>
+                        <Box component="span" sx={{ color: '#4CAF50', ml: 1 }}>Help?</Box>
+                      </Typography>
                     </Box>
                     
                     <Typography 
                       variant="body1" 
                       sx={{ 
-                        fontSize: getTvFontSize('1.2rem', '1.4rem', '1.6rem'),
+                        fontSize: { xs: '1.2rem', md: '1.4rem' },
                         color: '#37474F',
                         mb: 3,
                         lineHeight: 1.6,
@@ -392,14 +377,14 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: getTvFontSize('1.6rem', '1.8rem', '2.1rem'),
+                            fontSize: { xs: '1.6rem', md: '1.8rem' },
                             fontWeight: 700,
                             fontFamily: 'monospace'
                           }}
                         >
                           <Box component="span" sx={{ color: '#1976D2' }}>+972 506070260</Box>
                           <Box component="span" sx={{ color: '#37474F', mx: 1 }}>-</Box>
-                          <Box component="span" sx={{ color: '#4CAF50', fontSize: getTvFontSize('1.6rem', '1.8rem', '2.1rem'), fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>David</Box>
+                          <Box component="span" sx={{ color: '#4CAF50', fontSize: { xs: '1.6rem', md: '1.8rem' }, fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>David</Box>
                         </Typography>
                       </Box>
                     </Box>
@@ -437,7 +422,7 @@ const PublicNoticeBoard = () => {
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                          fontSize: { xs: '1.5rem', md: '2rem' },
                           color: '#1976D2'
                         }}
                       >
@@ -470,7 +455,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: getTvFontSize('1.5rem', '1.7rem', '2rem'),
+                            fontSize: { xs: '1.5rem', md: '1.7rem' },
                             color: '#2E7D32',
                             fontWeight: 600,
                             fontFamily: 'monospace'
@@ -493,7 +478,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: getTvFontSize('1.5rem', '1.7rem', '2rem'),
+                            fontSize: { xs: '1.5rem', md: '1.7rem' },
                             color: '#2E7D32',
                             fontWeight: 600,
                             fontFamily: 'monospace'
@@ -538,7 +523,7 @@ const PublicNoticeBoard = () => {
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            fontSize: getTvFontSize('1.4rem', '1.8rem', '2.1rem'),
+                            fontSize: { xs: '1.4rem', md: '1.8rem' },
                             color: '#E65100'
                           }}
                         >
@@ -548,7 +533,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: getTvFontSize('1rem', '1.2rem', '1.4rem'),
+                            fontSize: { xs: '1rem', md: '1.2rem' },
                             color: '#FFCC02',
                             fontWeight: 700
                           }}
@@ -564,7 +549,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: getTvFontSize('1.2rem', '1.3rem', '1.5rem'),
+                            fontSize: { xs: '1.2rem', md: '1.3rem' },
                             color: '#5D4037',
                             mb: 1,
                             lineHeight: 1.5,
@@ -576,7 +561,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: getTvFontSize('1.2rem', '1.3rem', '1.5rem'),
+                            fontSize: { xs: '1.2rem', md: '1.3rem' },
                             color: '#5D4037',
                             lineHeight: 1.5,
                             textAlign: 'left'
@@ -620,7 +605,7 @@ const PublicNoticeBoard = () => {
 
           {/* Right Column - Date, Time & Guests */}
           <Grid item xs={12} md={6}>
-            <Grid container spacing={isTvScreen ? 2 : 3}>
+            <Grid container spacing={3}>
               {/* Date and Time */}
               <Grid item xs={12}>
                 <Box
@@ -639,7 +624,7 @@ const PublicNoticeBoard = () => {
                       variant="h4" 
                       sx={{ 
                         fontWeight: 600,
-                        fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                        fontSize: { xs: '1.5rem', md: '2rem' },
                         color: '#1976D2'
                       }}
                     >
@@ -649,7 +634,7 @@ const PublicNoticeBoard = () => {
                       variant="h2" 
                       sx={{ 
                         fontWeight: 700,
-                        fontSize: getTvFontSize('2rem', '2.5rem', '2.8rem'),
+                        fontSize: { xs: '2rem', md: '2.5rem' },
                         color: '#2E7D32',
                         fontFamily: 'monospace'
                       }}
@@ -686,7 +671,7 @@ const PublicNoticeBoard = () => {
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                          fontSize: { xs: '1.5rem', md: '2rem' },
                           color: '#7B1FA2'
                         }}
                       >
@@ -705,7 +690,7 @@ const PublicNoticeBoard = () => {
                     <Typography 
                       variant="h4" 
                       sx={{ 
-                        fontSize: getTvFontSize('1.5rem', '2rem', '2.3rem'),
+                        fontSize: { xs: '1.5rem', md: '2rem' },
                         color: '#9C27B0',
                         textAlign: 'center'
                       }}
@@ -715,7 +700,7 @@ const PublicNoticeBoard = () => {
                     </Typography>
                   </Box>
                 ) : (
-                  <Grid container spacing={isTvScreen ? 2 : 3}>
+                  <Grid container spacing={3}>
                     {todaysGuests.map((guest, index) => (
                       <Grid item xs={12} key={index}>
                         <Box
@@ -748,7 +733,7 @@ const PublicNoticeBoard = () => {
                                   variant="h4" 
                                   sx={{ 
                                     fontWeight: 700,
-                                    fontSize: getTvFontSize('1.8rem', '2rem', '2.3rem'),
+                                    fontSize: { xs: '1.8rem', md: '2rem' },
                                     color: '#212529'
                                   }}
                                 >
@@ -779,7 +764,7 @@ const PublicNoticeBoard = () => {
                                 variant="h3" 
                                 sx={{ 
                                   fontWeight: 700,
-                                  fontSize: getTvFontSize('1.8rem', '2rem', '2.3rem'),
+                                  fontSize: { xs: '1.8rem', md: '2rem' },
                                   color: '#212529',
                                   lineHeight: 1
                                 }}
