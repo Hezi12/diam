@@ -125,28 +125,28 @@ const PublicNoticeBoard = () => {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-            <Hotel sx={{ fontSize: 48, mr: 2, color: '#495057' }} />
+            <Hotel sx={{ fontSize: 48, mr: 2, color: '#2196F3' }} />
             <Typography 
               variant="h1" 
               sx={{ 
                 fontWeight: 700,
                 fontSize: { xs: '2.5rem', md: '3.5rem' },
-                color: '#212529',
                 letterSpacing: '1px'
               }}
             >
-              Airport Guest House
+              <Box component="span" sx={{ color: '#1976D2' }}>Airport</Box>
+              <Box component="span" sx={{ color: '#212529', ml: 1 }}>Guest House</Box>
             </Typography>
           </Box>
           <Typography 
             variant="h4" 
             sx={{ 
-              color: '#6c757d',
               fontSize: { xs: '1.2rem', md: '1.5rem' },
               fontWeight: 400
             }}
           >
-            {greeting}! Welcome to your home away from home
+            <Box component="span" sx={{ color: '#4CAF50' }}>{greeting}!</Box>
+            <Box component="span" sx={{ color: '#6c757d', ml: 1 }}>Welcome to your home away from home</Box>
           </Typography>
         </Box>
 
@@ -174,23 +174,24 @@ const PublicNoticeBoard = () => {
                   <CardContent sx={{ p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Avatar sx={{ 
-                        bgcolor: '#f8f9fa', 
+                        bgcolor: '#E3F2FD', 
                         mr: 3, 
                         width: 56, 
                         height: 56,
-                        border: '2px solid #e9ecef'
+                        border: '2px solid #BBDEFB'
                       }}>
-                        <Wifi sx={{ fontSize: 32, color: '#495057' }} />
+                        <Wifi sx={{ fontSize: 32, color: '#1976D2' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
                           fontSize: { xs: '1.5rem', md: '2rem' },
-                          color: '#212529'
+                          color: '#1976D2'
                         }}
                       >
-                        Free WiFi
+                        <Box component="span" sx={{ color: '#4CAF50' }}>Free</Box>
+                        <Box component="span" sx={{ color: '#1976D2', ml: 1 }}>WiFi</Box>
                       </Typography>
                     </Box>
                     
@@ -199,17 +200,17 @@ const PublicNoticeBoard = () => {
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'space-between',
-                        backgroundColor: '#f8f9fa',
+                        backgroundColor: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
                         padding: '16px',
                         borderRadius: 1,
-                        border: '1px solid #e9ecef'
+                        border: '1px solid #BBDEFB'
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Typography 
                           variant="subtitle1" 
                           sx={{ 
-                            color: '#6c757d',
+                            color: '#1976D2',
                             fontWeight: 600
                           }}
                         >
@@ -219,7 +220,7 @@ const PublicNoticeBoard = () => {
                           variant="h5" 
                           sx={{ 
                             fontSize: { xs: '1.2rem', md: '1.4rem' },
-                            color: '#212529',
+                            color: '#2E7D32',
                             fontWeight: 600,
                             fontFamily: 'monospace'
                           }}
@@ -232,7 +233,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="subtitle1" 
                           sx={{ 
-                            color: '#6c757d',
+                            color: '#1976D2',
                             fontWeight: 600
                           }}
                         >
@@ -242,7 +243,7 @@ const PublicNoticeBoard = () => {
                           variant="h5" 
                           sx={{ 
                             fontSize: { xs: '1.2rem', md: '1.4rem' },
-                            color: '#212529',
+                            color: '#2E7D32',
                             fontWeight: 600,
                             fontFamily: 'monospace'
                           }}
@@ -273,13 +274,13 @@ const PublicNoticeBoard = () => {
                   <CardContent sx={{ p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
-                        bgcolor: '#f8f9fa', 
+                        bgcolor: '#FFF3E0', 
                         mr: 3, 
                         width: 56, 
                         height: 56,
-                        border: '2px solid #e9ecef'
+                        border: '2px solid #FFCC02'
                       }}>
-                        <LocalTaxi sx={{ fontSize: 32, color: '#495057' }} />
+                        <LocalTaxi sx={{ fontSize: 32, color: '#FF9800' }} />
                       </Avatar>
                       <Box>
                         <Typography 
@@ -287,20 +288,22 @@ const PublicNoticeBoard = () => {
                           sx={{ 
                             fontWeight: 700,
                             fontSize: { xs: '1.4rem', md: '1.8rem' },
-                            color: '#212529'
+                            color: '#E65100'
                           }}
                         >
-                          Recommended Transportation
+                          <Box component="span" sx={{ color: '#E65100' }}>Recommended</Box>
+                          <Box component="span" sx={{ color: '#FF9800', ml: 1 }}>Transportation</Box>
                         </Typography>
                         <Typography 
                           variant="h5" 
                           sx={{ 
                             fontSize: { xs: '1rem', md: '1.2rem' },
-                            color: '#6c757d',
-                            fontWeight: 500
+                            color: '#FFCC02',
+                            fontWeight: 700
                           }}
                         >
-                          Gett Taxi App
+                          <Box component="span" sx={{ color: '#000', fontWeight: 800 }}>Gett</Box>
+                          <Box component="span" sx={{ color: '#FF9800', ml: 1 }}>Taxi App</Box>
                         </Typography>
                       </Box>
                     </Box>
@@ -311,21 +314,21 @@ const PublicNoticeBoard = () => {
                           variant="body1" 
                           sx={{ 
                             fontSize: { xs: '1rem', md: '1.1rem' },
-                            color: '#495057',
+                            color: '#5D4037',
                             mb: 2,
                             lineHeight: 1.6
                           }}
                         >
-                          The safest and most convenient way to travel. Licensed drivers, fixed prices, and credit card payment.
+                          The <Box component="span" sx={{ color: '#4CAF50', fontWeight: 600 }}>safest</Box> and most <Box component="span" sx={{ color: '#2196F3', fontWeight: 600 }}>convenient</Box> way to travel. Licensed drivers, fixed prices, and credit card payment.
                         </Typography>
                         
 
                       </Box>
                       
                       <Box sx={{ 
-                        backgroundColor: '#f8f9fa',
+                        background: 'linear-gradient(135deg, #FFF3E0 0%, #FFECB3 100%)',
                         borderRadius: 2,
-                        border: '1px solid #e9ecef',
+                        border: '2px solid #FFCC02',
                         p: 2,
                         textAlign: 'center'
                       }}>
@@ -335,19 +338,21 @@ const PublicNoticeBoard = () => {
                           style={{ 
                             width: '100px', 
                             height: '100px',
-                            borderRadius: '8px'
+                            borderRadius: '8px',
+                            border: '2px solid #FF9800'
                           }}
                         />
                         <Typography 
                           variant="body2" 
                           sx={{ 
                             fontSize: '0.9rem',
-                            color: '#6c757d',
+                            color: '#E65100',
                             mt: 1,
-                            fontWeight: 600
+                            fontWeight: 700
                           }}
                         >
-                          Scan to Download
+                          <Box component="span" sx={{ color: '#4CAF50' }}>Scan</Box>
+                          <Box component="span" sx={{ color: '#E65100', ml: 1 }}>to Download</Box>
                         </Typography>
                       </Box>
                     </Box>
@@ -373,23 +378,24 @@ const PublicNoticeBoard = () => {
                   <CardContent sx={{ p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
-                        bgcolor: '#f8f9fa', 
+                        bgcolor: '#E8F5E8', 
                         mr: 3, 
                         width: 56, 
                         height: 56,
-                        border: '2px solid #e9ecef'
+                        border: '2px solid #4CAF50'
                       }}>
-                        <ContactSupport sx={{ fontSize: 32, color: '#495057' }} />
+                        <ContactSupport sx={{ fontSize: 32, color: '#2E7D32' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
                           fontSize: { xs: '1.5rem', md: '2rem' },
-                          color: '#212529'
+                          color: '#2E7D32'
                         }}
                       >
-                        Need Help?
+                        <Box component="span" sx={{ color: '#FF5722' }}>Need</Box>
+                        <Box component="span" sx={{ color: '#4CAF50', ml: 1 }}>Help?</Box>
                       </Typography>
                     </Box>
                     
@@ -397,42 +403,43 @@ const PublicNoticeBoard = () => {
                       variant="body1" 
                       sx={{ 
                         fontSize: { xs: '1rem', md: '1.1rem' },
-                        color: '#495057',
+                        color: '#37474F',
                         mb: 3,
                         lineHeight: 1.6
                       }}
                     >
-                      {contactInfo.message}
+                      For any <Box component="span" sx={{ color: '#FF5722', fontWeight: 600 }}>questions</Box> or <Box component="span" sx={{ color: '#4CAF50', fontWeight: 600 }}>assistance</Box>, feel free to call or send a WhatsApp message to:
                     </Typography>
                     
                     <Box
                       sx={{
-                        backgroundColor: '#f8f9fa',
+                        background: 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
                         borderRadius: 2,
                         p: 3,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        border: '1px solid #e9ecef',
+                        border: '2px solid #4CAF50',
                         '&:hover': {
-                          backgroundColor: '#e9ecef',
+                          background: 'linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%)',
                           transform: 'translateY(-1px)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          boxShadow: '0 4px 16px rgba(76, 175, 80, 0.3)'
                         }
                       }}
                       onClick={() => window.open(`https://wa.me/972506070260`)}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Phone sx={{ fontSize: 24, mr: 2, color: '#495057' }} />
+                        <Phone sx={{ fontSize: 24, mr: 2, color: '#2E7D32' }} />
                         <Typography 
                           variant="h5" 
                           sx={{ 
                             fontSize: { xs: '1.2rem', md: '1.4rem' },
-                            color: '#212529',
                             fontWeight: 700,
                             fontFamily: 'monospace'
                           }}
                         >
-                          {contactInfo.phone} - {contactInfo.name}
+                          <Box component="span" sx={{ color: '#1976D2' }}>{contactInfo.phone}</Box>
+                          <Box component="span" sx={{ color: '#37474F', mx: 1 }}>-</Box>
+                          <Box component="span" sx={{ color: '#4CAF50' }}>{contactInfo.name}</Box>
                         </Typography>
                       </Box>
                     </Box>
@@ -458,13 +465,13 @@ const PublicNoticeBoard = () => {
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                    <AccessTime sx={{ fontSize: 28, color: '#495057' }} />
+                    <AccessTime sx={{ fontSize: 28, color: '#FF9800' }} />
                     <Typography 
                       variant="h4" 
                       sx={{ 
                         fontWeight: 600,
                         fontSize: { xs: '1.5rem', md: '2rem' },
-                        color: '#212529'
+                        color: '#1976D2'
                       }}
                     >
                       {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
@@ -474,7 +481,7 @@ const PublicNoticeBoard = () => {
                       sx={{ 
                         fontWeight: 700,
                         fontSize: { xs: '2rem', md: '2.5rem' },
-                        color: '#212529',
+                        color: '#2E7D32',
                         fontFamily: 'monospace'
                       }}
                     >
@@ -498,23 +505,24 @@ const PublicNoticeBoard = () => {
                   <CardContent sx={{ p: 4, height: '100%' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
-                        bgcolor: '#f8f9fa', 
+                        bgcolor: '#F3E5F5', 
                         mr: 3, 
                         width: 56, 
                         height: 56,
-                        border: '2px solid #e9ecef'
+                        border: '2px solid #9C27B0'
                       }}>
-                        <Person sx={{ fontSize: 32, color: '#495057' }} />
+                        <Person sx={{ fontSize: 32, color: '#7B1FA2' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
                           fontSize: { xs: '1.5rem', md: '2rem' },
-                          color: '#212529'
+                          color: '#7B1FA2'
                         }}
                       >
-                        Today's Guests
+                        <Box component="span" sx={{ color: '#FF5722' }}>Today's</Box>
+                        <Box component="span" sx={{ color: '#9C27B0', ml: 1 }}>Guests</Box>
                       </Typography>
                     </Box>
                 
@@ -529,11 +537,12 @@ const PublicNoticeBoard = () => {
                       variant="h4" 
                       sx={{ 
                         fontSize: { xs: '1.5rem', md: '2rem' },
-                        color: '#6c757d',
+                        color: '#9C27B0',
                         textAlign: 'center'
                       }}
                     >
-                      Loading guest information...
+                      <Box component="span" sx={{ color: '#FF5722' }}>Loading</Box>
+                      <Box component="span" sx={{ color: '#9C27B0', ml: 1 }}>guest information...</Box>
                     </Typography>
                   </Box>
                 ) : (
@@ -542,28 +551,36 @@ const PublicNoticeBoard = () => {
                       <Grid item xs={12} key={index}>
                         <Box
                           sx={{
-                            backgroundColor: '#f8f9fa',
+                            background: index % 2 === 0 
+                              ? 'linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)'
+                              : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
                             borderRadius: 2,
-                            border: '1px solid #e9ecef',
+                            border: index % 2 === 0 
+                              ? '1px solid #9C27B0'
+                              : '1px solid #4CAF50',
                             p: 3,
                             transition: 'all 0.2s ease',
                             '&:hover': {
-                              backgroundColor: '#e9ecef',
+                              background: index % 2 === 0 
+                                ? 'linear-gradient(135deg, #E1BEE7 0%, #CE93D8 100%)'
+                                : 'linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%)',
                               transform: 'translateY(-1px)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              boxShadow: index % 2 === 0 
+                                ? '0 4px 16px rgba(156, 39, 176, 0.3)'
+                                : '0 4px 16px rgba(76, 175, 80, 0.3)'
                             }
                           }}
                         >
                                                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Avatar sx={{ 
-                                bgcolor: '#ffffff', 
+                                bgcolor: index % 2 === 0 ? '#E1BEE7' : '#C8E6C9', 
                                 mr: 3, 
                                 width: 48, 
                                 height: 48,
-                                border: '2px solid #e9ecef'
+                                border: index % 2 === 0 ? '2px solid #9C27B0' : '2px solid #4CAF50'
                               }}>
-                                <Person sx={{ fontSize: 24, color: '#495057' }} />
+                                <Person sx={{ fontSize: 24, color: index % 2 === 0 ? '#7B1FA2' : '#2E7D32' }} />
                               </Avatar>
                               <Box>
                                 <Typography 
@@ -571,7 +588,7 @@ const PublicNoticeBoard = () => {
                                   sx={{ 
                                     fontWeight: 700,
                                     fontSize: { xs: '1.4rem', md: '1.6rem' },
-                                    color: '#212529'
+                                    color: index % 2 === 0 ? '#7B1FA2' : '#2E7D32'
                                   }}
                                 >
                                   {guest.name}
@@ -580,8 +597,8 @@ const PublicNoticeBoard = () => {
                             </Box>
                             <Box sx={{ 
                               textAlign: 'center',
-                              backgroundColor: '#ffffff',
-                              border: '2px solid #495057',
+                              backgroundColor: index % 2 === 0 ? '#F3E5F5' : '#E8F5E8',
+                              border: index % 2 === 0 ? '2px solid #9C27B0' : '2px solid #4CAF50',
                               borderRadius: 2,
                               padding: '8px 16px',
                               minWidth: '80px'
@@ -589,7 +606,7 @@ const PublicNoticeBoard = () => {
                               <Typography 
                                 variant="body2" 
                                 sx={{ 
-                                  color: '#6c757d',
+                                  color: index % 2 === 0 ? '#7B1FA2' : '#2E7D32',
                                   fontSize: '0.8rem',
                                   fontWeight: 600,
                                   lineHeight: 1
@@ -602,7 +619,7 @@ const PublicNoticeBoard = () => {
                                 sx={{ 
                                   fontWeight: 700,
                                   fontSize: { xs: '1.8rem', md: '2rem' },
-                                  color: '#212529',
+                                  color: index % 2 === 0 ? '#9C27B0' : '#4CAF50',
                                   lineHeight: 1
                                 }}
                               >
