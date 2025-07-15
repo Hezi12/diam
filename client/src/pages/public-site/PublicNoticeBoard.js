@@ -196,7 +196,7 @@ const PublicNoticeBoard = () => {
   // פונקציה לבדיקת בקשת רענון מהשרת
   const checkRefreshStatus = useCallback(async () => {
     try {
-      const response = await fetch(`/api/bookings/notice-board/refresh-status?lastCheck=${lastRefreshCheck}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/bookings/notice-board/refresh-status?lastCheck=${lastRefreshCheck}`);
       if (response.ok) {
         const data = await response.json();
         if (data.shouldRefresh) {

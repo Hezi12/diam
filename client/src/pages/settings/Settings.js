@@ -25,7 +25,7 @@ const Settings = () => {
     setRefreshing(true);
     try {
       // שליחת בקשת רענון לשרת
-      const response = await fetch('/api/bookings/notice-board/refresh', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/bookings/notice-board/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

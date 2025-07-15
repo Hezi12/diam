@@ -11,6 +11,10 @@ router.get('/check-availability', bookingsController.checkRoomAvailability);
 router.get('/public/check-availability', bookingsController.checkRoomAvailability);
 router.post('/public/create', bookingsController.createPublicBooking);
 
+// נתיבים לרענון לוח המודעות (ציבוריים)
+router.post('/notice-board/refresh', bookingsController.triggerNoticeBoardRefresh);
+router.get('/notice-board/refresh-status', bookingsController.getNoticeBoardRefreshStatus);
+
 // נתיבי תמונות עם אימות מיוחד - לפני הגנה כללית
 // Middleware מיוחד לתמונות שמקבל טוקן גם מ-query parameter
 const authWithQuery = (req, res, next) => {
@@ -69,9 +73,5 @@ router.delete('/:id', bookingsController.deleteBooking);
 
 // נתיבים נוספים
 router.get('/search', bookingsController.searchBookings);
-
-// נתיבים לרענון לוח המודעות
-router.post('/notice-board/refresh', bookingsController.triggerNoticeBoardRefresh);
-router.get('/notice-board/refresh-status', bookingsController.getNoticeBoardRefreshStatus);
 
 module.exports = router; 
