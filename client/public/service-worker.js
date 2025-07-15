@@ -1,5 +1,5 @@
 // שם ה-Cache לשמירת קבצים
-const CACHE_NAME = 'diam-hotel-cache-v3';
+const CACHE_NAME = 'diam-hotel-cache-v4';
 
 // רשימת הקבצים שיש לשמור ב-Cache
 const urlsToCache = [
@@ -151,4 +151,21 @@ self.addEventListener('activate', event => {
       return self.clients.claim();
     })
   );
+});
+
+// האזנה להודעות מהקליינט והעברה לכל הלקוחות
+self.addEventListener('message', event => {
+  console.log('Service Worker קיבל הודעה:', event.data);
+  
+  if (event.data && event.data.type === 'REFRESH_GUESTS_REQUEST') {
+    // העברת ההודעה לכל הקליינטים הפתוחים
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'REFRESH_GUESTS_REQUEST',
+          timestamp: event.data.timestamp
+        });
+      });
+    });
+  }
 }); 
