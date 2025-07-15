@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Typography, Paper, Container, Grid, Card, CardContent } from '@mui/material';
+import { Box, Typography, Container, Grid, Card, CardContent, Chip, Avatar } from '@mui/material';
 import { format } from 'date-fns';
 import bookingService from '../../services/bookingService';
 import { 
   Wifi, 
   LocalTaxi, 
   Phone, 
-  CheckCircle, 
-  Person
+  Person,
+  Hotel,
+  AccessTime,
+  LocationOn,
+  Security,
+  CheckCircle,
+  ContactSupport
 } from '@mui/icons-material';
-
-
 
 const PublicNoticeBoard = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -27,7 +30,7 @@ const PublicNoticeBoard = () => {
     { name: 'Lisa Miller', roomNumber: '106', phone: '+1-555-0106' }
   ], []);
 
-  // מידע קבוע - ניתן לעדכן לפי הצרכים
+  // מידע קבוע
   const wifiInfo = {
     ssid: 'Behappy',
     password: 'Besmile2'
@@ -48,7 +51,6 @@ const PublicNoticeBoard = () => {
       
       const bookings = await bookingService.getBookingsByDateRange(today, today, 'airport');
       
-      // סינון אורחים שהצ'ק אין שלהם בדיוק היום
       const todayCheckins = bookings.filter(booking => {
         const checkInDate = new Date(booking.checkIn);
         const checkInDateStr = format(checkInDate, 'yyyy-MM-dd');
@@ -58,13 +60,12 @@ const PublicNoticeBoard = () => {
       const guestsList = todayCheckins.map(booking => ({
         name: booking.guestName,
         roomNumber: booking.roomNumber,
-        phone: booking.guestPhone || 'לא צוין',
+        phone: booking.guestPhone || 'Not provided',
         checkIn: booking.checkIn,
         checkOut: booking.checkOut,
         guests: booking.guests
       }));
 
-      // אם יש פחות מ-4 אורחים, נוסיף אורחים ברירת מחדל
       if (guestsList.length < 4) {
         const additionalGuests = defaultGuests.slice(0, 4 - guestsList.length);
         guestsList.push(...additionalGuests);
@@ -73,7 +74,6 @@ const PublicNoticeBoard = () => {
       setTodaysGuests(guestsList);
     } catch (error) {
       console.error('שגיאה בשליפת אורחים:', error);
-      // במקרה של שגיאה, נציג אורחים ברירת מחדל
       setTodaysGuests(defaultGuests.slice(0, 4));
     } finally {
       setLoading(false);
@@ -84,7 +84,7 @@ const PublicNoticeBoard = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentDateTime(new Date());
-    }, 60000); // כל דקה
+    }, 60000);
 
     return () => clearInterval(timer);
   }, []);
@@ -95,122 +95,198 @@ const PublicNoticeBoard = () => {
     
     const dataTimer = setInterval(() => {
       fetchTodaysGuests();
-    }, 30 * 60 * 1000); // כל 30 דקות
+    }, 30 * 60 * 1000);
 
     return () => clearInterval(dataTimer);
   }, [fetchTodaysGuests]);
+
+  const timeOfDay = new Date().getHours();
+  const greeting = timeOfDay < 12 ? 'Good Morning' : timeOfDay < 18 ? 'Good Afternoon' : 'Good Evening';
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        height: '100vh',
-        background: 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)',
+        backgroundColor: '#f8f9fa',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Arial, sans-serif',
-        direction: 'rtl',
-        overflow: 'hidden',
-        padding: 0
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+        direction: 'ltr'
       }}
     >
-      <Container maxWidth="xl" sx={{ py: 3, flex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* כותרת ברוכים הבאים */}
-        <Paper
-          elevation={8}
+      <Container maxWidth="xl" sx={{ py: 4, flex: 1 }}>
+        {/* Header */}
+        <Box
           sx={{
-            p: 3,
-            mb: 3,
-            background: 'linear-gradient(45deg, #2c3e50 30%, #34495e 90%)',
-            color: 'white',
-            borderRadius: 4,
-            textAlign: 'center'
+            mb: 4,
+            textAlign: 'center',
+            py: 4,
+            backgroundColor: '#ffffff',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            border: '1px solid #e9ecef'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-            <Typography variant="h1" component="h1" sx={{ fontWeight: 'bold', fontSize: '4rem', color: 'white' }}>
-              Welcome to Airport Guest House
+            <Hotel sx={{ fontSize: 48, mr: 2, color: '#495057' }} />
+            <Typography 
+              variant="h1" 
+              sx={{ 
+                fontWeight: 700,
+                fontSize: { xs: '2.5rem', md: '3.5rem' },
+                color: '#212529',
+                letterSpacing: '1px'
+              }}
+            >
+              Airport Guest House
             </Typography>
           </Box>
-        </Paper>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              color: '#6c757d',
+              fontSize: { xs: '1.2rem', md: '1.5rem' },
+              fontWeight: 400
+            }}
+          >
+            {greeting}! Welcome to your home away from home
+          </Typography>
+        </Box>
 
-        <Grid container spacing={3} sx={{ flex: 1 }}>
-          {/* עמודה שמאלית - מידע שימושי */}
+        {/* Date and Time */}
+        <Box
+          sx={{
+            mb: 4,
+            textAlign: 'center',
+            py: 3,
+            backgroundColor: '#ffffff',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            border: '1px solid #e9ecef'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+            <AccessTime sx={{ fontSize: 28, color: '#495057' }} />
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 600,
+                fontSize: { xs: '1.5rem', md: '2rem' },
+                color: '#212529'
+              }}
+            >
+              {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
+            </Typography>
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                fontWeight: 700,
+                fontSize: { xs: '2rem', md: '2.5rem' },
+                color: '#212529',
+                fontFamily: 'monospace'
+              }}
+            >
+              {format(currentDateTime, 'HH:mm')}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Grid container spacing={4}>
+          {/* Left Column - Information */}
           <Grid item xs={12} md={6}>
-            <Grid container spacing={2}>
+            <Grid container spacing={3}>
               {/* WiFi */}
               <Grid item xs={12}>
-                <Card elevation={3} sx={{ borderRadius: 3, background: '#ffffff', border: '1px solid #dee2e6' }}>
-                  <CardContent sx={{ p: 3 }}>
+                <Card 
+                  sx={{ 
+                    backgroundColor: '#ffffff',
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    border: '1px solid #e9ecef',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Wifi sx={{ fontSize: 42, mr: 2, color: '#6c757d' }} />
-                      <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '2rem', color: '#2c3e50' }}>
-                        WiFi
+                      <Avatar sx={{ 
+                        bgcolor: '#f8f9fa', 
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #e9ecef'
+                      }}>
+                        <Wifi sx={{ fontSize: 32, color: '#495057' }} />
+                      </Avatar>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: { xs: '1.5rem', md: '2rem' },
+                          color: '#212529'
+                        }}
+                      >
+                        Free WiFi
                       </Typography>
                     </Box>
-                    <Typography variant="h5" sx={{ fontSize: '1.5rem', mb: 1, color: '#495057' }}>
-                      <strong>Network:</strong> {wifiInfo.ssid}
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontSize: '1.5rem', color: '#495057' }}>
-                      <strong>Password:</strong> {wifiInfo.password}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Recommended Gett Taxi */}
-              <Grid item xs={12}>
-                <Card elevation={3} sx={{ borderRadius: 3, background: '#fff8e1', border: '2px solid #ffc107' }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <LocalTaxi sx={{ fontSize: 42, mr: 2, color: '#f57c00' }} />
-                      <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '2rem', color: '#f57c00' }}>
-                        Recommended: Gett Taxi App
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" sx={{ fontSize: '1.4rem', mb: 2, color: '#6d4c41' }}>
-                      We recommend using Gett Taxi for the safest and most convenient transportation.
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <CheckCircle sx={{ fontSize: 24, mr: 1, color: '#4caf50' }} />
-                          <Typography variant="h6" sx={{ fontSize: '1.2rem', color: '#6d4c41' }}>
-                            Credit Card Payment
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CheckCircle sx={{ fontSize: 24, mr: 1, color: '#4caf50' }} />
-                          <Typography variant="h6" sx={{ fontSize: '1.2rem', color: '#6d4c41' }}>
-                            Advance Booking
-                          </Typography>
-                        </Box>
+                    
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        backgroundColor: '#f8f9fa',
+                        padding: '16px',
+                        borderRadius: 1,
+                        border: '1px solid #e9ecef'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography 
+                          variant="subtitle1" 
+                          sx={{ 
+                            color: '#6c757d',
+                            fontWeight: 600
+                          }}
+                        >
+                          Network:
+                        </Typography>
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            fontSize: { xs: '1.2rem', md: '1.4rem' },
+                            color: '#212529',
+                            fontWeight: 600,
+                            fontFamily: 'monospace'
+                          }}
+                        >
+                          {wifiInfo.ssid}
+                        </Typography>
                       </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Box sx={{ 
-                          width: 80, 
-                          height: 80, 
-                          border: '2px solid #333',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mb: 1,
-                          backgroundColor: 'white',
-                          borderRadius: 1,
-                          overflow: 'hidden'
-                        }}>
-                          <img 
-                            src="/images/gett-qr.png" 
-                            alt="Gett App QR Code" 
-                            style={{ 
-                              width: '100%', 
-                              height: '100%', 
-                              objectFit: 'contain'
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="body2" sx={{ fontSize: '0.9rem', color: '#6d4c41' }}>
-                          Scan to Download
+                      
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography 
+                          variant="subtitle1" 
+                          sx={{ 
+                            color: '#6c757d',
+                            fontWeight: 600
+                          }}
+                        >
+                          Password:
+                        </Typography>
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            fontSize: { xs: '1.2rem', md: '1.4rem' },
+                            color: '#212529',
+                            fontWeight: 600,
+                            fontFamily: 'monospace'
+                          }}
+                        >
+                          {wifiInfo.password}
                         </Typography>
                       </Box>
                     </Box>
@@ -218,36 +294,184 @@ const PublicNoticeBoard = () => {
                 </Card>
               </Grid>
 
+              {/* Gett Taxi */}
+              <Grid item xs={12}>
+                <Card 
+                  sx={{ 
+                    backgroundColor: '#ffffff',
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    border: '1px solid #e9ecef',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                      <Avatar sx={{ 
+                        bgcolor: '#f8f9fa', 
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #e9ecef'
+                      }}>
+                        <LocalTaxi sx={{ fontSize: 32, color: '#495057' }} />
+                      </Avatar>
+                      <Box>
+                        <Typography 
+                          variant="h4" 
+                          sx={{ 
+                            fontWeight: 700,
+                            fontSize: { xs: '1.4rem', md: '1.8rem' },
+                            color: '#212529'
+                          }}
+                        >
+                          Recommended Transportation
+                        </Typography>
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            fontSize: { xs: '1rem', md: '1.2rem' },
+                            color: '#6c757d',
+                            fontWeight: 500
+                          }}
+                        >
+                          Gett Taxi App
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontSize: { xs: '1rem', md: '1.1rem' },
+                        color: '#495057',
+                        mb: 3,
+                        lineHeight: 1.6
+                      }}
+                    >
+                      The safest and most convenient way to travel. Licensed drivers, fixed prices, and credit card payment.
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Chip 
+                        icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
+                        label="Credit Card Payment"
+                        sx={{ 
+                          bgcolor: '#f8f9fa',
+                          color: '#495057',
+                          fontWeight: 600,
+                          border: '1px solid #e9ecef'
+                        }}
+                      />
+                      <Chip 
+                        icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
+                        label="Advance Booking"
+                        sx={{ 
+                          bgcolor: '#f8f9fa',
+                          color: '#495057',
+                          fontWeight: 600,
+                          border: '1px solid #e9ecef'
+                        }}
+                      />
+                      <Chip 
+                        icon={<Security sx={{ color: '#28a745 !important' }} />}
+                        label="Licensed Drivers"
+                        sx={{ 
+                          bgcolor: '#f8f9fa',
+                          color: '#495057',
+                          fontWeight: 600,
+                          border: '1px solid #e9ecef'
+                        }}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
               {/* Contact Information */}
               <Grid item xs={12}>
-                <Card elevation={3} sx={{ borderRadius: 3, background: '#ffffff', border: '1px solid #dee2e6' }}>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Phone sx={{ fontSize: 42, mr: 2, color: '#6c757d' }} />
-                      <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '2rem', color: '#2c3e50' }}>
-                        Contact Me
+                <Card 
+                  sx={{ 
+                    backgroundColor: '#ffffff',
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    border: '1px solid #e9ecef',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                      <Avatar sx={{ 
+                        bgcolor: '#f8f9fa', 
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
+                        border: '2px solid #e9ecef'
+                      }}>
+                        <ContactSupport sx={{ fontSize: 32, color: '#495057' }} />
+                      </Avatar>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: { xs: '1.5rem', md: '2rem' },
+                          color: '#212529'
+                        }}
+                      >
+                        Need Help?
                       </Typography>
                     </Box>
-                    <Typography variant="h5" sx={{ fontSize: '1.4rem', mb: 2, color: '#495057' }}>
+                    
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontSize: { xs: '1rem', md: '1.1rem' },
+                        color: '#495057',
+                        mb: 3,
+                        lineHeight: 1.6
+                      }}
+                    >
                       {contactInfo.message}
                     </Typography>
-                    <Box sx={{ 
-                      display: 'inline-block',
-                      backgroundColor: '#495057',
-                      color: 'white',
-                      px: 3,
-                      py: 1.5,
-                      borderRadius: 2,
-                      fontSize: '1.3rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: '#37474f'
-                      }
-                    }}
-                    onClick={() => window.open(`https://wa.me/972506070260`)}
+                    
+                    <Box
+                      sx={{
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: 2,
+                        p: 3,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        border: '1px solid #e9ecef',
+                        '&:hover': {
+                          backgroundColor: '#e9ecef',
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }
+                      }}
+                      onClick={() => window.open(`https://wa.me/972506070260`)}
                     >
-                      {contactInfo.phone} - {contactInfo.name}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Phone sx={{ fontSize: 24, mr: 2, color: '#495057' }} />
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            fontSize: { xs: '1.2rem', md: '1.4rem' },
+                            color: '#212529',
+                            fontWeight: 700,
+                            fontFamily: 'monospace'
+                          }}
+                        >
+                          {contactInfo.phone} - {contactInfo.name}
+                        </Typography>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
@@ -255,64 +479,124 @@ const PublicNoticeBoard = () => {
             </Grid>
           </Grid>
 
-          {/* עמודה ימנית - אורחים */}
+          {/* Right Column - Guests */}
           <Grid item xs={12} md={6}>
             <Card
-              elevation={4}
               sx={{
                 height: '100%',
-                borderRadius: 3,
-                background: 'rgba(255, 255, 255, 0.98)',
-                border: '1px solid rgba(0, 0, 0, 0.08)'
+                backgroundColor: '#ffffff',
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                border: '1px solid #e9ecef'
               }}
             >
-              <CardContent sx={{ p: 3 }}>
-                {/* תאריך ושעה מעל האורחים */}
-                <Paper
-                  elevation={2}
-                  sx={{
-                    p: 2,
-                    mb: 3,
-                    background: 'linear-gradient(45deg, #2c3e50 30%, #34495e 90%)',
-                    color: 'white',
-                    borderRadius: 2,
-                    textAlign: 'center'
-                  }}
-                >
-                  <Typography variant="h4" sx={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'white' }}>
-                    {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
+              <CardContent sx={{ p: 4, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <Avatar sx={{ 
+                    bgcolor: '#f8f9fa', 
+                    mr: 3, 
+                    width: 56, 
+                    height: 56,
+                    border: '2px solid #e9ecef'
+                  }}>
+                    <Person sx={{ fontSize: 32, color: '#495057' }} />
+                  </Avatar>
+                  <Typography 
+                    variant="h4" 
+                    sx={{ 
+                      fontWeight: 700,
+                      fontSize: { xs: '1.5rem', md: '2rem' },
+                      color: '#212529'
+                    }}
+                  >
+                    Today's Guests
                   </Typography>
-                </Paper>
+                </Box>
                 
                 {loading ? (
-                  <Typography variant="h4" sx={{ textAlign: 'center', py: 4, fontSize: '2rem', color: '#6c757d' }}>
-                    Loading data...
-                  </Typography>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    height: '300px'
+                  }}>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontSize: { xs: '1.5rem', md: '2rem' },
+                        color: '#6c757d',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Loading guest information...
+                    </Typography>
+                  </Box>
                 ) : (
-                  <Grid container spacing={2}>
+                  <Grid container spacing={3}>
                     {todaysGuests.map((guest, index) => (
                       <Grid item xs={12} key={index}>
-                        <Paper
-                          elevation={2}
+                        <Box
                           sx={{
-                            p: 3,
+                            backgroundColor: '#f8f9fa',
                             borderRadius: 2,
-                            background: '#ffffff',
-                            border: '1px solid #dee2e6'
+                            border: '1px solid #e9ecef',
+                            p: 3,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              backgroundColor: '#e9ecef',
+                              transform: 'translateY(-1px)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }
                           }}
                         >
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Person sx={{ fontSize: 36, mr: 2, color: '#6c757d' }} />
-                              <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: '1.8rem', color: '#2c3e50' }}>
-                                {guest.name}
-                              </Typography>
+                              <Avatar sx={{ 
+                                bgcolor: '#ffffff', 
+                                mr: 3, 
+                                width: 48, 
+                                height: 48,
+                                border: '2px solid #e9ecef'
+                              }}>
+                                <Person sx={{ fontSize: 24, color: '#495057' }} />
+                              </Avatar>
+                              <Box>
+                                <Typography 
+                                  variant="h5" 
+                                  sx={{ 
+                                    fontWeight: 700,
+                                    fontSize: { xs: '1.2rem', md: '1.4rem' },
+                                    color: '#212529'
+                                  }}
+                                >
+                                  {guest.name}
+                                </Typography>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    color: '#6c757d',
+                                    fontSize: '0.9rem'
+                                  }}
+                                >
+                                  Welcome to our guest house!
+                                </Typography>
+                              </Box>
                             </Box>
-                            <Typography variant="h4" sx={{ fontSize: '1.8rem', color: '#495057', fontWeight: 'bold' }}>
-                              {guest.roomNumber}
-                            </Typography>
+                            <Box sx={{ textAlign: 'right' }}>
+                              <Chip 
+                                icon={<LocationOn sx={{ color: '#495057 !important' }} />}
+                                label={`Room ${guest.roomNumber}`}
+                                sx={{ 
+                                  bgcolor: '#ffffff',
+                                  color: '#495057',
+                                  fontWeight: 700,
+                                  fontSize: { xs: '0.9rem', md: '1rem' },
+                                  border: '1px solid #e9ecef'
+                                }}
+                              />
+                            </Box>
                           </Box>
-                        </Paper>
+                        </Box>
                       </Grid>
                     ))}
                   </Grid>
@@ -322,22 +606,7 @@ const PublicNoticeBoard = () => {
           </Grid>
         </Grid>
 
-        {/* פוטר */}
-        <Paper
-          elevation={2}
-          sx={{
-            mt: 2,
-            p: 2,
-            background: '#ffffff',
-            border: '1px solid #dee2e6',
-            borderRadius: 3,
-            textAlign: 'center'
-          }}
-        >
-          <Typography variant="h4" sx={{ color: '#6c757d', fontSize: '1.5rem' }}>
-            Airport Guest House - Or Yehuda | Last Updated: {format(currentDateTime, 'HH:mm')}
-          </Typography>
-        </Paper>
+
       </Container>
     </Box>
   );
