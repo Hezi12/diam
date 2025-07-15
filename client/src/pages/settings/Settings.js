@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography, Paper, Button, Grid, Container } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Paper, Button, Grid, Container, IconButton, Tooltip } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import FlightIcon from '@mui/icons-material/Flight';
@@ -7,13 +7,46 @@ import SyncIcon from '@mui/icons-material/Sync';
 import EmailIcon from '@mui/icons-material/Email';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ICalSettings from '../../components/settings/ICalSettings';
+import { useSnackbar } from 'notistack';
 
 /**
  * עמוד הגדרות מרכזי
  * מכיל קישורים לדפי הגדרות שונים במערכת
  */
 const Settings = () => {
+  const { enqueueSnackbar } = useSnackbar();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // פונקציה לרענון רשימת האורחים
+  const refreshGuestList = async () => {
+    setRefreshing(true);
+    try {
+      // שליחת אירוע לכל החלונות הפתוחים
+      if (typeof window !== 'undefined') {
+        // שליחת אירוע לכל החלונות הפתוחים
+        window.postMessage('refresh-guests', window.location.origin);
+        
+        // חיפוש וספירת חלונות לוח המודעות הפתוחים
+        localStorage.setItem('refresh-guests-trigger', Date.now().toString());
+      }
+      
+      // הצגת הודעת הצלחה
+      enqueueSnackbar('בקשת רענון נשלחה', { variant: 'success' });
+    } catch (error) {
+      console.error('שגיאה ברענון רשימת האורחים:', error);
+      enqueueSnackbar('שגיאה ברענון רשימת האורחים', { variant: 'error' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // פונקציה לפתיחת הדף הציבורי
+  const openPublicNoticeBoard = () => {
+    window.open('/notice-board-public', 'noticeBoardPublic', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+  };
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
@@ -197,58 +230,13 @@ const Settings = () => {
           </Paper>
         </Grid>
 
-        {/* הגדרות לוח מודעות */}
-        <Grid item xs={12} sm={6}>
-          <Paper
-            component={RouterLink}
-            to="/settings/notice-board"
-            sx={{
-              p: 3,
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderRadius: 2,
-              transition: 'all 0.2s',
-              '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-                bgcolor: 'rgba(255, 152, 0, 0.04)'
-              }
-            }}
-          >
-            <Box sx={{ maxWidth: '70%' }}>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
-                הגדרות לוח מודעות
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                עריכת מידע WiFi, מונית וצ'ק אין/אאוט
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                bgcolor: 'rgba(255, 152, 0, 0.1)',
-                color: '#ff9800',
-                p: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 2,
-              }}
-            >
-              <CampaignIcon fontSize="large" />
-            </Box>
-          </Paper>
-        </Grid>
+
 
         {/* לוח מודעות - איירפורט */}
         <Grid item xs={12} sm={6}>
           <Paper
-            component={RouterLink}
-            to="/notice-board"
             sx={{
               p: 3,
-              textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -261,26 +249,44 @@ const Settings = () => {
               }
             }}
           >
-            <Box sx={{ maxWidth: '70%' }}>
+            <Box sx={{ maxWidth: '60%' }}>
               <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
                 לוח מודעות - איירפורט
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                צפייה ופתיחת הלוח ציבורי על מסך טלוויזיה
+                לוח מודעות ציבורי עם אורחים ומידע שימושי
               </Typography>
             </Box>
-            <Box
-              sx={{
-                bgcolor: 'rgba(33, 150, 243, 0.1)',
-                color: '#2196f3',
-                p: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 2,
-              }}
-            >
-              <CampaignIcon fontSize="large" />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Tooltip title="רענון רשימת אורחים">
+                <IconButton
+                  onClick={refreshGuestList}
+                  disabled={refreshing}
+                  sx={{
+                    bgcolor: 'rgba(33, 150, 243, 0.1)',
+                    color: '#2196f3',
+                    '&:hover': {
+                      bgcolor: 'rgba(33, 150, 243, 0.2)'
+                    }
+                  }}
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="פתח לוח מודעות ציבורי">
+                <IconButton
+                  onClick={openPublicNoticeBoard}
+                  sx={{
+                    bgcolor: 'rgba(33, 150, 243, 0.1)',
+                    color: '#2196f3',
+                    '&:hover': {
+                      bgcolor: 'rgba(33, 150, 243, 0.2)'
+                    }
+                  }}
+                >
+                  <OpenInNewIcon />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Paper>
         </Grid>

@@ -23,10 +23,10 @@ const PublicNoticeBoard = () => {
 
   // אורחים ברירת מחדל באנגלית
   const defaultGuests = useMemo(() => [
-    { name: 'John Smith', roomNumber: '101', phone: '+1-555-0101' },
-    { name: 'Sarah Johnson', roomNumber: '102', phone: '+1-555-0102' },
-    { name: 'Michael Brown', roomNumber: '103', phone: '+1-555-0103' },
-    { name: 'Emily Davis', roomNumber: '104', phone: '+1-555-0104' },
+    { name: 'Arjun Patel', roomNumber: '1', phone: '+1-555-0101' },
+    { name: 'Maya Levi', roomNumber: '9', phone: '+1-555-0102' },
+    { name: 'Raj Kumar', roomNumber: '4', phone: '+1-555-0103' },
+    { name: 'Noa Rosenberg', roomNumber: '10', phone: '+1-555-0104' },
     { name: 'David Wilson', roomNumber: '105', phone: '+1-555-0105' },
     { name: 'Lisa Miller', roomNumber: '106', phone: '+1-555-0106' }
   ], []);
@@ -150,21 +150,29 @@ const PublicNoticeBoard = () => {
   const fetchTodaysGuests = useCallback(async () => {
     try {
       setLoading(true);
-      const today = new Date();
-      const todayStr = format(today, 'yyyy-MM-dd');
+      const now = new Date();
+      const currentHour = now.getHours();
       
-      const bookings = await bookingService.getBookingsByDateRange(today, today, 'airport');
+      // אם השעה לפני 12:00 בצהריים, הצג אורחים של אתמול
+      // אם השעה אחרי 12:00 בצהריים, הצג אורחים של היום
+      const displayDate = currentHour < 12 ? 
+        new Date(now.getTime() - 24 * 60 * 60 * 1000) : // אתמול
+        now; // היום
+      
+      const displayDateStr = format(displayDate, 'yyyy-MM-dd');
+      
+      const bookings = await bookingService.getBookingsByDateRange(displayDate, displayDate, 'airport');
       
       const todayCheckins = bookings.filter(booking => {
         const checkInDate = new Date(booking.checkIn);
         const checkInDateStr = format(checkInDate, 'yyyy-MM-dd');
-        return checkInDateStr === todayStr && booking.status !== 'cancelled';
+        return checkInDateStr === displayDateStr && booking.status !== 'cancelled';
       });
 
       const guestsList = todayCheckins.map(booking => ({
-        name: booking.guestName,
+        name: booking.firstName && booking.lastName ? `${booking.firstName} ${booking.lastName}` : booking.firstName || 'Guest',
         roomNumber: booking.roomNumber,
-        phone: booking.guestPhone || 'Not provided',
+        phone: booking.phone || 'Not provided',
         checkIn: booking.checkIn,
         checkOut: booking.checkOut,
         guests: booking.guests
@@ -202,6 +210,29 @@ const PublicNoticeBoard = () => {
     }, 30 * 60 * 1000);
 
     return () => clearInterval(dataTimer);
+  }, [fetchTodaysGuests]);
+
+  // האזנה להודעות רענון מדף ההגדרות
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data === 'refresh-guests') {
+        fetchTodaysGuests();
+      }
+    };
+
+    const handleStorageChange = (event) => {
+      if (event.key === 'refresh-guests-trigger') {
+        fetchTodaysGuests();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [fetchTodaysGuests]);
 
   const timeOfDay = new Date().getHours();
@@ -628,7 +659,12 @@ const PublicNoticeBoard = () => {
                         color: '#1976D2'
                       }}
                     >
-                      {format(currentDateTime, 'EEEE, MMMM dd, yyyy')}
+                      {format(
+                        currentDateTime.getHours() < 12 ? 
+                          new Date(currentDateTime.getTime() - 24 * 60 * 60 * 1000) : 
+                          currentDateTime, 
+                        'EEEE, MMMM dd, yyyy'
+                      )}
                     </Typography>
                     <Typography 
                       variant="h2" 

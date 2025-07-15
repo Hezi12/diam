@@ -23,8 +23,6 @@ import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
 import EmailPreview from './pages/email/EmailPreview';
-import NoticeBoard from './pages/NoticeBoard';
-import NoticeBoardSettings from './components/settings/NoticeBoardSettings';
 
 // עמודי אתר ציבורי - Airport
 import HomePage from './pages/public-site/HomePage';
@@ -204,16 +202,7 @@ const AppContent = () => {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/notice-board"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <NoticeBoard />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
+
                 <Route
                   path="/quick-booking"
                   element={
@@ -264,16 +253,7 @@ const AppContent = () => {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/settings/notice-board"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <NoticeBoardSettings />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
+
 
                 <Route
                   path="/revenue"
