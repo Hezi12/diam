@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Typography, Container, Grid, Card, CardContent, Avatar } from '@mui/material';
+import { Box, Typography, Container, Grid, Card, CardContent, Avatar, IconButton, Tooltip } from '@mui/material';
 import { format } from 'date-fns';
 import bookingService from '../../services/bookingService';
 import { 
@@ -9,13 +9,17 @@ import {
   Person,
   Hotel,
   AccessTime,
-  ContactSupport
+  ContactSupport,
+  Fullscreen,
+  FullscreenExit
 } from '@mui/icons-material';
 
 const PublicNoticeBoard = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [todaysGuests, setTodaysGuests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [wakeLock, setWakeLock] = useState(null);
 
   // אורחים ברירת מחדל באנגלית
   const defaultGuests = useMemo(() => [
@@ -33,11 +37,91 @@ const PublicNoticeBoard = () => {
     password: 'Besmile2'
   };
 
-  const contactInfo = {
-    name: 'David',
-    phone: '+972 50-607-0260',
-    message: 'For any questions or assistance, feel free to call or send a WhatsApp message to:'
+  // פונקציות fullscreen
+  const enterFullscreen = async () => {
+    const elem = document.documentElement;
+    
+    // כניסה למסך מלא
+    if (elem.requestFullscreen) {
+      await elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      await elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      await elem.msRequestFullscreen();
+    }
+
+    // מניעת מצב שינה
+    if ('wakeLock' in navigator) {
+      try {
+        const lock = await navigator.wakeLock.request('screen');
+        setWakeLock(lock);
+        console.log('Wake lock activated');
+      } catch (err) {
+        console.error('Wake lock failed:', err);
+      }
+    }
   };
+
+  const exitFullscreen = async () => {
+    // יציאה ממסך מלא
+    if (document.exitFullscreen) {
+      await document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      await document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      await document.msExitFullscreen();
+    }
+
+    // שחרור wake lock
+    if (wakeLock) {
+      await wakeLock.release();
+      setWakeLock(null);
+      console.log('Wake lock released');
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      enterFullscreen();
+    } else {
+      exitFullscreen();
+    }
+  };
+
+  // האזנה לשינויים במצב fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isNowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isNowFullscreen);
+      
+      // אם יצאנו מהמסך המלא, שחרר את ה-wake lock
+      if (!isNowFullscreen && wakeLock) {
+        wakeLock.release();
+        setWakeLock(null);
+        console.log('Wake lock released due to fullscreen exit');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, [wakeLock]);
+
+  // ניקוי wake lock בסגירת הדף
+  useEffect(() => {
+    return () => {
+      if (wakeLock) {
+        wakeLock.release();
+        console.log('Wake lock released on component unmount');
+      }
+    };
+  }, [wakeLock]);
 
   // שליפת אורחים שהצ'ק אין שלהם היום
   const fetchTodaysGuests = useCallback(async () => {
@@ -117,9 +201,60 @@ const PublicNoticeBoard = () => {
           sx={{
             mb: 4,
             textAlign: 'center',
-            py: 2
+            py: 2,
+            position: 'relative'
           }}
         >
+          {/* כפתור Fullscreen - נראה רק בהעברת עכבר */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              zIndex: 1000,
+              width: 80,
+              height: 80,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '&:hover .fullscreen-button': {
+                opacity: 1,
+                transform: 'scale(1)'
+              }
+            }}
+          >
+            <Tooltip title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}>
+              <IconButton
+                onClick={toggleFullscreen}
+                className="fullscreen-button"
+                sx={{
+                  backgroundColor: isFullscreen ? '#1976D2' : '#ffffff',
+                  border: '2px solid #1976D2',
+                  borderRadius: 2,
+                  width: 56,
+                  height: 56,
+                  color: isFullscreen ? '#ffffff' : '#1976D2',
+                  opacity: 0,
+                  transform: 'scale(0.8)',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 8px rgba(25,118,210,0.2)',
+                  '&:hover': {
+                    backgroundColor: isFullscreen ? '#1565C0' : '#1976D2',
+                    color: '#ffffff',
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 4px 12px rgba(25,118,210,0.4)'
+                  }
+                }}
+              >
+                {isFullscreen ? (
+                  <FullscreenExit sx={{ fontSize: 28, color: 'inherit' }} />
+                ) : (
+                  <Fullscreen sx={{ fontSize: 28, color: 'inherit' }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Box>
+
           <Typography 
             variant="h1" 
             sx={{ 
