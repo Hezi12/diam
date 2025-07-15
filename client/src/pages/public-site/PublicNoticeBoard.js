@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Typography, Container, Grid, Card, CardContent, Chip, Avatar } from '@mui/material';
+import { Box, Typography, Container, Grid, Card, CardContent, Avatar } from '@mui/material';
 import { format } from 'date-fns';
 import bookingService from '../../services/bookingService';
 import { 
@@ -9,9 +9,6 @@ import {
   Person,
   Hotel,
   AccessTime,
-  LocationOn,
-  Security,
-  CheckCircle,
   ContactSupport
 } from '@mui/icons-material';
 
@@ -322,38 +319,7 @@ const PublicNoticeBoard = () => {
                           The safest and most convenient way to travel. Licensed drivers, fixed prices, and credit card payment.
                         </Typography>
                         
-                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                          <Chip 
-                            icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
-                            label="Credit Card Payment"
-                            sx={{ 
-                              bgcolor: '#f8f9fa',
-                              color: '#495057',
-                              fontWeight: 600,
-                              border: '1px solid #e9ecef'
-                            }}
-                          />
-                          <Chip 
-                            icon={<CheckCircle sx={{ color: '#28a745 !important' }} />}
-                            label="Advance Booking"
-                            sx={{ 
-                              bgcolor: '#f8f9fa',
-                              color: '#495057',
-                              fontWeight: 600,
-                              border: '1px solid #e9ecef'
-                            }}
-                          />
-                          <Chip 
-                            icon={<Security sx={{ color: '#28a745 !important' }} />}
-                            label="Licensed Drivers"
-                            sx={{ 
-                              bgcolor: '#f8f9fa',
-                              color: '#495057',
-                              fontWeight: 600,
-                              border: '1px solid #e9ecef'
-                            }}
-                          />
-                        </Box>
+
                       </Box>
                       
                       <Box sx={{ 
@@ -588,7 +554,7 @@ const PublicNoticeBoard = () => {
                             }
                           }}
                         >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Avatar sx={{ 
                                 bgcolor: '#ffffff', 
@@ -601,38 +567,47 @@ const PublicNoticeBoard = () => {
                               </Avatar>
                               <Box>
                                 <Typography 
-                                  variant="h5" 
+                                  variant="h4" 
                                   sx={{ 
                                     fontWeight: 700,
-                                    fontSize: { xs: '1.2rem', md: '1.4rem' },
+                                    fontSize: { xs: '1.4rem', md: '1.6rem' },
                                     color: '#212529'
                                   }}
                                 >
                                   {guest.name}
                                 </Typography>
-                                <Typography 
-                                  variant="body2" 
-                                  sx={{ 
-                                    color: '#6c757d',
-                                    fontSize: '0.9rem'
-                                  }}
-                                >
-                                  Welcome to our guest house!
-                                </Typography>
                               </Box>
                             </Box>
-                            <Box sx={{ textAlign: 'right' }}>
-                              <Chip 
-                                icon={<LocationOn sx={{ color: '#495057 !important' }} />}
-                                label={`Room ${guest.roomNumber}`}
+                            <Box sx={{ 
+                              textAlign: 'center',
+                              backgroundColor: '#ffffff',
+                              border: '2px solid #495057',
+                              borderRadius: 2,
+                              padding: '8px 16px',
+                              minWidth: '80px'
+                            }}>
+                              <Typography 
+                                variant="body2" 
                                 sx={{ 
-                                  bgcolor: '#ffffff',
-                                  color: '#495057',
-                                  fontWeight: 700,
-                                  fontSize: { xs: '0.9rem', md: '1rem' },
-                                  border: '1px solid #e9ecef'
+                                  color: '#6c757d',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  lineHeight: 1
                                 }}
-                              />
+                              >
+                                Room
+                              </Typography>
+                              <Typography 
+                                variant="h3" 
+                                sx={{ 
+                                  fontWeight: 700,
+                                  fontSize: { xs: '1.8rem', md: '2rem' },
+                                  color: '#212529',
+                                  lineHeight: 1
+                                }}
+                              >
+                                {guest.roomNumber}
+                              </Typography>
                             </Box>
                           </Box>
                         </Box>
