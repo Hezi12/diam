@@ -103,22 +103,21 @@ const PublicNoticeBoard = () => {
   return (
     <Box
       sx={{
-        height: '100vh',
+        minHeight: '100vh',
         backgroundColor: '#f8f9fa',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-        direction: 'ltr',
-        overflow: 'hidden'
+        direction: 'ltr'
       }}
     >
-      <Container maxWidth="xl" sx={{ py: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Container maxWidth="xl" sx={{ py: 4, flex: 1 }}>
         {/* Header */}
         <Box
           sx={{
-            mb: 2,
+            mb: 4,
             textAlign: 'center',
-            py: 1
+            py: 2
           }}
         >
           <Typography 
@@ -127,7 +126,7 @@ const PublicNoticeBoard = () => {
               fontWeight: 700,
               fontSize: { xs: '2.5rem', md: '3.5rem' },
               letterSpacing: '1px',
-              mb: 0.5
+              mb: 1
             }}
           >
             <Box component="span" sx={{ color: '#1976D2' }}>Airport</Box>
@@ -145,10 +144,10 @@ const PublicNoticeBoard = () => {
           </Typography>
         </Box>
 
-        <Grid container spacing={3} sx={{ flex: 1 }}>
+        <Grid container spacing={4}>
           {/* Left Column - Information */}
-          <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-            <Grid container spacing={2} sx={{ flex: 1 }}>
+          <Grid item xs={12} md={6}>
+            <Grid container spacing={3}>
               {/* Contact Information */}
               <Grid item xs={12}>
                 <Card 
@@ -164,22 +163,22 @@ const PublicNoticeBoard = () => {
                     }
                   }}
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
                         bgcolor: '#E8F5E8', 
-                        mr: 2, 
-                        width: 48, 
-                        height: 48,
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
                         border: '2px solid #4CAF50'
                       }}>
-                        <ContactSupport sx={{ fontSize: 28, color: '#2E7D32' }} />
+                        <ContactSupport sx={{ fontSize: 32, color: '#2E7D32' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: { xs: '1.6rem', md: '2rem' },
+                          fontSize: { xs: '1.8rem', md: '2.2rem' },
                           color: '#2E7D32'
                         }}
                       >
@@ -191,10 +190,10 @@ const PublicNoticeBoard = () => {
                     <Typography 
                       variant="body1" 
                       sx={{ 
-                        fontSize: { xs: '1rem', md: '1.2rem' },
+                        fontSize: { xs: '1.2rem', md: '1.4rem' },
                         color: '#37474F',
-                        mb: 2,
-                        lineHeight: 1.4,
+                        mb: 3,
+                        lineHeight: 1.6,
                         direction: 'ltr',
                         textAlign: 'left'
                       }}
@@ -206,7 +205,7 @@ const PublicNoticeBoard = () => {
                       sx={{
                         background: '#f8f9fa',
                         borderRadius: 2,
-                        p: 2,
+                        p: 3,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
                         border: '1px solid #dee2e6',
@@ -219,18 +218,18 @@ const PublicNoticeBoard = () => {
                       onClick={() => window.open(`https://wa.me/972506070260`)}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Phone sx={{ fontSize: 24, mr: 2, color: '#2E7D32' }} />
+                        <Phone sx={{ fontSize: 28, mr: 2, color: '#2E7D32' }} />
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: { xs: '1.3rem', md: '1.5rem' },
+                            fontSize: { xs: '1.6rem', md: '1.8rem' },
                             fontWeight: 700,
                             fontFamily: 'monospace'
                           }}
                         >
                           <Box component="span" sx={{ color: '#1976D2' }}>+972 506070260</Box>
                           <Box component="span" sx={{ color: '#37474F', mx: 1 }}>-</Box>
-                          <Box component="span" sx={{ color: '#4CAF50', fontSize: { xs: '1.3rem', md: '1.5rem' }, fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>David</Box>
+                          <Box component="span" sx={{ color: '#4CAF50', fontSize: { xs: '1.6rem', md: '1.8rem' }, fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>David</Box>
                         </Typography>
                       </Box>
                     </Box>
@@ -253,22 +252,22 @@ const PublicNoticeBoard = () => {
                     }
                   }}
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Avatar sx={{ 
                         bgcolor: '#E3F2FD', 
-                        mr: 2, 
-                        width: 48, 
-                        height: 48,
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
                         border: '2px solid #BBDEFB'
                       }}>
-                        <Wifi sx={{ fontSize: 28, color: '#1976D2' }} />
+                        <Wifi sx={{ fontSize: 32, color: '#1976D2' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: { xs: '1.4rem', md: '1.8rem' },
+                          fontSize: { xs: '1.5rem', md: '2rem' },
                           color: '#1976D2'
                         }}
                       >
@@ -353,23 +352,23 @@ const PublicNoticeBoard = () => {
                     }
                   }}
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
                         bgcolor: '#FFF3E0', 
-                        mr: 2, 
-                        width: 48, 
-                        height: 48,
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
                         border: '2px solid #FFCC02'
                       }}>
-                        <LocalTaxi sx={{ fontSize: 28, color: '#FF9800' }} />
+                        <LocalTaxi sx={{ fontSize: 32, color: '#FF9800' }} />
                       </Avatar>
                       <Box>
                         <Typography 
                           variant="h4" 
                           sx={{ 
                             fontWeight: 700,
-                            fontSize: { xs: '1.2rem', md: '1.6rem' },
+                            fontSize: { xs: '1.4rem', md: '1.8rem' },
                             color: '#E65100'
                           }}
                         >
@@ -379,7 +378,7 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="h5" 
                           sx={{ 
-                            fontSize: { xs: '0.9rem', md: '1.1rem' },
+                            fontSize: { xs: '1rem', md: '1.2rem' },
                             color: '#FFCC02',
                             fontWeight: 700
                           }}
@@ -390,15 +389,15 @@ const PublicNoticeBoard = () => {
                       </Box>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: { xs: '1.1rem', md: '1.3rem' },
+                            fontSize: { xs: '1.3rem', md: '1.5rem' },
                             color: '#5D4037',
-                            mb: 1,
-                            lineHeight: 1.4,
+                            mb: 2,
+                            lineHeight: 1.6,
                             textAlign: 'left'
                           }}
                         >
@@ -407,9 +406,9 @@ const PublicNoticeBoard = () => {
                         <Typography 
                           variant="body1" 
                           sx={{ 
-                            fontSize: { xs: '1.1rem', md: '1.3rem' },
+                            fontSize: { xs: '1.3rem', md: '1.5rem' },
                             color: '#5D4037',
-                            lineHeight: 1.4,
+                            lineHeight: 1.6,
                             textAlign: 'left'
                           }}
                         >
@@ -424,17 +423,17 @@ const PublicNoticeBoard = () => {
                           src="/images/gett-qr.png" 
                           alt="Gett QR Code" 
                           style={{ 
-                            width: '80px', 
-                            height: '80px',
+                            width: '100px', 
+                            height: '100px',
                             borderRadius: '8px'
                           }}
                         />
                         <Typography 
                           variant="body2" 
                           sx={{ 
-                            fontSize: '0.8rem',
+                            fontSize: '0.9rem',
                             color: '#E65100',
-                            mt: 0.5,
+                            mt: 1,
                             fontWeight: 700
                           }}
                         >
@@ -450,27 +449,27 @@ const PublicNoticeBoard = () => {
           </Grid>
 
           {/* Right Column - Date, Time & Guests */}
-          <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-            <Grid container spacing={2} sx={{ flex: 1 }}>
+          <Grid item xs={12} md={6}>
+            <Grid container spacing={3}>
               {/* Date and Time */}
               <Grid item xs={12}>
                 <Box
                   sx={{
                     textAlign: 'center',
-                    py: 1,
+                    py: 3,
                     backgroundColor: '#ffffff',
                     borderRadius: 2,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     border: '1px solid #e9ecef'
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                    <AccessTime sx={{ fontSize: 24, color: '#FF9800' }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                    <AccessTime sx={{ fontSize: 28, color: '#FF9800' }} />
                     <Typography 
                       variant="h4" 
                       sx={{ 
                         fontWeight: 600,
-                        fontSize: { xs: '1.2rem', md: '1.6rem' },
+                        fontSize: { xs: '1.5rem', md: '2rem' },
                         color: '#1976D2'
                       }}
                     >
@@ -480,7 +479,7 @@ const PublicNoticeBoard = () => {
                       variant="h2" 
                       sx={{ 
                         fontWeight: 700,
-                        fontSize: { xs: '1.8rem', md: '2.2rem' },
+                        fontSize: { xs: '2rem', md: '2.5rem' },
                         color: '#2E7D32',
                         fontFamily: 'monospace'
                       }}
@@ -492,34 +491,32 @@ const PublicNoticeBoard = () => {
               </Grid>
               
               {/* Guests */}
-              <Grid item xs={12} sx={{ flex: 1 }}>
+              <Grid item xs={12}>
                 <Card
                   sx={{
                     height: '100%',
                     backgroundColor: '#ffffff',
                     borderRadius: 2,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    border: '1px solid #e9ecef',
-                    display: 'flex',
-                    flexDirection: 'column'
+                    border: '1px solid #e9ecef'
                   }}
                 >
-                  <CardContent sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <CardContent sx={{ p: 4, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Avatar sx={{ 
                         bgcolor: '#F3E5F5', 
-                        mr: 2, 
-                        width: 48, 
-                        height: 48,
+                        mr: 3, 
+                        width: 56, 
+                        height: 56,
                         border: '2px solid #9C27B0'
                       }}>
-                        <Person sx={{ fontSize: 28, color: '#7B1FA2' }} />
+                        <Person sx={{ fontSize: 32, color: '#7B1FA2' }} />
                       </Avatar>
                       <Typography 
                         variant="h4" 
                         sx={{ 
                           fontWeight: 700,
-                          fontSize: { xs: '1.3rem', md: '1.7rem' },
+                          fontSize: { xs: '1.5rem', md: '2rem' },
                           color: '#7B1FA2'
                         }}
                       >
@@ -533,12 +530,12 @@ const PublicNoticeBoard = () => {
                     display: 'flex', 
                     justifyContent: 'center', 
                     alignItems: 'center',
-                    flex: 1
+                    height: '300px'
                   }}>
                     <Typography 
                       variant="h4" 
                       sx={{ 
-                        fontSize: { xs: '1.3rem', md: '1.7rem' },
+                        fontSize: { xs: '1.5rem', md: '2rem' },
                         color: '#9C27B0',
                         textAlign: 'center'
                       }}
@@ -548,7 +545,7 @@ const PublicNoticeBoard = () => {
                     </Typography>
                   </Box>
                 ) : (
-                  <Grid container spacing={1} sx={{ flex: 1 }}>
+                  <Grid container spacing={3}>
                     {todaysGuests.map((guest, index) => (
                       <Grid item xs={12} key={index}>
                         <Box
@@ -556,7 +553,7 @@ const PublicNoticeBoard = () => {
                             background: '#f8f9fa',
                             borderRadius: 2,
                             border: '1px solid #dee2e6',
-                            p: 2,
+                            p: 3,
                             transition: 'all 0.2s ease',
                             '&:hover': {
                               background: '#e9ecef',
@@ -569,19 +566,19 @@ const PublicNoticeBoard = () => {
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Avatar sx={{ 
                                 bgcolor: '#e9ecef', 
-                                mr: 2, 
-                                width: 40, 
-                                height: 40,
+                                mr: 3, 
+                                width: 48, 
+                                height: 48,
                                 border: '2px solid #6c757d'
                               }}>
-                                <Person sx={{ fontSize: 20, color: '#495057' }} />
+                                <Person sx={{ fontSize: 24, color: '#495057' }} />
                               </Avatar>
                               <Box>
                                 <Typography 
                                   variant="h4" 
                                   sx={{ 
                                     fontWeight: 700,
-                                    fontSize: { xs: '1.4rem', md: '1.6rem' },
+                                    fontSize: { xs: '1.8rem', md: '2rem' },
                                     color: '#212529'
                                   }}
                                 >
@@ -594,14 +591,14 @@ const PublicNoticeBoard = () => {
                               backgroundColor: '#ffffff',
                               border: '2px solid #6c757d',
                               borderRadius: 2,
-                              padding: '6px 12px',
-                              minWidth: '70px'
+                              padding: '8px 16px',
+                              minWidth: '80px'
                             }}>
                               <Typography 
                                 variant="body2" 
                                 sx={{ 
                                   color: '#6c757d',
-                                  fontSize: '0.7rem',
+                                  fontSize: '0.8rem',
                                   fontWeight: 600,
                                   lineHeight: 1
                                 }}
@@ -612,7 +609,7 @@ const PublicNoticeBoard = () => {
                                 variant="h3" 
                                 sx={{ 
                                   fontWeight: 700,
-                                  fontSize: { xs: '1.4rem', md: '1.6rem' },
+                                  fontSize: { xs: '1.8rem', md: '2rem' },
                                   color: '#212529',
                                   lineHeight: 1
                                 }}
