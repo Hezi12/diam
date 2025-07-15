@@ -26,46 +26,11 @@ const Settings = () => {
     try {
       // שליחת אירוע לכל החלונות הפתוחים
       if (typeof window !== 'undefined') {
-        // שיטה 1: postMessage לחלון הנוכחי
+        // שליחת אירוע לכל החלונות הפתוחים
         window.postMessage('refresh-guests', window.location.origin);
         
-        // שיטה 2: BroadcastChannel API (עבור PWA)
-        try {
-          const channel = new BroadcastChannel('refresh-guests-channel');
-          channel.postMessage('refresh-guests');
-          channel.close();
-        } catch (e) {
-          console.log('BroadcastChannel not supported');
-        }
-        
-        // שיטה 3: localStorage + timestamp
+        // חיפוש וספירת חלונות לוח המודעות הפתוחים
         localStorage.setItem('refresh-guests-trigger', Date.now().toString());
-        
-        // שיטה 4: Service Worker messaging (עבור PWA)
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'REFRESH_GUESTS_REQUEST',
-            timestamp: Date.now()
-          });
-        }
-        
-        // שיטה 5: בדיקת חלונות פתוחים וקישור ישיר
-        try {
-          const allWindows = [window];
-          if (window.opener) allWindows.push(window.opener);
-          
-          allWindows.forEach(win => {
-            if (win && !win.closed) {
-              try {
-                win.postMessage('refresh-guests', '*');
-              } catch (e) {
-                console.log('Cross-origin message blocked');
-              }
-            }
-          });
-        } catch (e) {
-          console.log('Window access blocked');
-        }
       }
       
       // הצגת הודעת הצלחה
@@ -80,7 +45,7 @@ const Settings = () => {
 
   // פונקציה לפתיחת הדף הציבורי
   const openPublicNoticeBoard = () => {
-    window.open('/public-notice-board', 'noticeBoardPublic', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+    window.open('/notice-board-public', 'noticeBoardPublic', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
   };
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>

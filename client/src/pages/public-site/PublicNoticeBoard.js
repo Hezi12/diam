@@ -214,88 +214,24 @@ const PublicNoticeBoard = () => {
 
   // האזנה להודעות רענון מדף ההגדרות
   useEffect(() => {
-    let broadcastChannel;
-    
-    // שיטה 1: הודעות postMessage
     const handleMessage = (event) => {
-      if (event.data === 'refresh-guests' || event.data?.type === 'REFRESH_GUESTS_REQUEST') {
-        console.log('Refresh guests via postMessage');
+      if (event.data === 'refresh-guests') {
         fetchTodaysGuests();
       }
     };
 
-    // שיטה 2: localStorage changes
     const handleStorageChange = (event) => {
       if (event.key === 'refresh-guests-trigger') {
-        console.log('Refresh guests via localStorage');
         fetchTodaysGuests();
       }
     };
 
-    // שיטה 3: BroadcastChannel API (עבור PWA)
-    try {
-      broadcastChannel = new BroadcastChannel('refresh-guests-channel');
-      broadcastChannel.addEventListener('message', (event) => {
-        if (event.data === 'refresh-guests') {
-          console.log('Refresh guests via BroadcastChannel');
-          fetchTodaysGuests();
-        }
-      });
-    } catch (e) {
-      console.log('BroadcastChannel not supported');
-    }
-
-    // שיטה 4: Service Worker messaging
-    const handleServiceWorkerMessage = (event) => {
-      if (event.data?.type === 'REFRESH_GUESTS_REQUEST') {
-        console.log('Refresh guests via Service Worker');
-        fetchTodaysGuests();
-      }
-    };
-
-    // שיטה 5: Polling localStorage לשימוש ב-PWA
-    const startPolling = () => {
-      let lastTimestamp = localStorage.getItem('refresh-guests-trigger');
-      
-      const pollInterval = setInterval(() => {
-        const currentTimestamp = localStorage.getItem('refresh-guests-trigger');
-        if (currentTimestamp && currentTimestamp !== lastTimestamp) {
-          console.log('Refresh guests via polling');
-          fetchTodaysGuests();
-          lastTimestamp = currentTimestamp;
-        }
-      }, 1000); // בדיקה כל שנייה
-
-      return pollInterval;
-    };
-
-    // הוספת listeners
     window.addEventListener('message', handleMessage);
     window.addEventListener('storage', handleStorageChange);
-    
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-    }
-
-    // התחלת polling
-    const pollInterval = startPolling();
 
     return () => {
-      // ניקוי listeners
       window.removeEventListener('message', handleMessage);
       window.removeEventListener('storage', handleStorageChange);
-      
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-      }
-      
-      if (broadcastChannel) {
-        broadcastChannel.close();
-      }
-      
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
     };
   }, [fetchTodaysGuests]);
 

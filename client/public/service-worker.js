@@ -1,5 +1,5 @@
 // שם ה-Cache לשמירת קבצים
-const CACHE_NAME = 'diam-hotel-cache-v4';
+const CACHE_NAME = 'diam-hotel-cache-v5';
 
 // רשימת הקבצים שיש לשמור ב-Cache
 const urlsToCache = [
@@ -39,8 +39,19 @@ self.addEventListener('fetch', event => {
   // מתעלם מבקשות שאינן GET
   if (event.request.method !== 'GET') return;
   
-  // מתעלם מבקשות API
+  // מתעלם מבקשות API - תמיד נותן לרשת לטפל בהן
   if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // מתעלם מבקשות לרענון נתונים או פעולות דינמיות
+  if (event.request.url.includes('refresh') || 
+      event.request.url.includes('update') ||
+      event.request.url.includes('sync') ||
+      event.request.url.includes('settings') ||
+      event.request.url.includes('public-notice-board') ||
+      event.request.url.includes('notice-board-public') ||
+      event.request.url.includes('bookings')) {
     return;
   }
 
@@ -89,34 +100,30 @@ self.addEventListener('fetch', event => {
           })
       );
     } else if (isHTMLRequest) {
-      // עבור בקשות HTML, החזר את הדף מהמטמון אם קיים, אחרת נסה להביא מהרשת
+      // עבור בקשות HTML דינמיות, תמיד נסה קודם מהרשת (Network First)
       event.respondWith(
-        caches.match('/')
-          .then(cachedResponse => {
-            if (cachedResponse) {
-              // נסה להביא גרסה עדכנית מהרשת
-              const fetchPromise = fetch(event.request)
-                .then(networkResponse => {
-                  // עדכן את המטמון עם הגרסה החדשה
-                  caches.open(CACHE_NAME)
-                    .then(cache => {
-                      cache.put(event.request, networkResponse.clone());
-                    })
-                    .catch(err => console.log('שגיאה בעדכון המטמון:', err));
-                  
-                  return networkResponse;
+        fetch(event.request)
+          .then(networkResponse => {
+            // אם הרשת זמינה, שמור במטמון והחזר את התגובה
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, networkResponse.clone());
                 })
-                .catch(() => {
-                  // אם נכשל, השתמש בגרסה מהמטמון
-                  return cachedResponse;
-                });
-              
-              // החזר מהמטמון תוך כדי ניסיון להביא מהרשת
-              return cachedResponse;
+                .catch(err => console.log('שגיאה בשמירה במטמון:', err));
             }
-            
-            // אם אין במטמון, נסה להביא מהרשת
-            return fetch(event.request);
+            return networkResponse;
+          })
+          .catch(() => {
+            // אם הרשת נכשלת, נסה מהמטמון
+            return caches.match(event.request)
+              .then(cachedResponse => {
+                if (cachedResponse) {
+                  return cachedResponse;
+                }
+                // אם אין במטמון, החזר דף בסיסי
+                return caches.match('/');
+              });
           })
       );
     } else {
@@ -151,21 +158,4 @@ self.addEventListener('activate', event => {
       return self.clients.claim();
     })
   );
-});
-
-// האזנה להודעות מהקליינט והעברה לכל הלקוחות
-self.addEventListener('message', event => {
-  console.log('Service Worker קיבל הודעה:', event.data);
-  
-  if (event.data && event.data.type === 'REFRESH_GUESTS_REQUEST') {
-    // העברת ההודעה לכל הקליינטים הפתוחים
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'REFRESH_GUESTS_REQUEST',
-          timestamp: event.data.timestamp
-        });
-      });
-    });
-  }
 }); 
