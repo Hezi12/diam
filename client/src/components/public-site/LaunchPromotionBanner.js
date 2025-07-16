@@ -100,6 +100,39 @@ const LaunchPromotionBanner = () => {
           {t('promotion.description')}
         </Typography>
 
+        {/* קופון מעוצב */}
+        <Box sx={{
+          bgcolor: '#000',
+          color: 'white',
+          borderRadius: 2,
+          p: 3,
+          mb: 3,
+          border: '2px dashed #fbbf24',
+          position: 'relative',
+          textAlign: 'center',
+          backgroundImage: 'linear-gradient(135deg, #000 0%, #1f1f1f 100%)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        }}>
+          <Typography variant="body2" sx={{ 
+            color: '#fbbf24',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            mb: 1
+          }}>
+            {t('promotion.couponText')}
+          </Typography>
+          <Typography variant="h4" component="div" sx={{ 
+            fontWeight: 800, 
+            color: '#fbbf24',
+            fontSize: '2rem',
+            fontFamily: 'monospace',
+            letterSpacing: '0.2em',
+            textShadow: '0 0 10px rgba(251, 191, 36, 0.3)'
+          }}>
+            {t('promotion.couponCode')}
+          </Typography>
+        </Box>
+
         <Box sx={{
           bgcolor: '#fef3c7',
           border: '1px solid #f59e0b',

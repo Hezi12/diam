@@ -1,10 +1,12 @@
 {
   "promotion": {
-    "title": "🌟 האתר החדש שלנו בהרצה!",
+    "title": "🎫 הנחה מיוחדת עם קופון!",
     "discount": "25% הנחה",
-    "description": "לרגל השקת האתר החדש - קבלו 25% הנחה על כל הזמנה",
-    "limitation": "מבצע מוגבל להזמנות ראשונות - הזמינו עכשיו ותיהנו מהמחירים המיוחדים",
-    "button": "הזמינו עכשיו"
+    "description": "השתמשו בקופון NEW וקבלו 25% הנחה על כל הזמנה",
+    "limitation": "הזינו את הקופון בעמוד החיפוש וקבלו את ההנחה מיידית",
+    "button": "הזמינו עכשיו",
+    "couponCode": "NEW",
+    "couponText": "קוד הקופון:"
   },
   "header": {
     "title": "Airport Guest House",
