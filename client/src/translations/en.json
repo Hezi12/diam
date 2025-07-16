@@ -1,8 +1,8 @@
 {
   "promotion": {
-    "title": "🎫 Special Coupon Discount!",
+    "title": "🎉 Launch Discount!",
     "discount": "25% OFF",
-    "description": "Use coupon code NEW and get 25% discount on every booking",
+    "description": "Our new website is launching - special discount for first-time bookings",
     "limitation": "Enter the coupon code on the search page and get instant discount",
     "button": "Book Now",
     "couponCode": "NEW",

@@ -7,8 +7,7 @@ import {
   Button,
   Typography,
   Box,
-  IconButton,
-  Divider
+  IconButton
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
@@ -75,13 +74,13 @@ const LaunchPromotionBanner = () => {
         <Box sx={{ 
           mb: 3,
           p: 3,
-          bgcolor: '#f0f9ff',
+          bgcolor: '#f8fafc',
           borderRadius: 2,
-          border: '2px solid #0ea5e9'
+          border: '2px solid #64748b'
         }}>
           <Typography variant="h2" component="div" sx={{ 
             fontWeight: 800, 
-            color: '#0ea5e9',
+            color: '#334155',
             fontSize: '3rem',
             lineHeight: 1,
             mb: 1
@@ -102,19 +101,18 @@ const LaunchPromotionBanner = () => {
 
         {/* קופון מעוצב */}
         <Box sx={{
-          bgcolor: '#000',
-          color: 'white',
+          bgcolor: '#ffffff',
+          color: '#334155',
           borderRadius: 2,
           p: 3,
           mb: 3,
-          border: '2px dashed #fbbf24',
+          border: '2px dashed #64748b',
           position: 'relative',
           textAlign: 'center',
-          backgroundImage: 'linear-gradient(135deg, #000 0%, #1f1f1f 100%)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
         }}>
           <Typography variant="body2" sx={{ 
-            color: '#fbbf24',
+            color: '#64748b',
             fontWeight: 600,
             fontSize: '0.9rem',
             mb: 1
@@ -123,25 +121,24 @@ const LaunchPromotionBanner = () => {
           </Typography>
           <Typography variant="h4" component="div" sx={{ 
             fontWeight: 800, 
-            color: '#fbbf24',
+            color: '#334155',
             fontSize: '2rem',
             fontFamily: 'monospace',
-            letterSpacing: '0.2em',
-            textShadow: '0 0 10px rgba(251, 191, 36, 0.3)'
+            letterSpacing: '0.2em'
           }}>
             {t('promotion.couponCode')}
           </Typography>
         </Box>
 
         <Box sx={{
-          bgcolor: '#fef3c7',
-          border: '1px solid #f59e0b',
+          bgcolor: '#f1f5f9',
+          border: '1px solid #cbd5e1',
           borderRadius: 2,
           p: 2,
           mb: 2
         }}>
           <Typography variant="body2" sx={{ 
-            color: '#92400e',
+            color: '#475569',
             fontWeight: 600,
             fontSize: '0.9rem'
           }}>
@@ -155,7 +152,7 @@ const LaunchPromotionBanner = () => {
           onClick={handleClose}
           variant="contained"
           sx={{
-            bgcolor: '#0ea5e9',
+            bgcolor: '#64748b',
             color: 'white',
             fontWeight: 700,
             fontSize: '1rem',
@@ -163,10 +160,10 @@ const LaunchPromotionBanner = () => {
             py: 1.5,
             borderRadius: 2,
             textTransform: 'none',
-            boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)',
+            boxShadow: '0 4px 14px rgba(100, 116, 139, 0.3)',
             '&:hover': {
-              bgcolor: '#0284c7',
-              boxShadow: '0 6px 20px rgba(14, 165, 233, 0.4)',
+              bgcolor: '#475569',
+              boxShadow: '0 6px 20px rgba(100, 116, 139, 0.4)',
               transform: 'translateY(-1px)'
             },
             transition: 'all 0.2s ease'
