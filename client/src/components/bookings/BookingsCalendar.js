@@ -22,6 +22,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop (מותאם RTL)
@@ -783,15 +784,27 @@ const BookingsCalendar = ({
       const hasNotes = booking.notes && booking.notes.trim().length > 0;
       
       // בדיקה האם ההזמנה לא שולמה ותאריך הצ'ק-אין עבר או שהוא היום
-      const isPastOrTodayAndNotPaid = (booking.paymentStatus === 'לא שולם' || booking.paymentStatus === 'unpaid') && 
+      // מציגים אייקון עבור: 'unpaid', 'לא שולם', 'other' (אחר)
+      const isPastOrTodayAndNotPaid = (booking.paymentStatus === 'לא שולם' || booking.paymentStatus === 'unpaid' || booking.paymentStatus === 'other') && 
         (checkInDate <= today);
       
-      console.log('בדיקת תשלום:', {
+      // בדיקה האם צריך להציג אייקון חוות דעת
+      // התנאים: 1. מקור Booking או Expedia, 2. לא טופל בחוות דעת, 3. ההזמנה הסתיימה
+      const needsReviewIcon = (booking.source === 'booking' || booking.source === 'expedia') && 
+        !booking.reviewHandled && 
+        (checkOutDate <= today);
+      
+      console.log('בדיקת תשלום וחוות דעת:', {
         bookingId: booking._id,
         paymentStatus: booking.paymentStatus,
         checkInDate: checkInDateStr,
+        checkOutDate: checkOutDateStr,
         isPastOrToday: checkInDate <= today,
-        isPastOrTodayAndNotPaid
+        isPastOrTodayAndNotPaid,
+        source: booking.source,
+        reviewHandled: booking.reviewHandled,
+        checkOutPassed: checkOutDate <= today,
+        needsReviewIcon
       });
       
       // יצירת הרכיב עם או בלי tooltip בהתאם לחפיפה
@@ -882,6 +895,33 @@ const BookingsCalendar = ({
                       ₪
                     </Typography>
                   </Box>
+                </Tooltip>
+              )}
+              
+              {/* אייקון חוות דעת - יוצג כאשר ההזמנה מ-Booking/Expedia הסתיימה ולא טופלה */}
+              {needsReviewIcon && (
+                <Tooltip title="נדרש מילוי חוות דעת" arrow placement="top">
+                  <IconButton 
+                    size="small" 
+                    sx={{ 
+                      p: 0,
+                      width: '20px',
+                      height: '20px',
+                      minWidth: '20px',
+                      bgcolor: 'transparent',
+                      '&:hover': { bgcolor: 'transparent' }
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
+                    }}
+                  >
+                    <RateReviewIcon 
+                      sx={{ 
+                        color: '#9b59b6',
+                        fontSize: '20px'
+                      }}
+                    />
+                  </IconButton>
                 </Tooltip>
               )}
               
