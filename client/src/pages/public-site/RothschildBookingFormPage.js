@@ -92,6 +92,7 @@ const RothschildBookingFormPage = () => {
   const nightsStr = searchParams.get('nights');
   const guestsStr = searchParams.get('guests');
   const isTouristStr = searchParams.get('isTourist');
+  const couponCodeStr = searchParams.get('couponCode');
   
   // בדיקת תקינות פרמטרים
   const validParams = roomId && checkInStr && checkOutStr;
@@ -101,6 +102,7 @@ const RothschildBookingFormPage = () => {
   const checkOut = validParams ? parseISO(checkOutStr) : null;
   const urlGuests = parseInt(guestsStr, 10) || 2;
   const isTourist = isTouristStr === 'true';
+  const couponCode = couponCodeStr || '';
   
   // חישוב מספר לילות - עדיפות לפרמטר מה-URL, אחרת חישוב מהתאריכים
   const nightsFromUrl = parseInt(nightsStr, 10);
@@ -715,6 +717,7 @@ const RothschildBookingFormPage = () => {
               guests={urlGuests}
               isTourist={isTourist}
               location="rothschild"
+              couponCode={couponCode}
               nights={nightsCount}
               showDiscountBadges={true}
               compact={true}

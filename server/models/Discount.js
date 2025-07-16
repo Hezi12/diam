@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 /**
  * מודל הנחות מתקדם
  * תומך בהנחות באחוזים ובשקלים, עם תנאים של תאריכים ורגע אחרון
+ * כולל תמיכה בקופוני הנחה
  */
 const DiscountSchema = new mongoose.Schema(
   {
@@ -16,6 +17,34 @@ const DiscountSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ''
+    },
+    
+    // הגדרות קופון
+    couponRequired: {
+      type: Boolean,
+      default: false
+    },
+    couponCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      sparse: true, // אינדקס sparse - רק על מסמכים שיש להם ערך
+      validate: {
+        validator: function(value) {
+          // אם couponRequired הוא true, צריך להיות קופון
+          if (this.couponRequired && !value) {
+            return false;
+          }
+          // אם יש קופון, צריך להיות באורך 3-20 תווים באנגלית ומספרים בלבד
+          if (value && !/^[A-Z0-9]{3,20}$/.test(value)) {
+            return false;
+          }
+          return true;
+        },
+        message: 'קוד קופון חייב להיות באורך 3-20 תווים, באנגלית ומספרים בלבד'
+      },
+      // אם יש קופון, הוא חייב להיות ייחודי
+      unique: true
     },
     
     // סוג ההנחה
@@ -125,13 +154,7 @@ const DiscountSchema = new mongoose.Schema(
       }
     },
     
-    // עדיפות ההנחה (ככל שהמספר גבוה יותר, העדיפות גבוהה יותר)
-    priority: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 10
-    },
+    // הוסר השדה priority - הלוגיקה פשוטה יותר עם combinable בלבד
     
     // האם ניתן לשלב עם הנחות אחרות
     combinable: {
@@ -160,7 +183,8 @@ const DiscountSchema = new mongoose.Schema(
       },
       discountAmount: Number,
       originalPrice: Number,
-      finalPrice: Number
+      finalPrice: Number,
+      couponCode: String // השדה הזה יישמר כדי לעקוב אחרי השימוש
     }],
     
     // סטטוס פעילות
@@ -217,14 +241,32 @@ DiscountSchema.virtual('isUsageLimitReached').get(function() {
 // Indexes לביצועים טובים
 DiscountSchema.index({ location: 1, isActive: 1 });
 DiscountSchema.index({ validityType: 1, validFrom: 1, validUntil: 1 });
-DiscountSchema.index({ priority: -1 });
 DiscountSchema.index({ 'applicableRooms': 1 });
 DiscountSchema.index({ 'applicableCategories': 1 });
+DiscountSchema.index({ couponCode: 1 }, { sparse: true }); // אינדקס sparse על קופון
 
 // Static Methods - פונקציות סטטיות
 
 /**
- * מציאת הנחות ישימות להזמנה
+ * חיפוש הנחה לפי קוד קופון
+ */
+DiscountSchema.statics.findByCouponCode = async function(couponCode) {
+  if (!couponCode || typeof couponCode !== 'string') {
+    return null;
+  }
+  
+  const normalizedCode = couponCode.trim().toUpperCase();
+  
+  return await this.findOne({
+    couponCode: normalizedCode,
+    couponRequired: true,
+    isActive: true
+  });
+};
+
+/**
+ * מציאת הנחות ישימות לפי פרמטרי הזמנה
+ * תומך בקופונים ובשילוב הנחות
  */
 DiscountSchema.statics.findApplicableDiscounts = async function(params) {
   const {
@@ -235,16 +277,40 @@ DiscountSchema.statics.findApplicableDiscounts = async function(params) {
     checkOut,
     nights,
     guests,
-    isTourist
+    isTourist,
+    couponCode
   } = params;
   
   const now = new Date();
   const checkInDate = new Date(checkIn);
   const checkOutDate = new Date(checkOut);
   
-  // קריטריונים בסיסיים
-  const baseQuery = {
+  // אם יש קופון, נחפש הנחות קופון ואולי הנחות רגילות לשילוב
+  if (couponCode) {
+    const couponDiscounts = await this.findCouponDiscounts(location, couponCode);
+    if (couponDiscounts.length > 0) {
+      return this.processCouponDiscounts(couponDiscounts, {
+        location, roomId, roomCategory, checkIn, checkOut, nights, guests, isTourist, now, checkInDate, checkOutDate
+      });
+    }
+  }
+  
+  // אם אין קופון או לא נמצאו הנחות קופון, נחפש הנחות רגילות
+  return this.findRegularDiscounts({
+    location, roomId, roomCategory, checkIn, checkOut, nights, guests, isTourist, now, checkInDate, checkOutDate
+  });
+};
+
+/**
+ * חיפוש הנחות קופון
+ */
+DiscountSchema.statics.findCouponDiscounts = async function(location, couponCode) {
+  const normalizedCode = couponCode.trim().toUpperCase();
+  
+  const query = {
     isActive: true,
+    couponRequired: true,
+    couponCode: normalizedCode,
     $or: [
       { location: location },
       { location: 'both' }
@@ -252,93 +318,184 @@ DiscountSchema.statics.findApplicableDiscounts = async function(params) {
   };
   
   // סינון לפי הגבלות שימוש
-  baseQuery.$or = [
+  query.$or = [
     { 'usageLimit.maxUses': { $exists: false } },
     { 'usageLimit.maxUses': null },
     { $expr: { $lt: ['$usageLimit.currentUses', '$usageLimit.maxUses'] } }
   ];
   
-  let discounts = await this.find(baseQuery)
+  return this.find(query)
     .populate('applicableRooms')
-    .sort({ priority: -1, createdAt: -1 });
+    .sort({ createdAt: -1 });
+};
+
+/**
+ * עיבוד הנחות קופון והחלטה על שילוב עם הנחות רגילות
+ */
+DiscountSchema.statics.processCouponDiscounts = async function(couponDiscounts, params) {
+  const { location } = params;
   
-  // סינון נוסף בצד הקליינט
-  return discounts.filter(discount => {
-    // בדיקת תוקף לפי סוג
-    if (discount.validityType === 'date_range') {
-      if (now < discount.validFrom || now > discount.validUntil) {
-        return false;
-      }
-    }
-    
-    // בדיקת רגע אחרון
-    if (discount.validityType === 'last_minute') {
-      const msPerDay = 24 * 60 * 60 * 1000;
-      const daysUntilArrival = Math.ceil((checkInDate - now) / msPerDay);
-      
-      if (discount.lastMinuteSettings.includeArrivalDay) {
-        if (daysUntilArrival > discount.lastMinuteSettings.daysBeforeArrival) {
-          return false;
-        }
-      } else {
-        if (daysUntilArrival >= discount.lastMinuteSettings.daysBeforeArrival) {
-          return false;
-        }
-      }
-    }
-    
-    // בדיקת חדרים ספציפיים
-    if (discount.applicableRooms.length > 0) {
-      const roomIds = discount.applicableRooms.map(room => room._id.toString());
-      if (!roomIds.includes(roomId.toString())) {
-        return false;
-      }
-    }
-    
-    // בדיקת קטגוריות
-    if (discount.applicableCategories.length > 0) {
-      if (!discount.applicableCategories.includes(roomCategory)) {
-        return false;
-      }
-    }
-    
-    // בדיקת הגבלות
-    const restrictions = discount.restrictions;
-    
-    // מספר לילות
-    if (nights < restrictions.minNights) return false;
-    if (restrictions.maxNights && nights > restrictions.maxNights) return false;
-    
-    // מספר אורחים
-    if (guests < restrictions.minGuests) return false;
-    if (restrictions.maxGuests && guests > restrictions.maxGuests) return false;
-    
-    // ימים בשבוע
-    if (restrictions.validDaysOfWeek.length > 0) {
-      const checkInDay = checkInDate.getDay();
-      const checkOutDay = checkOutDate.getDay();
-      
-      // בדיקה אם יש חפיפה בין התאריכים לימים המותרים
-      let hasValidDay = false;
-      const currentDate = new Date(checkInDate);
-      
-      while (currentDate < checkOutDate) {
-        if (restrictions.validDaysOfWeek.includes(currentDate.getDay())) {
-          hasValidDay = true;
-          break;
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      if (!hasValidDay) return false;
-    }
-    
-    // סוג לקוח
-    if (isTourist && !restrictions.applicableForTourists) return false;
-    if (!isTourist && !restrictions.applicableForIsraelis) return false;
-    
-    return true;
+  // סינון הנחות קופון תקפות
+  const validCouponDiscounts = couponDiscounts.filter(discount => {
+    return this.validateDiscountForBooking(discount, params);
   });
+  
+  // אם אין הנחות קופון תקפות, נחזיר רשימה ריקה
+  if (validCouponDiscounts.length === 0) {
+    return [];
+  }
+  
+  // אם הנחת הקופון ניתנת לשילוב, נחפש הנחות רגילות לשילוב
+  const primaryCouponDiscount = validCouponDiscounts[0];
+  if (primaryCouponDiscount.combinable) {
+    const combinableRegularDiscounts = await this.findCombinableRegularDiscounts(location, params);
+    return [...validCouponDiscounts, ...combinableRegularDiscounts];
+  }
+  
+  return validCouponDiscounts;
+};
+
+/**
+ * חיפוש הנחות רגילות שניתן לשלב
+ */
+DiscountSchema.statics.findCombinableRegularDiscounts = async function(location, params) {
+  const query = {
+    isActive: true,
+    couponRequired: { $ne: true },
+    combinable: true,
+    $or: [
+      { location: location },
+      { location: 'both' }
+    ]
+  };
+  
+  // סינון לפי הגבלות שימוש
+  query.$or = [
+    { 'usageLimit.maxUses': { $exists: false } },
+    { 'usageLimit.maxUses': null },
+    { $expr: { $lt: ['$usageLimit.currentUses', '$usageLimit.maxUses'] } }
+  ];
+  
+  const regularDiscounts = await this.find(query)
+    .populate('applicableRooms')
+    .sort({ createdAt: -1 });
+  
+  return regularDiscounts.filter(discount => {
+    return this.validateDiscountForBooking(discount, params);
+  });
+};
+
+/**
+ * חיפוש הנחות רגילות (ללא קופון)
+ */
+DiscountSchema.statics.findRegularDiscounts = async function(params) {
+  const { location } = params;
+  
+  const query = {
+    isActive: true,
+    couponRequired: { $ne: true },
+    $or: [
+      { location: location },
+      { location: 'both' }
+    ]
+  };
+  
+  // סינון לפי הגבלות שימוש
+  query.$or = [
+    { 'usageLimit.maxUses': { $exists: false } },
+    { 'usageLimit.maxUses': null },
+    { $expr: { $lt: ['$usageLimit.currentUses', '$usageLimit.maxUses'] } }
+  ];
+  
+  const discounts = await this.find(query)
+    .populate('applicableRooms')
+    .sort({ createdAt: -1 });
+  
+  return discounts.filter(discount => {
+    return this.validateDiscountForBooking(discount, params);
+  });
+};
+
+/**
+ * פונקציה עזר לולידציה של הנחה לפי פרמטרי הזמנה
+ */
+DiscountSchema.statics.validateDiscountForBooking = function(discount, params) {
+  const { location, roomId, roomCategory, checkIn, checkOut, nights, guests, isTourist, now, checkInDate, checkOutDate } = params;
+  
+  // בדיקת תוקף לפי סוג
+  if (discount.validityType === 'date_range') {
+    if (now < discount.validFrom || now > discount.validUntil) {
+      return false;
+    }
+  }
+  
+  // בדיקת רגע אחרון
+  if (discount.validityType === 'last_minute') {
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysUntilArrival = Math.ceil((checkInDate - now) / msPerDay);
+    
+    if (discount.lastMinuteSettings.includeArrivalDay) {
+      if (daysUntilArrival > discount.lastMinuteSettings.daysBeforeArrival) {
+        return false;
+      }
+    } else {
+      if (daysUntilArrival >= discount.lastMinuteSettings.daysBeforeArrival) {
+        return false;
+      }
+    }
+  }
+  
+  // בדיקת חדרים ספציפיים
+  if (discount.applicableRooms.length > 0) {
+    const roomIds = discount.applicableRooms.map(room => room._id.toString());
+    if (!roomIds.includes(roomId.toString())) {
+      return false;
+    }
+  }
+  
+  // בדיקת קטגוריות
+  if (discount.applicableCategories.length > 0) {
+    if (!discount.applicableCategories.includes(roomCategory)) {
+      return false;
+    }
+  }
+  
+  // בדיקת הגבלות
+  const restrictions = discount.restrictions;
+  
+  // מספר לילות
+  if (nights < restrictions.minNights) return false;
+  if (restrictions.maxNights && nights > restrictions.maxNights) return false;
+  
+  // מספר אורחים
+  if (guests < restrictions.minGuests) return false;
+  if (restrictions.maxGuests && guests > restrictions.maxGuests) return false;
+  
+  // ימים בשבוע
+  if (restrictions.validDaysOfWeek.length > 0) {
+    const checkInDay = checkInDate.getDay();
+    const checkOutDay = checkOutDate.getDay();
+    
+    // בדיקה אם יש חפיפה בין התאריכים לימים המותרים
+    let hasValidDay = false;
+    const currentDate = new Date(checkInDate);
+    
+    while (currentDate < checkOutDate) {
+      if (restrictions.validDaysOfWeek.includes(currentDate.getDay())) {
+        hasValidDay = true;
+        break;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    if (!hasValidDay) return false;
+  }
+  
+  // סוג לקוח
+  if (isTourist && !restrictions.applicableForTourists) return false;
+  if (!isTourist && !restrictions.applicableForIsraelis) return false;
+  
+  return true;
 };
 
 // Instance Methods - פונקציות על המופע
@@ -358,13 +515,14 @@ DiscountSchema.methods.calculateDiscountAmount = function(originalPrice) {
 /**
  * רישום שימוש בהנחה
  */
-DiscountSchema.methods.recordUsage = async function(bookingId, discountAmount, originalPrice, finalPrice) {
+DiscountSchema.methods.recordUsage = async function(bookingId, discountAmount, originalPrice, finalPrice, couponCode = null) {
   // הוספה להיסטוריה
   this.usageHistory.push({
     bookingId,
     discountAmount,
     originalPrice,
     finalPrice,
+    couponCode, // שמירת קוד הקופון שהשתמשו בו
     usedAt: new Date()
   });
   
@@ -401,7 +559,8 @@ DiscountSchema.methods.isApplicableForBooking = function(params) {
     checkOut,
     nights,
     guests,
-    isTourist
+    isTourist,
+    couponCode
   } = params;
   
   // בדיקת פעילות
@@ -415,6 +574,12 @@ DiscountSchema.methods.isApplicableForBooking = function(params) {
   
   // בדיקת תוקף
   if (!this.isValid) return false;
+  
+  // בדיקת קופון
+  if (this.couponRequired) {
+    if (!couponCode) return false;
+    if (this.couponCode !== couponCode.trim().toUpperCase()) return false;
+  }
   
   // בדיקות נוספות יבוצעו ב-findApplicableDiscounts
   
@@ -440,6 +605,17 @@ DiscountSchema.pre('save', function(next) {
   if (this.restrictions.maxGuests && this.restrictions.minGuests > this.restrictions.maxGuests) {
     next(new Error('מספר אורחים מקסימלי חייב להיות גדול מהמינימום'));
     return;
+  }
+  
+  // ולידציה לקופון
+  if (this.couponRequired && !this.couponCode) {
+    next(new Error('הנחה שדורשת קופון חייבת לכלול קוד קופון'));
+    return;
+  }
+  
+  // נירמול קוד קופון
+  if (this.couponCode) {
+    this.couponCode = this.couponCode.trim().toUpperCase();
   }
   
   next();

@@ -22,7 +22,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Badge
 } from '@mui/material';
 import {
   LocalOffer as DiscountIcon,
@@ -33,14 +34,15 @@ import {
   TrendingDown as SavingsIcon,
   Schedule as ScheduleIcon,
   Security as SecurityIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  CardGiftcard as CouponIcon
 } from '@mui/icons-material';
 import { format, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import DiscountService from '../../services/discountService';
 
 /**
- * קלקולטור מחירים מתקדם עם תמיכה בהנחות
+ * קלקולטור מחירים מתקדם עם תמיכה בהנחות וקופונים
  */
 const PriceCalculatorWithDiscounts = React.memo(({
   room,
@@ -49,6 +51,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
   guests = 1,
   isTourist = false,
   location,
+  couponCode = '', // פרמטר חדש לקופון
   onPriceCalculated,
   showDiscountDetails = true,
   showDiscountBadges = false,
@@ -66,6 +69,8 @@ const PriceCalculatorWithDiscounts = React.memo(({
   const [selectedDiscounts, setSelectedDiscounts] = useState([]);
   const [showDiscounts, setShowDiscounts] = useState(false);
   const [discountDetailsOpen, setDiscountDetailsOpen] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(null); // מידע על הנחת קופון
+  const [couponError, setCouponError] = useState('');
   
   // חישוב מספר הלילות עם useMemo להימנעות מחישוב מיותר
   const calculatedNights = useMemo(() => {
@@ -79,6 +84,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
   const roomCategory = room?.category;
   const checkInStr = checkIn?.toString();
   const checkOutStr = checkOut?.toString();
+  const normalizedCouponCode = couponCode?.trim().toUpperCase();
 
   // חישוב מחיר בסיסי - פונקציה פשוטה ללא dependencies
   const calculateBasePrice = useCallback((params = {}) => {
@@ -101,17 +107,84 @@ const PriceCalculatorWithDiscounts = React.memo(({
     });
   }, [room, calculatedNights, checkIn, checkOut, guests, isTourist]);
 
-  // טעינת הנחות ישימות - dependencies מוקטנות לערכים פרימיטיביים
+  // פונקציה עזר לטיפול בקופונים
+  const processCouponDiscounts = useCallback(async (couponCode) => {
+    try {
+      const couponDiscounts = await DiscountService.getApplicableDiscountsWithCoupon({
+        location,
+        roomId,
+        roomCategory,
+        checkIn,
+        checkOut,
+        nights: calculatedNights,
+        guests,
+        isTourist
+      }, couponCode);
+
+      if (couponDiscounts.length > 0) {
+        console.log('✅ נמצאו הנחות עם קופון:', couponDiscounts);
+        setApplicableDiscounts(couponDiscounts);
+        
+        // מציאת הנחת הקופון
+        const couponDiscount = couponDiscounts.find(d => d.couponRequired);
+        if (couponDiscount) {
+          setCouponDiscount(couponDiscount);
+        }
+        
+        // בחירה אוטומטית של הנחות לשילוב
+        const selectedIds = selectDiscountsForCombination(couponDiscounts);
+        setSelectedDiscounts(selectedIds);
+        
+        console.log('✅ נבחרו הנחות לשילוב:', selectedIds);
+        return { success: true };
+      } else {
+        setCouponError('הקופון לא תקף להזמנה זו או שפג תוקפו');
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בחיפוש קופון:', error);
+      setCouponError('שגיאה בבדיקת הקופון');
+      return { success: false };
+    }
+  }, [location, roomId, roomCategory, checkIn, checkOut, calculatedNights, guests, isTourist]);
+
+  // פונקציה עזר לבחירת הנחות לשילוב
+  const selectDiscountsForCombination = useCallback((discounts) => {
+    const selectedIds = [];
+    
+    // בחירת הנחת קופון
+    const couponDiscount = discounts.find(d => d.couponRequired);
+    if (couponDiscount) {
+      selectedIds.push(couponDiscount._id);
+    }
+    
+    // בחירת הנחות רגילות שניתן לשלב
+    const combinableRegularDiscounts = discounts.filter(d => 
+      !d.couponRequired && d.combinable
+    );
+    
+    if (combinableRegularDiscounts.length > 0) {
+      // בחירת ההנחה הטובה ביותר
+      selectedIds.push(combinableRegularDiscounts[0]._id);
+    }
+    
+    return selectedIds;
+  }, []);
+
+  // טעינת הנחות ישימות - עם תמיכה בקופונים
   const loadApplicableDiscounts = useCallback(async () => {
     if (!roomId || !checkInStr || !checkOutStr || calculatedNights <= 0) {
       console.log('🚫 PriceCalculatorWithDiscounts: לא נטענו הנחות - חסרים פרמטרים:', { room: !!roomId, checkIn: checkInStr, checkOut: checkOutStr, nights: calculatedNights });
       setApplicableDiscounts([]);
+      setCouponDiscount(null);
+      setCouponError('');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
+      setCouponError('');
 
       console.log('🔍 PriceCalculatorWithDiscounts: מחפש הנחות ישימות:', {
         location,
@@ -121,9 +194,19 @@ const PriceCalculatorWithDiscounts = React.memo(({
         checkOut,
         nights: calculatedNights,
         guests,
-        isTourist
+        isTourist,
+        couponCode: normalizedCouponCode
       });
 
+      // אם יש קופון, נחפש הנחות ספציפיות לקופון
+      if (normalizedCouponCode) {
+        const couponResult = await processCouponDiscounts(normalizedCouponCode);
+        if (couponResult.success) {
+          return;
+        }
+      }
+
+      // חיפוש הנחות רגילות אם אין קופון או הקופון לא תקף
       const discounts = await DiscountService.getApplicableDiscounts({
         location,
         roomId,
@@ -135,9 +218,10 @@ const PriceCalculatorWithDiscounts = React.memo(({
         isTourist
       });
 
-      console.log('✅ PriceCalculatorWithDiscounts: נמצאו הנחות ישימות:', discounts);
+      console.log('✅ PriceCalculatorWithDiscounts: נמצאו הנחות רגילות:', discounts);
 
       setApplicableDiscounts(discounts);
+      setCouponDiscount(null);
       
       // בחירה אוטומטית של ההנחה הטובה ביותר אם לא מותר לבחור ידנית
       if (!allowDiscountSelection && discounts.length > 0) {
@@ -151,9 +235,9 @@ const PriceCalculatorWithDiscounts = React.memo(({
     } finally {
       setLoading(false);
     }
-  }, [roomId, checkInStr, checkOutStr, calculatedNights, guests, isTourist, location, allowDiscountSelection, roomCategory]);
+  }, [roomId, checkInStr, checkOutStr, calculatedNights, guests, isTourist, location, allowDiscountSelection, roomCategory, normalizedCouponCode]);
 
-  // חישוב מחיר סופי עם הנחות - dependencies מוקטנות
+  // חישוב מחיר סופי עם הנחות - עם תמיכה בקופונים
   const calculateFinalPrice = useCallback(async () => {
     if (!roomId || !checkInStr || !checkOutStr || calculatedNights <= 0) {
       console.log('🚫 calculateFinalPrice: מגדיר מחיר 0 - חסרים פרמטרים');
@@ -192,6 +276,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
 
       console.log('🎯 calculateFinalPrice: מחשב מחיר עם הנחות:', selectedDiscounts);
 
+      // חישוב מחיר עם הנחות - עם קופון אם קיים
       const priceResult = await DiscountService.calculatePriceWithDiscounts({
         originalPrice,
         location,
@@ -203,7 +288,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
         guests,
         isTourist,
         selectedDiscountIds: selectedDiscounts
-      });
+      }, normalizedCouponCode);
 
       console.log('✅ calculateFinalPrice: תוצאת חישוב עם הנחות:', priceResult);
 
@@ -214,7 +299,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
       console.error('❌ calculateFinalPrice: שגיאה בחישוב מחיר:', err);
       setError('שגיאה בחישוב המחיר הסופי');
     }
-  }, [selectedDiscounts, roomId, checkInStr, checkOutStr, calculatedNights, guests, isTourist, location, roomCategory, calculateBasePrice, onPriceCalculated]);
+  }, [selectedDiscounts, roomId, checkInStr, checkOutStr, calculatedNights, guests, isTourist, location, roomCategory, calculateBasePrice, onPriceCalculated, normalizedCouponCode]);
 
   // אפקט לטעינת הנחות - רק כשהפרמטרים העיקריים משתנים
   useEffect(() => {
@@ -253,13 +338,48 @@ const PriceCalculatorWithDiscounts = React.memo(({
     loadApplicableDiscounts();
   };
 
+  // רינדור מידע על קופון
+  const renderCouponInfo = () => {
+    if (!normalizedCouponCode) return null;
+
+    return (
+      <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: couponError ? 'error.main' : couponDiscount ? 'success.main' : 'primary.main' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <CouponIcon sx={{ color: couponError ? 'error.main' : couponDiscount ? 'success.main' : 'primary.main' }} />
+          <Typography variant="subtitle2">
+            קופון: {normalizedCouponCode}
+          </Typography>
+        </Box>
+        
+        {couponError && (
+          <Alert severity="error" sx={{ mt: 1 }}>
+            {couponError}
+          </Alert>
+        )}
+        
+        {couponDiscount && (
+          <Alert severity="success" sx={{ mt: 1 }}>
+            <Typography variant="body2">
+              <strong>{couponDiscount.name}</strong> - {couponDiscount.discountType === 'percentage' ? `${couponDiscount.discountValue}%` : `${couponDiscount.discountValue}₪`} הנחה
+            </Typography>
+            {couponDiscount.description && (
+              <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                {couponDiscount.description}
+              </Typography>
+            )}
+          </Alert>
+        )}
+      </Paper>
+    );
+  };
+
   // רינדור הנחות זמינות
   const renderAvailableDiscounts = () => {
     if (applicableDiscounts.length === 0) {
       return (
         <Box sx={{ textAlign: 'center', py: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            אין הנחות זמינות להזמנה זו
+            {normalizedCouponCode ? 'לא נמצאו הנחות זמינות עם הקופון' : 'אין הנחות זמינות להזמנה זו'}
           </Typography>
         </Box>
       );
@@ -270,7 +390,19 @@ const PriceCalculatorWithDiscounts = React.memo(({
         {applicableDiscounts.map((discount) => (
           <ListItem key={discount._id} sx={{ px: 0 }}>
             <ListItemIcon>
-              <DiscountIcon color="primary" />
+              <Badge 
+                badgeContent={discount.couponRequired ? '🎫' : null}
+                color="primary"
+                sx={{ 
+                  '& .MuiBadge-badge': { 
+                    fontSize: '0.6rem',
+                    backgroundColor: 'transparent',
+                    color: 'inherit'
+                  }
+                }}
+              >
+                <DiscountIcon color="primary" />
+              </Badge>
             </ListItemIcon>
             <ListItemText
               primary={
@@ -284,9 +416,18 @@ const PriceCalculatorWithDiscounts = React.memo(({
                       `₪${discount.discountValue}`
                     }
                     size="small"
-                    color="primary"
+                    color={discount.couponRequired ? 'success' : 'primary'}
                     variant="outlined"
                   />
+                  {discount.couponRequired && (
+                    <Chip
+                      label={`קופון: ${discount.couponCode}`}
+                      size="small"
+                      color="success"
+                      variant="filled"
+                      sx={{ fontFamily: 'monospace' }}
+                    />
+                  )}
                 </Box>
               }
               secondary={
@@ -350,10 +491,35 @@ const PriceCalculatorWithDiscounts = React.memo(({
           {priceData.appliedDiscounts.map((discount, index) => (
             <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
               <ListItemIcon sx={{ minWidth: 32 }}>
-                <DiscountIcon color="success" fontSize="small" />
+                <Badge 
+                  badgeContent={discount.couponCode ? '🎫' : null}
+                  color="success"
+                  sx={{ 
+                    '& .MuiBadge-badge': { 
+                      fontSize: '0.5rem',
+                      backgroundColor: 'transparent',
+                      color: 'inherit'
+                    }
+                  }}
+                >
+                  <DiscountIcon color="success" fontSize="small" />
+                </Badge>
               </ListItemIcon>
               <ListItemText
-                primary={discount.name}
+                primary={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2">{discount.name}</Typography>
+                    {discount.couponCode && (
+                      <Chip
+                        label={discount.couponCode}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                        sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}
+                      />
+                    )}
+                  </Box>
+                }
                 secondary={`${discount.type === 'percentage' ? `${discount.value}%` : `₪${discount.value}`} → חיסכון: ₪${discount.amount}`}
                 primaryTypographyProps={{ variant: 'body2' }}
                 secondaryTypographyProps={{ variant: 'caption' }}
@@ -377,12 +543,20 @@ const PriceCalculatorWithDiscounts = React.memo(({
 
   return (
     <Box>
+      {/* מידע על קופון */}
+      {renderCouponInfo()}
+
       {/* חלק מחיר ראשי */}
       <Paper sx={{ p: 3, mb: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <MoneyIcon color="primary" />
             חישוב מחיר
+            {normalizedCouponCode && (
+              <Badge badgeContent="🎫" color="primary">
+                <Box />
+              </Badge>
+            )}
           </Typography>
           
           {applicableDiscounts.length > 0 && (
@@ -398,6 +572,11 @@ const PriceCalculatorWithDiscounts = React.memo(({
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary">
             {`${calculatedNights} לילות • ${guests} ${guests === 1 ? 'אורח' : 'אורחים'} • ${isTourist ? 'תייר' : 'ישראלי'}`}
+            {normalizedCouponCode && (
+              <Typography component="span" sx={{ ml: 1, color: 'success.main', fontWeight: 'medium' }}>
+                • קופון: {normalizedCouponCode}
+              </Typography>
+            )}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {format(new Date(checkIn), 'dd/MM/yyyy', { locale: he })} - {format(new Date(checkOut), 'dd/MM/yyyy', { locale: he })}
@@ -426,7 +605,9 @@ const PriceCalculatorWithDiscounts = React.memo(({
             {priceData.totalDiscount > 0 && (
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" color="success.main">הנחה:</Typography>
+                  <Typography variant="body2" color="success.main">
+                    הנחה{normalizedCouponCode ? ' (קופון)' : ''}:
+                  </Typography>
                   <Typography variant="body2" color="success.main">-₪{priceData.totalDiscount}</Typography>
                 </Box>
 
@@ -447,7 +628,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
                 </Typography>
                 {showDiscountBadges && (
                   <Chip
-                    label="הנחה פעילה!"
+                    label={normalizedCouponCode ? 'קופון פעיל!' : 'הנחה פעילה!'}
                     color="success"
                     size="small"
                     variant="filled"
@@ -463,12 +644,12 @@ const PriceCalculatorWithDiscounts = React.memo(({
       </Paper>
 
       {/* הנחות זמינות */}
-      {showDiscountDetails && applicableDiscounts.length > 0 && (
+      {showDiscountDetails && (applicableDiscounts.length > 0 || normalizedCouponCode) && (
         <Paper sx={{ p: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <DiscountIcon color="primary" />
-              הנחות זמינות ({applicableDiscounts.length})
+              {normalizedCouponCode ? 'הנחת קופון' : `הנחות זמינות (${applicableDiscounts.length})`}
             </Typography>
             
             <IconButton 

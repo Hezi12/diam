@@ -16,11 +16,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  InputAdornment,
+  Tooltip
 } from '@mui/material';
-import { Search as SearchIcon, Info as InfoIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Info as InfoIcon, LocalOffer as CouponIcon } from '@mui/icons-material';
 import { isAfter, isBefore, format, isValid, differenceInDays, addDays, subDays } from 'date-fns';
 import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
+import DiscountService from '../../services/discountService';
 
 const SearchBox = ({ location: siteLocation = 'airport' }) => {
   const theme = useTheme();
@@ -39,6 +42,9 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
   const [nights, setNights] = useState(1);
   const [guests, setGuests] = useState(2);
   const [isTourist, setIsTourist] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
   const [error, setError] = useState('');
   const [touristDialogOpen, setTouristDialogOpen] = useState(false);
   
@@ -50,6 +56,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
     const nightsStr = searchParams.get('nights');
     const guestsStr = searchParams.get('guests');
     const isTouristStr = searchParams.get('isTourist');
+    const couponCodeStr = searchParams.get('couponCode');
     
     if (checkInStr && checkOutStr) {
       const checkInDate = new Date(checkInStr);
@@ -80,7 +87,74 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
     if (isTouristStr) {
       setIsTourist(isTouristStr === 'true');
     }
+    
+    if (couponCodeStr) {
+      setCouponCode(couponCodeStr);
+    }
   }, [location.search]);
+  
+  // פונקציה לטיפול בשינוי קוד קופון
+  const handleCouponChange = (e) => {
+    const value = e.target.value;
+    // נירמול הקוד - רק אותיות באנגלית ומספרים
+    const normalizedValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    
+    setCouponCode(normalizedValue);
+    setCouponError('');
+    setCouponSuccess('');
+  };
+  
+  // פונקציה לולידציה של קופון
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('');
+      setCouponSuccess('');
+      return true;
+    }
+    
+    // ולידציה בסיסית
+    const validation = DiscountService.validateCouponCode(couponCode);
+    if (!validation.isValid) {
+      setCouponError(DiscountService.formatCouponErrorMessage(validation.error));
+      setCouponSuccess('');
+      return false;
+    }
+    
+    try {
+      // בדיקה אם הקופון קיים
+      const discount = await DiscountService.getDiscountByCouponCode(couponCode);
+      if (!discount) {
+        setCouponError('קוד קופון לא מוכר');
+        setCouponSuccess('');
+        return false;
+      }
+      
+      setCouponSuccess(`קופון ${couponCode} זמין - ${discount.discountType === 'percentage' ? `${discount.discountValue}%` : `${discount.discountValue}₪`} הנחה!`);
+      setCouponError('');
+      return true;
+    } catch (error) {
+      setCouponError('שגיאה בבדיקת הקופון');
+      setCouponSuccess('');
+      return false;
+    }
+  };
+  
+  // פונקציה לבדיקת קופון כאשר המשתמש מפסיק להקליד
+  useEffect(() => {
+    if (couponCode.trim().length >= 3) {
+      const timeoutId = setTimeout(() => {
+        validateCoupon();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    } else if (couponCode.trim().length > 0) {
+      setCouponError('קוד קופון חייב להיות באורך של לפחות 3 תווים');
+      setCouponSuccess('');
+    } else {
+      setCouponError('');
+      setCouponSuccess('');
+    }
+  }, [couponCode]);
   
   const handleSearch = () => {
     // וידוא תקינות התאריכים
@@ -99,6 +173,12 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
       return;
     }
     
+    // בדיקה שהקופון תקין אם הוזן
+    if (couponCode.trim() && couponError) {
+      setError('אנא תקן את קוד הקופון או הסר אותו');
+      return;
+    }
+    
     // וידוא שמספר הלילות תואם לתאריכים
     const actualNights = differenceInDays(checkOut, checkIn);
     if (actualNights !== nights) {
@@ -107,9 +187,22 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
     
     setError('');
     
-    // מעבר לדף תוצאות החיפוש עם פרמטרים כולל מספר אורחים, לילות וסטטוס תייר
+    // מעבר לדף תוצאות החיפוש עם פרמטרים כולל מספר אורחים, לילות וסטטוס תייר וקופון
     const baseRoute = siteLocation === 'rothschild' ? '/rothschild-booking' : '/airport-booking';
-    navigate(`${baseRoute}/search-results?checkIn=${format(checkIn, 'yyyy-MM-dd')}&checkOut=${format(checkOut, 'yyyy-MM-dd')}&nights=${actualNights}&guests=${guests}&isTourist=${isTourist}`);
+    const params = new URLSearchParams({
+      checkIn: format(checkIn, 'yyyy-MM-dd'),
+      checkOut: format(checkOut, 'yyyy-MM-dd'),
+      nights: actualNights.toString(),
+      guests: guests.toString(),
+      isTourist: isTourist.toString()
+    });
+    
+    // הוספת קופון אם הוזן
+    if (couponCode.trim()) {
+      params.append('couponCode', couponCode.trim());
+    }
+    
+    navigate(`${baseRoute}/search-results?${params.toString()}`);
   };
   
   const handleCheckInChange = (e) => {
@@ -173,7 +266,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
   return (
     <Box sx={{ p: 0, direction: direction }}>
       <Grid container spacing={1} alignItems="center">
-        <Grid item xs={12} sm={6} md={2.2}>
+        <Grid item xs={12} sm={6} md={1.8}>
           <TextField
             label={t('search.checkIn')}
             type="date"
@@ -204,7 +297,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6} md={2.2}>
+        <Grid item xs={12} sm={6} md={1.8}>
           <TextField
             label={t('search.checkOut')}
             type="date"
@@ -235,7 +328,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
           />
         </Grid>
         
-        <Grid item xs={6} sm={3} md={1.3}>
+        <Grid item xs={6} sm={3} md={1.1}>
           <TextField
             select
             label={t('search.nights')}
@@ -266,7 +359,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
           </TextField>
         </Grid>
         
-        <Grid item xs={6} sm={3} md={1.3}>
+        <Grid item xs={6} sm={3} md={1.1}>
           <TextField
             select
             label={t('search.guests')}
@@ -297,7 +390,54 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
           </TextField>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid item xs={12} sm={6} md={1.8}>
+          <Tooltip 
+            title="הזן קוד קופון לקבלת הנחה מיוחדת"
+            placement="top"
+            arrow
+          >
+            <TextField
+              label="קוד קופון"
+              fullWidth
+              size="small"
+              value={couponCode}
+              onChange={handleCouponChange}
+              placeholder="WELCOME20"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CouponIcon sx={{ color: '#6b7280', fontSize: '1.2rem' }} />
+                  </InputAdornment>
+                ),
+                style: { 
+                  fontFamily: 'monospace',
+                  fontSize: '0.9rem',
+                  textAlign: 'center'
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1,
+                  '& fieldset': {
+                    borderColor: couponError ? '#ef4444' : couponSuccess ? '#22c55e' : '#d1d5db',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: couponError ? '#ef4444' : couponSuccess ? '#22c55e' : '#9ca3af',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: couponError ? '#ef4444' : couponSuccess ? '#22c55e' : '#6b7280',
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  textAlign: 'center',
+                  letterSpacing: '0.05em'
+                }
+              }}
+            />
+          </Tooltip>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={1.8}>
           <Box 
             sx={{ 
               display: 'flex', 
@@ -345,7 +485,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
           </Box>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.5}>
           <Button
             variant="contained"
             fullWidth
@@ -367,10 +507,39 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
               }
             }}
           >
-{t('search.searchButton')}
+            {t('search.searchButton')}
           </Button>
         </Grid>
       </Grid>
+      
+      {/* הודעות קופון */}
+      {couponError && (
+        <FormHelperText 
+          error 
+          sx={{ 
+            mt: 1, 
+            textAlign: 'center',
+            fontSize: '0.8rem',
+            color: '#ef4444'
+          }}
+        >
+          🚫 {couponError}
+        </FormHelperText>
+      )}
+      
+      {couponSuccess && (
+        <FormHelperText 
+          sx={{ 
+            mt: 1, 
+            textAlign: 'center',
+            fontSize: '0.8rem',
+            color: '#22c55e',
+            fontWeight: 500
+          }}
+        >
+          ✅ {couponSuccess}
+        </FormHelperText>
+      )}
       
       {error && (
         <FormHelperText 

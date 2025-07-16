@@ -352,7 +352,8 @@ const DiscountManagement = ({ location = 'both' }) => {
             
             <Grid item xs={12} sm={6} md={3}>
               <Chip
-                label={`עדיפות: ${discount.priority}`}
+                label={discount.combinable ? 'ניתן לשילוב' : 'ללא שילוב'}
+                color={discount.combinable ? 'success' : 'default'}
                 variant="outlined"
                 size="small"
               />

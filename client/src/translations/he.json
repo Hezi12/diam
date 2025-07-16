@@ -88,7 +88,7 @@
     "emailPlaceholder": "הכנס כתובת אימייל",
     "phone": "טלפון",
     "phonePlaceholder": "הכנס מספר טלפון",
-    "idNumber": "מספר זהות",
+    "idNumber": "קוד קופון",
     "notes": "הערות",
     "notesPlaceholder": "הערות נוספות (אופציונלי)",
     "paymentDetails": "פרטי תשלום",
@@ -119,7 +119,17 @@
       "invalidEmail": "כתובת אימייל לא תקינה",
       "invalidPhone": "מספר טלפון לא תקין",
       "bookingFailed": "שגיאה ביצירת ההזמנה. אנא נסה שוב."
-    }
+    },
+    "couponCode": "קוד קופון",
+    "couponCodePlaceholder": "הזן קוד קופון",
+    "couponCodeHelp": "הזן קוד קופון לקבלת הנחה מיוחדת",
+    "couponInvalid": "קוד קופון לא תקף",
+    "couponExpired": "קוד הקופון פג תוקף",
+    "couponNotFound": "קוד הקופון לא נמצא",
+    "couponApplied": "קופון הוחל בהצלחה",
+    "couponDiscount": "הנחת קופון",
+    "hasCoupon": "יש קופון",
+    "noCoupon": "אין קופון"
   },
   "confirmation": {
     "title": "ההזמנה אושרה!",

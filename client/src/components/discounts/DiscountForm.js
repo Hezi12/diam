@@ -42,6 +42,8 @@ const DiscountForm = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    couponRequired: false,
+    couponCode: '',
     discountType: 'percentage',
     discountValue: 10,
     location: defaultLocation || 'both',
@@ -61,7 +63,6 @@ const DiscountForm = ({
       applicableForTourists: true,
       applicableForIsraelis: true
     },
-    priority: 0,
     combinable: false,
     usageLimit: {
       maxUses: null
@@ -81,6 +82,8 @@ const DiscountForm = ({
         setFormData({
           name: discount.name || '',
           description: discount.description || '',
+          couponRequired: discount.couponRequired || false,
+          couponCode: discount.couponCode || '',
           discountType: discount.discountType || 'percentage',
           discountValue: discount.discountValue || 10,
           location: discount.location || 'both',
@@ -100,7 +103,6 @@ const DiscountForm = ({
             applicableForTourists: discount.restrictions?.applicableForTourists !== false,
             applicableForIsraelis: discount.restrictions?.applicableForIsraelis !== false
           },
-          priority: discount.priority || 0,
           combinable: discount.combinable || false,
           usageLimit: {
             maxUses: discount.usageLimit?.maxUses || null
@@ -123,6 +125,53 @@ const DiscountForm = ({
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // טיפול מיוחד בשינוי couponRequired
+  const handleCouponRequiredChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      couponRequired: value,
+      // אם מבטלים את הדרישה לקופון, נוקים את קוד הקופון
+      couponCode: value ? prev.couponCode : ''
+    }));
+    
+    // הסרת שגיאות קשורות לקופון
+    if (errors.couponCode) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.couponCode;
+        return newErrors;
+      });
+    }
+  };
+
+  // פונקציה לעיצוב קוד קופון
+  const formatCouponCode = (value) => {
+    // מסיר רווחים וממיר לאותיות גדולות
+    return value.replace(/[^A-Z0-9]/g, '').toUpperCase();
+  };
+
+  // טיפול בשינוי קוד קופון
+  const handleCouponCodeChange = (value) => {
+    const formattedValue = formatCouponCode(value);
+    
+    // הגבלה לאורך מקסימלי
+    if (formattedValue.length <= 20) {
+      setFormData(prev => ({
+        ...prev,
+        couponCode: formattedValue
+      }));
+    }
+    
+    // הסרת שגיאה
+    if (errors.couponCode) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.couponCode;
         return newErrors;
       });
     }
@@ -155,6 +204,17 @@ const DiscountForm = ({
     // שם ההנחה
     if (!formData.name.trim()) {
       newErrors.name = 'שם ההנחה נדרש';
+    }
+
+    // קוד קופון
+    if (formData.couponRequired) {
+      if (!formData.couponCode.trim()) {
+        newErrors.couponCode = 'קוד קופון נדרש כאשר הנחה דורשת קופון';
+      } else if (formData.couponCode.length < 3) {
+        newErrors.couponCode = 'קוד קופון חייב להיות באורך של לפחות 3 תווים';
+      } else if (!/^[A-Z0-9]+$/.test(formData.couponCode)) {
+        newErrors.couponCode = 'קוד קופון יכול להכיל רק אותיות באנגלית ומספרים';
+      }
     }
 
     // ערך ההנחה
@@ -192,6 +252,8 @@ const DiscountForm = ({
     // הכנת הנתונים לשליחה
     const dataToSubmit = {
       ...formData,
+      // אם לא דורשים קופון, נוודא שהקוד ריק
+      couponCode: formData.couponRequired ? formData.couponCode : '',
       restrictions: {
         ...formData.restrictions,
         maxNights: formData.restrictions.maxNights || undefined,
@@ -211,6 +273,8 @@ const DiscountForm = ({
     setFormData({
       name: '',
       description: '',
+      couponRequired: false,
+      couponCode: '',
       discountType: 'percentage',
       discountValue: 10,
       location: defaultLocation || 'both',
@@ -230,7 +294,6 @@ const DiscountForm = ({
         applicableForTourists: true,
         applicableForIsraelis: true
       },
-      priority: 0,
       combinable: false,
       usageLimit: {
         maxUses: null
@@ -272,6 +335,67 @@ const DiscountForm = ({
                 multiline
                 rows={2}
               />
+            </Grid>
+
+            {/* הגדרות קופון */}
+            <Grid item xs={12}>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'background.default', 
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}>
+                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                  🎫 הגדרות קופון
+                </Typography>
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.couponRequired}
+                      onChange={(e) => handleCouponRequiredChange(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="ההנחה דורשת קוד קופון"
+                  sx={{ mb: 2 }}
+                />
+
+                {formData.couponRequired && (
+                  <TextField
+                    fullWidth
+                    label="קוד קופון"
+                    value={formData.couponCode}
+                    onChange={(e) => handleCouponCodeChange(e.target.value)}
+                    error={!!errors.couponCode}
+                    helperText={errors.couponCode || 'אותיות באנגלית ומספרים בלבד, 3-20 תווים'}
+                    placeholder="WELCOME20"
+                    required
+                    InputProps={{
+                      style: { 
+                        fontFamily: 'monospace', 
+                        fontSize: '1.1rem',
+                        textAlign: 'center'
+                      }
+                    }}
+                    sx={{
+                      '& .MuiInputBase-input': {
+                        textAlign: 'center',
+                        letterSpacing: '0.1em'
+                      }
+                    }}
+                  />
+                )}
+
+                {formData.couponRequired && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      <strong>שים לב:</strong> הנחה עם קופון תחול רק כאשר הלקוח יזין את קוד הקופון המדויק באתר הציבורי
+                    </Typography>
+                  </Alert>
+                )}
+              </Box>
             </Grid>
 
             {/* סוג וערך ההנחה */}
@@ -323,6 +447,7 @@ const DiscountForm = ({
               </FormControl>
             </Grid>
 
+            {/* שאר השדות ללא שינוי */}
             {/* סוג תוקף */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
@@ -417,18 +542,6 @@ const DiscountForm = ({
             </Grid>
 
             {/* הגדרות מתקדמות */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="עדיפות"
-                type="number"
-                value={formData.priority}
-                onChange={(e) => handleChange('priority', parseInt(e.target.value) || 0)}
-                helperText="0-10, ככל שהמספר גבוה יותר העדיפות גבוהה יותר"
-                inputProps={{ min: 0, max: 10 }}
-              />
-            </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth

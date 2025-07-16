@@ -141,8 +141,8 @@ class DiscountService {
    * @returns {Object} - תוצאות חישוב ההנחות
    */
   static calculateCombinedDiscounts(originalPrice, discounts) {
-    // מיון הנחות לפי עדיפות (עדיפות גבוהה קודם)
-    const sortedDiscounts = discounts.sort((a, b) => b.priority - a.priority);
+    // מיון הנחות לפי תאריך יצירה (הישנות קודם)
+    const sortedDiscounts = discounts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     
     let currentPrice = originalPrice;
     let totalDiscountAmount = 0;

@@ -77,6 +77,7 @@ const SearchResultsPage = () => {
   const nightsStr = searchParams.get('nights');
   const guestsStr = searchParams.get('guests');
   const isTouristStr = searchParams.get('isTourist');
+  const couponCodeStr = searchParams.get('couponCode');
   
   // בדיקת תקינות פרמטרים
   const validParams = checkInStr && checkOutStr;
@@ -86,6 +87,7 @@ const SearchResultsPage = () => {
   const checkOut = validParams ? parseISO(checkOutStr) : null;
   const guests = parseInt(guestsStr, 10) || 2;
   const isTourist = isTouristStr === 'true';
+  const couponCode = couponCodeStr || '';
   
   // חישוב מספר לילות - עדיפות לפרמטר מה-URL, אחרת חישוב מהתאריכים
   const nightsFromUrl = parseInt(nightsStr, 10);
@@ -369,8 +371,35 @@ const SearchResultsPage = () => {
     );
   };
   
+  // פונקציה עזר לבחירת הנחות לחישוב מחיר
+  const selectDiscountsForPricing = (discounts) => {
+    const selectedIds = [];
+    
+    // בחירת הנחת קופון
+    const couponDiscount = discounts.find(d => d.couponRequired);
+    if (couponDiscount) {
+      selectedIds.push(couponDiscount._id);
+    }
+    
+    // בחירת הנחות רגילות שניתן לשלב
+    const combinableRegularDiscounts = discounts.filter(d => 
+      !d.couponRequired && d.combinable
+    );
+    
+    if (combinableRegularDiscounts.length > 0) {
+      selectedIds.push(combinableRegularDiscounts[0]._id);
+    }
+    
+    // אם אין הנחות נבחרות, נבחר את הראשונה
+    if (selectedIds.length === 0) {
+      selectedIds.push(discounts[0]._id);
+    }
+    
+    return selectedIds;
+  };
+
   // קומפוננט להצגת מחיר עם הנחות
-  const RoomPriceDisplay = ({ room, guests, nights, isTourist, checkIn, checkOut }) => {
+  const RoomPriceDisplay = ({ room, guests, nights, isTourist, checkIn, checkOut, couponCode }) => {
     const [priceData, setPriceData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -389,19 +418,38 @@ const SearchResultsPage = () => {
             isTourist
           });
 
-          // חיפוש הנחות
-          const discounts = await DiscountService.getApplicableDiscounts({
-            location: "airport",
-            roomId: room._id,
-            roomCategory: room.category,
-            checkIn,
-            checkOut,
-            nights,
-            guests,
-            isTourist
-          });
+          // חיפוש הנחות - עם תמיכה בקופון
+          let discounts = [];
+          if (couponCode) {
+            // חיפוש הנחות עם קופון
+            discounts = await DiscountService.getApplicableDiscountsWithCoupon({
+              location: "airport",
+              roomId: room._id,
+              roomCategory: room.category,
+              checkIn,
+              checkOut,
+              nights,
+              guests,
+              isTourist
+            }, couponCode);
+          } else {
+            // חיפוש הנחות רגילות
+            discounts = await DiscountService.getApplicableDiscounts({
+              location: "airport",
+              roomId: room._id,
+              roomCategory: room.category,
+              checkIn,
+              checkOut,
+              nights,
+              guests,
+              isTourist
+            });
+          }
 
           if (discounts.length > 0) {
+            // בחירת הנחות לחישוב
+            const selectedIds = selectDiscountsForPricing(discounts);
+            
             // חישוב מחיר עם הנחות
             const priceWithDiscounts = await DiscountService.calculatePriceWithDiscounts({
               originalPrice: basePrice,
@@ -413,8 +461,8 @@ const SearchResultsPage = () => {
               nights,
               guests,
               isTourist,
-              selectedDiscountIds: [discounts[0]._id] // בחירת ההנחה הטובה ביותר
-            });
+              selectedDiscountIds: selectedIds
+            }, couponCode);
             
             setPriceData(priceWithDiscounts);
           } else {
@@ -449,7 +497,7 @@ const SearchResultsPage = () => {
       };
 
       calculatePrice();
-    }, [room._id, checkIn, checkOut, nights, guests, isTourist]);
+    }, [room._id, checkIn, checkOut, nights, guests, isTourist, couponCode]);
 
     if (loading) {
       return (
@@ -636,20 +684,20 @@ const SearchResultsPage = () => {
                       </Box>
                       
                       {/* תצוגת מחירים מקצועית - שורה אחת */}
-                      <RoomPriceDisplay room={room} guests={guests} nights={nightsCount} isTourist={isTourist} checkIn={checkIn} checkOut={checkOut} />
+                      <RoomPriceDisplay room={room} guests={guests} nights={nightsCount} isTourist={isTourist} checkIn={checkIn} checkOut={checkOut} couponCode={couponCode} />
                     </CardContent>
                     
                     <Divider />
                     
                     <CardActions sx={{ p: 2, justifyContent: 'center' }}>
-                      <Button 
+                                            <Button 
                         variant="contained" 
                         component={Link}
-                        to={`/airport-booking/book?roomId=${room._id}&checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${guests}&isTourist=${isTourist}`}
+                        to={`/airport-booking/book?roomId=${room._id}&checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${guests}&isTourist=${isTourist}${couponCode ? `&couponCode=${couponCode}` : ''}`}
                         sx={{ fontWeight: 500, width: '100%' }}
                         size="large"
                       >
-{t('rooms.book')}
+                        {t('rooms.book')}
                       </Button>
                     </CardActions>
                   </Card>

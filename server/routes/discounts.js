@@ -21,7 +21,7 @@ router.get('/', auth, async (req, res) => {
     const discounts = await Discount.find(filter)
       .populate('applicableRooms', 'roomNumber category')
       .populate('createdBy', 'name email')
-      .sort({ priority: -1, createdAt: -1 });
+      .sort({ createdAt: -1 });
     
     res.json(discounts);
   } catch (error) {
@@ -49,6 +49,31 @@ router.get('/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('שגיאה בקבלת הנחה:', error);
     res.status(500).json({ message: 'שגיאה בקבלת פרטי ההנחה' });
+  }
+});
+
+/**
+ * קבלת הנחה לפי קוד קופון
+ * GET /api/discounts/coupon/:couponCode
+ */
+router.get('/coupon/:couponCode', async (req, res) => {
+  try {
+    const couponCode = req.params.couponCode;
+    
+    if (!couponCode) {
+      return res.status(400).json({ message: 'קוד קופון נדרש' });
+    }
+    
+    const discount = await Discount.findByCouponCode(couponCode);
+    
+    if (!discount) {
+      return res.status(404).json({ message: 'קוד קופון לא נמצא או לא פעיל' });
+    }
+    
+    res.json(discount);
+  } catch (error) {
+    console.error('שגיאה בחיפוש הנחה לפי קופון:', error);
+    res.status(500).json({ message: 'שגיאה בחיפוש הנחה לפי קופון' });
   }
 });
 
@@ -213,7 +238,7 @@ router.patch('/:id/toggle-status', auth, async (req, res) => {
 });
 
 /**
- * קבלת הנחות ישימות להזמנה
+ * קבלת הנחות ישימות להזמנה - עם תמיכה בקופונים
  * POST /api/discounts/applicable
  */
 router.post('/applicable', async (req, res) => {
@@ -226,7 +251,8 @@ router.post('/applicable', async (req, res) => {
       checkOut,
       nights,
       guests,
-      isTourist
+      isTourist,
+      couponCode
     } = req.body;
     
     // ולידציה של פרמטרים נדרשים
@@ -242,7 +268,8 @@ router.post('/applicable', async (req, res) => {
       checkOut,
       nights,
       guests,
-      isTourist: isTourist || false
+      isTourist: isTourist || false,
+      couponCode: couponCode || null
     });
     
     res.json(applicableDiscounts);
@@ -253,7 +280,7 @@ router.post('/applicable', async (req, res) => {
 });
 
 /**
- * חישוב מחיר עם הנחות
+ * חישוב מחיר עם הנחות - עם תמיכה בקופונים
  * POST /api/discounts/calculate-price
  */
 router.post('/calculate-price', async (req, res) => {
@@ -268,7 +295,8 @@ router.post('/calculate-price', async (req, res) => {
       nights,
       guests,
       isTourist,
-      selectedDiscountIds = []
+      selectedDiscountIds = [],
+      couponCode
     } = req.body;
     
     if (!originalPrice) {
@@ -282,9 +310,9 @@ router.post('/calculate-price', async (req, res) => {
       applicableDiscounts = await Discount.find({
         _id: { $in: selectedDiscountIds },
         isActive: true
-      }).sort({ priority: -1 });
+      }).sort({ createdAt: -1 });
     } else {
-      // חיפוש אוטומטי של הנחות ישימות
+      // חיפוש אוטומטי של הנחות ישימות - עם תמיכה בקופונים
       applicableDiscounts = await Discount.findApplicableDiscounts({
         location,
         roomId,
@@ -293,7 +321,8 @@ router.post('/calculate-price', async (req, res) => {
         checkOut,
         nights,
         guests,
-        isTourist: isTourist || false
+        isTourist: isTourist || false,
+        couponCode: couponCode || null
       });
     }
     
