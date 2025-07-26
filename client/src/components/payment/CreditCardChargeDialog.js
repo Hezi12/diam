@@ -32,6 +32,7 @@ import {
 import { useSnackbar } from 'notistack';
 import icountService from '../../services/icountService';
 import documentService from '../../services/documentService';
+import PaymentMethodDialog from '../documents/PaymentMethodDialog';
 import axios from 'axios';
 
 const CreditCardChargeDialog = ({ open, onClose, booking }) => {
@@ -60,6 +61,9 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
   const [hasExistingInvoice, setHasExistingInvoice] = useState(false);
   const [existingInvoiceInfo, setExistingInvoiceInfo] = useState(null);
   const [checkingInvoice, setCheckingInvoice] = useState(false);
+  
+  // מצב דיאלוג בחירת אמצעי תשלום
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   
   // מצב לטקסט מידע חשוב באישור הזמנה
   const [importantInfo, setImportantInfo] = useState(
@@ -108,6 +112,36 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
 • יש לנו מערכת צ'ק אין עצמאי - ביום ההגעה נשלח אליכם את כל הפרטים וההוראות
 • במידה ויגיעו אורחים נוספים מעבר למספר שהוזמן, יחולו חיובים נוספים`
     );
+  };
+
+  // פונקציה ליצירת חשבונית + קבלה
+  const handleCreateInvoiceWithReceipt = async (paymentMethod) => {
+    try {
+      setInvoiceLoading(true);
+      setInvoiceError(null);
+      setInvoiceResult(null);
+      setPaymentMethodDialogOpen(false);
+      
+      const response = await documentService.createInvoiceWithReceipt(booking._id, paymentMethod);
+      
+      if (response.success) {
+        setInvoiceResult({
+          success: true,
+          invoice: response.invoice,
+          receipt: response.receipt,
+          message: response.message
+        });
+        enqueueSnackbar('חשבונית עם קבלה נוצרה בהצלחה', { variant: 'success' });
+      } else {
+        throw new Error(response.message || 'שגיאה ביצירת חשבונית עם קבלה');
+      }
+    } catch (err) {
+      console.error('שגיאה ביצירת חשבונית עם קבלה:', err);
+      setInvoiceError(err.message || 'שגיאה ביצירת חשבונית עם קבלה');
+      enqueueSnackbar('שגיאה ביצירת חשבונית עם קבלה', { variant: 'error' });
+    } finally {
+      setInvoiceLoading(false);
+    }
   };
 
   // פונקציה ליצירת חשבונית נפרדת
@@ -800,7 +834,36 @@ ${importantInfo}
                 </Card>
               </Grid>
 
-              {/* אפשרות 4: אישור הזמנה */}
+              {/* אפשרות 4: חשבונית + קבלה */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Card 
+                  sx={{ 
+                    cursor: 'pointer',
+                    height: '100%',
+                    transition: 'all 0.3s ease',
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                      borderColor: 'warning.main'
+                    }
+                  }}
+                  onClick={() => setSelectedAction('invoice_receipt')}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 1.5 }}>
+                    <ReceiptIcon sx={{ 
+                      fontSize: 36, 
+                      color: 'warning.main', 
+                      mb: 0.5 
+                    }} />
+                    <Typography variant="body1" gutterBottom sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                      חשבונית + קבלה
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* אפשרות 5: אישור הזמנה */}
               <Grid item xs={12} sm={6} md={3}>
                 <Card 
                   sx={{ 
@@ -872,8 +935,8 @@ ${importantInfo}
           </Box>
             )}
 
-            {/* שדה סכום לחשבונית בלבד */}
-            {selectedAction === 'invoice_only' && (
+            {/* שדה סכום לחשבונית בלבד או חשבונית + קבלה */}
+            {(selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt') && (
               <Box sx={{ mb: 2 }}>
                 <TextField
                   label="סכום החשבונית"
@@ -933,6 +996,7 @@ ${importantInfo}
                 {selectedAction === 'charge_with_invoice' && 'סליקה + חשבונית'}
                 {selectedAction === 'charge_only' && 'סליקה בלבד'}
                 {selectedAction === 'invoice_only' && 'חשבונית בלבד'}
+                {selectedAction === 'invoice_receipt' && 'חשבונית + קבלה'}
                 {selectedAction === 'booking_confirmation' && 'אישור הזמנה'}
               </Typography>
         </Box>
@@ -957,8 +1021,8 @@ ${importantInfo}
           </Box>
         )}
         
-            {/* מצב טעינה לחשבונית בלבד */}
-            {selectedAction === 'invoice_only' && invoiceLoading && (
+            {/* מצב טעינה לחשבונית בלבד או חשבונית + קבלה */}
+            {(selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt') && invoiceLoading && (
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'center', 
@@ -993,7 +1057,7 @@ ${importantInfo}
           </Alert>
         )}
 
-            {invoiceError && selectedAction === 'invoice_only' && (
+            {invoiceError && (selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt') && (
               <Alert 
                 severity="error" 
                 sx={{ 
@@ -1071,7 +1135,7 @@ ${importantInfo}
             )}
 
             {/* תוצאת יצירת החשבונית */}
-            {invoiceResult && selectedAction === 'invoice_only' && (
+            {invoiceResult && (selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt') && (
               <Paper 
                 elevation={0}
                 sx={{ 
@@ -1091,6 +1155,20 @@ ${importantInfo}
                 {invoiceResult.success && invoiceResult.invoice && (
                   <Typography variant="body2" sx={{ fontWeight: 500, mt: 1 }}>
                     מספר חשבונית: <strong>{invoiceResult.invoice.docNum || invoiceResult.invoice.invoiceNumber}</strong>
+                  </Typography>
+                )}
+                
+                {/* הצגת קבלה אם קיימת */}
+                {invoiceResult.success && invoiceResult.receipt && (
+                  <Typography variant="body2" sx={{ fontWeight: 500, mt: 1 }}>
+                    מספר קבלה: <strong>{invoiceResult.receipt.docNum || invoiceResult.receipt.invoiceNumber}</strong>
+                  </Typography>
+                )}
+                
+                {/* הצגת הודעה מפורטת מהשרת */}
+                {invoiceResult.success && invoiceResult.message && (
+                  <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+                    {invoiceResult.message}
                   </Typography>
                 )}
               </Paper>
@@ -1344,8 +1422,8 @@ ${importantInfo}
               </Alert>
             )}
 
-            {/* התרעה אם יש כבר חשבונית ונבחר "חשבונית בלבד" */}
-            {selectedAction === 'invoice_only' && hasExistingInvoice && existingInvoiceInfo && (
+            {/* התרעה אם יש כבר חשבונית ונבחר "חשבונית בלבד" או "חשבונית + קבלה" */}
+            {(selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt') && hasExistingInvoice && existingInvoiceInfo && (
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   ⚠️ <strong>קיימות כבר {existingInvoiceInfo.count} חשבוניות להזמנה זו</strong><br/>
@@ -1387,10 +1465,12 @@ ${importantInfo}
                 ? () => handleCharge(true) 
                 : selectedAction === 'charge_only' 
                   ? () => handleCharge(false)
-                  : handleCreateInvoice
+                  : selectedAction === 'invoice_receipt'
+                    ? () => setPaymentMethodDialogOpen(true)
+                    : handleCreateInvoice
             }
             disabled={
-              selectedAction === 'invoice_only' 
+              (selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt')
                 ? invoiceLoading || invoiceResult || (!invoiceAmount || invoiceAmount <= 0)
                 : loading || result || 
                   ((selectedAction === 'charge_with_invoice' || selectedAction === 'charge_only') && 
@@ -1409,9 +1489,18 @@ ${importantInfo}
             {selectedAction === 'charge_with_invoice' && (loading ? 'מבצע סליקה...' : `בצע סליקה + חשבונית (${chargeAmount} ₪)`)}
             {selectedAction === 'charge_only' && (loading ? 'מבצע סליקה...' : `בצע סליקה (${chargeAmount} ₪)`)}
             {selectedAction === 'invoice_only' && (invoiceLoading ? 'יוצר חשבונית...' : `צור חשבונית (${invoiceAmount} ₪)`)}
+            {selectedAction === 'invoice_receipt' && (invoiceLoading ? 'יוצר חשבונית + קבלה...' : `צור חשבונית + קבלה (${invoiceAmount} ₪)`)}
           </Button>
         )}
       </DialogActions>
+
+      {/* דיאלוג בחירת אמצעי תשלום */}
+      <PaymentMethodDialog
+        open={paymentMethodDialogOpen}
+        onClose={() => setPaymentMethodDialogOpen(false)}
+        onSelectPaymentMethod={handleCreateInvoiceWithReceipt}
+        booking={booking}
+      />
     </Dialog>
   );
 };

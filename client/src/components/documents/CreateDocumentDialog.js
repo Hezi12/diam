@@ -16,16 +16,19 @@ import {
   Box,
   Typography,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
 import {
   ReceiptLong as ReceiptIcon,
   Check as CheckIcon,
-  Assignment as AssignmentIcon
+  Assignment as AssignmentIcon,
+  Receipt as InvoiceReceiptIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import documentService from '../../services/documentService';
 import axios from 'axios';
+import PaymentMethodDialog from './PaymentMethodDialog';
 
 
 const CreateDocumentDialog = ({ open, onClose, booking }) => {
@@ -41,6 +44,9 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
   
   // מצב תצוגת אישור הזמנה
   const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  // מצב דיאלוג בחירת אמצעי תשלום
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   
   // הוק להודעות
   const { enqueueSnackbar } = useSnackbar();
@@ -106,6 +112,12 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
       return;
     }
     
+    // אם זה חשבונית + קבלה, נפתח דיאלוג בחירת אמצעי תשלום
+    if (documentType === 'invoice_receipt') {
+      setPaymentMethodDialogOpen(true);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -141,12 +153,42 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
       setLoading(false);
     }
   };
+
+  // טיפול ביצירת חשבונית עם קבלה
+  const handleCreateInvoiceWithReceipt = async (paymentMethod) => {
+    try {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      setPaymentMethodDialogOpen(false);
+      
+      const response = await documentService.createInvoiceWithReceipt(booking._id, paymentMethod);
+      
+      if (response.success) {
+        setResult(response);
+        enqueueSnackbar('חשבונית עם קבלה נוצרה בהצלחה', { variant: 'success' });
+        if (response.invoice) {
+          setExistingInvoice(response.invoice);
+        }
+      } else {
+        throw new Error(response.message || 'שגיאה ביצירת חשבונית עם קבלה');
+      }
+    } catch (err) {
+      console.error('שגיאה ביצירת חשבונית עם קבלה:', err);
+      setError(err.message || 'שגיאה ביצירת חשבונית עם קבלה');
+      enqueueSnackbar('שגיאה ביצירת חשבונית עם קבלה', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // פונקציה להצגת שם המסמך בעברית
   const getDocumentTypeName = (type) => {
     switch (type) {
       case 'invoice':
         return 'חשבונית מס';
+      case 'invoice_receipt':
+        return 'חשבונית + קבלה';
       case 'confirmation':
         return 'אישור הזמנה';
       default:
@@ -236,6 +278,16 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
                 disabled={!!existingInvoice}
               />
               <FormControlLabel 
+                value="invoice_receipt" 
+                control={<Radio />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <InvoiceReceiptIcon sx={{ mr: 1 }} /> 
+                    חשבונית + קבלה
+                  </Box>
+                }
+              />
+              <FormControlLabel 
                 value="confirmation" 
                 control={<Radio />} 
                 label={
@@ -284,6 +336,29 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
                 <Typography variant="subtitle2" gutterBottom>
                   <strong>תאריך:</strong> {new Date(result.invoice.createdAt).toLocaleDateString('he-IL')}
                 </Typography>
+                
+                {/* הצגת קבלה אם קיימת */}
+                {result.receipt && (
+                  <>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="subtitle2" gutterBottom>
+                      <strong>מספר קבלה:</strong> {result.receipt.invoiceNumber}
+                    </Typography>
+                    <Typography variant="subtitle2" gutterBottom>
+                      <strong>תאריך קבלה:</strong> {new Date(result.receipt.createdAt).toLocaleDateString('he-IL')}
+                    </Typography>
+                  </>
+                )}
+                
+                {/* הצגת הודעה מפורטת מהשרת */}
+                {result.message && (
+                  <>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {result.message}
+                    </Typography>
+                  </>
+                )}
               </Box>
             )}
           </Box>
@@ -301,7 +376,7 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
               onClick={handleCreateDocument} 
               color="primary" 
               variant="contained"
-              // מאופשר רק אם אין חשבונית קיימת (לא רלוונטי לאישור הזמנה)
+              // מאופשר רק אם אין חשבונית קיימת (לא רלוונטי לאישור הזמנה או חשבונית+קבלה)
               disabled={documentType === 'invoice' && !!existingInvoice}
               title={
                 documentType === 'invoice' && existingInvoice 
@@ -324,6 +399,14 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
           </>
         )}
       </DialogActions>
+
+      {/* דיאלוג בחירת אמצעי תשלום */}
+      <PaymentMethodDialog
+        open={paymentMethodDialogOpen}
+        onClose={() => setPaymentMethodDialogOpen(false)}
+        onSelectPaymentMethod={handleCreateInvoiceWithReceipt}
+        booking={booking}
+      />
     </Dialog>
   );
 };

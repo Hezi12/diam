@@ -178,6 +178,12 @@ const BookingSchema = new mongoose.Schema(
       default: 'unpaid'
     },
     
+    // האם נוצרו חשבונית+קבלה להזמנה זו
+    hasInvoiceReceipt: {
+      type: Boolean,
+      default: false
+    },
+    
     // פרטי כרטיס אשראי
     creditCard: {
       cardNumber: {

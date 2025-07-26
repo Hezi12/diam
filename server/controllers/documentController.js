@@ -17,7 +17,7 @@ const path = require('path');
  */
 exports.createDocument = async (req, res) => {
   try {
-    const { bookingId, documentType = 'invoice', amount } = req.body;
+    const { bookingId, documentType = 'invoice', amount, paymentMethod } = req.body;
     
     if (!bookingId) {
       return res.status(400).json({
@@ -26,11 +26,19 @@ exports.createDocument = async (req, res) => {
       });
     }
     
-    // אימות סוג המסמך - רק חשבונית מס
-    if (documentType !== 'invoice') {
+    // אימות סוג המסמך
+    if (!['invoice', 'invoice_receipt'].includes(documentType)) {
       return res.status(400).json({
         success: false,
-        message: 'סוג מסמך לא תקין - רק חשבונית מס נתמכת'
+        message: 'סוג מסמך לא תקין - נתמכים: invoice, invoice_receipt'
+      });
+    }
+
+    // אם זה חשבונית עם קבלה, נדרש אמצעי תשלום
+    if (documentType === 'invoice_receipt' && !paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'אמצעי תשלום נדרש עבור חשבונית עם קבלה'
       });
     }
     
@@ -42,6 +50,11 @@ exports.createDocument = async (req, res) => {
         success: false,
         message: 'הזמנה לא נמצאה'
       });
+    }
+
+    // אם זה חשבונית עם קבלה, נפנה לפונקציה מיוחדת
+    if (documentType === 'invoice_receipt') {
+      return await exports.createInvoiceWithReceipt(req, res);
     }
     
     // בדיקה אם כבר יש חשבונית להזמנה זו - רק לשם מידע
@@ -79,7 +92,6 @@ exports.createDocument = async (req, res) => {
     // בדיקה האם הלקוח תייר
     const isTaxExempt = booking.isTourist === true;
     console.log(`👤 סטטוס לקוח: ${isTaxExempt ? 'תייר (פטור ממע"מ)' : 'תושב (כולל מע"מ)'}`);
-    console.log(`🔍 דיבוג - booking.isTourist = ${booking.isTourist} (type: ${typeof booking.isTourist})`);
     
     // חישוב מחירים לפי סטטוס מע"מ
     let subtotal, unitPrice;
@@ -249,6 +261,197 @@ exports.getDocumentById = async (req, res) => {
     });
   }
 };
+
+/**
+ * יצירת חשבונית עם קבלה
+ * 
+ * @param {Object} req - בקשת HTTP 
+ * @param {Object} res - תגובת HTTP
+ */
+exports.createInvoiceWithReceipt = async (req, res) => {
+  try {
+    const { bookingId, paymentMethod, amount } = req.body;
+    
+    console.log(`📄 יוצר חשבונית עם קבלה עבור הזמנה ${bookingId} באמצעי תשלום: ${paymentMethod}`);
+    
+    // שליפת פרטי ההזמנה
+    const booking = await Booking.findById(bookingId);
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'הזמנה לא נמצאה'
+      });
+    }
+
+    // הכנת נתוני החשבונית עם קבלה
+    const invoiceAmount = amount || booking.price || 0;
+    
+    // בדיקה האם הלקוח תייר
+    const isTaxExempt = booking.isTourist === true;
+    console.log(`👤 סטטוס לקוח: ${isTaxExempt ? 'תייר (פטור ממע"מ)' : 'תושב (כולל מע"מ)'}`);
+    
+    // חישוב מחירים לפי סטטוס מע"מ
+    let unitPrice;
+    
+    if (isTaxExempt) {
+      // תייר - הסכום שהוכנס הוא ללא מע"מ
+      unitPrice = invoiceAmount;
+      console.log(`💰 חשבונית עם קבלה לתייר: ${invoiceAmount} ₪ (ללא מע"מ)`);
+    } else {
+      // תושב - הסכום שהוכנס כולל מע"מ, צריך לחשב את המחיר ללא מע"מ
+      unitPrice = Math.round((invoiceAmount / 1.18) * 100) / 100; // חישוב לאחור ממחיר כולל מע"מ (מע"מ 18%)
+      console.log(`💰 חשבונית עם קבלה לתושב: ${unitPrice} ₪ ללא מע"מ + מע"מ = ${invoiceAmount} ₪ כולל`);
+    }
+    
+    const invoiceData = {
+      customer: {
+        name: `${booking.firstName} ${booking.lastName || ''}`.trim(),
+        email: booking.email || 'guest@diamhotels.com',
+        identifier: booking.idNumber || '',
+        address: booking.address || '',
+        phone: booking.phone || ''
+      },
+      items: [{
+        description: `תשלום עבור הזמנה ${booking.bookingNumber}`,
+        quantity: 1,
+        unitPrice: unitPrice, // משתמש במחיר המחושב לפי סטטוס מע"מ
+        taxExempt: isTaxExempt // מבוסס על סטטוס התייר
+      }],
+      total: isTaxExempt ? unitPrice : invoiceAmount, // לתייר - בלי מע"מ, לתושב - עם מע"מ
+      paymentAmount: invoiceAmount, // הסכום שבאמת נגבה (לקבלה)
+      paymentMethod: paymentMethod,
+      issueDate: new Date(),
+      notes: `חשבונית עם קבלה - תשלום ב${getPaymentMethodName(paymentMethod)}`
+    };
+
+    // יצירת החשבונית עם הקבלה ב-iCount
+    const icountResponse = await icountService.createInvoiceWithReceipt(
+      invoiceData,
+      booking.location,
+      paymentMethod
+    );
+    
+    if (!icountResponse || !icountResponse.success) {
+      throw new Error('שגיאה ביצירת חשבונית עם קבלה ב-iCount');
+    }
+
+    // שמירת רפרנס למסמכים במערכת שלנו
+    let invoice;
+    let receipt = null;
+    
+    try {
+      // ניסיון ליצור חשבונית חדשה
+      invoice = new Invoice({
+        invoiceNumber: icountResponse.invoiceNumber,
+        documentType: 'invoice_receipt',
+        location: booking.location,
+        booking: booking._id,
+        bookingNumber: booking.bookingNumber,
+        amount: invoiceAmount,
+        customer: {
+          name: invoiceData.customer.name,
+          identifier: invoiceData.customer.identifier,
+          email: invoiceData.customer.email
+        },
+        icountData: {
+          success: icountResponse.success,
+          docNumber: icountResponse.invoiceNumber,
+          receiptNumber: icountResponse.receiptNumber,
+          paymentMethod: paymentMethod,
+          responseData: icountResponse.data
+        }
+      });
+
+      await invoice.save();
+      console.log(`✅ חשבונית נשמרה במסד הנתונים: ${invoice.invoiceNumber}`);
+      
+      // אם יש קבלה נפרדת, נשמור גם אותה
+      if (icountResponse.receiptNumber) {
+        receipt = new Invoice({
+          invoiceNumber: icountResponse.receiptNumber,
+          documentType: 'receipt',
+          location: booking.location,
+          booking: booking._id,
+          bookingNumber: booking.bookingNumber,
+          amount: invoiceAmount,
+          customer: {
+            name: invoiceData.customer.name,
+            identifier: invoiceData.customer.identifier,
+            email: invoiceData.customer.email
+          },
+          icountData: {
+            success: icountResponse.success,
+            docNumber: icountResponse.receiptNumber,
+            invoiceNumber: icountResponse.invoiceNumber,
+            paymentMethod: paymentMethod,
+            responseData: icountResponse.data.receipt
+          }
+        });
+
+        await receipt.save();
+        console.log(`✅ קבלה נשמרה במסד הנתונים: ${receipt.invoiceNumber}`);
+      }
+      
+    } catch (saveError) {
+      console.warn('⚠️  שגיאה בשמירת המסמכים במסד הנתונים:', saveError.message);
+      // לא נכשיל את כל התהליך בגלל שגיאת שמירה
+      invoice = {
+        invoiceNumber: icountResponse.invoiceNumber,
+        documentType: 'invoice_receipt',
+        amount: invoiceAmount,
+        icountData: icountResponse
+      };
+    }
+
+    const responseMessage = icountResponse.receiptNumber 
+      ? `חשבונית (${icountResponse.invoiceNumber}) וקבלה (${icountResponse.receiptNumber}) נוצרו בהצלחה`
+      : icountResponse.message || 'חשבונית נוצרה בהצלחה';
+    
+    console.log(`✅ ${responseMessage}`);
+    
+    // עדכון ההזמנה שיצרנו לה חשבונית+קבלה
+    try {
+      await Booking.findByIdAndUpdate(
+        bookingId,
+        { hasInvoiceReceipt: true },
+        { new: true }
+      );
+      console.log(`✅ הזמנה ${bookingId} עודכנה עם hasInvoiceReceipt: true`);
+    } catch (updateError) {
+      console.warn('⚠️  שגיאה בעדכון שדה hasInvoiceReceipt בהזמנה:', updateError.message);
+    }
+    
+    return res.status(201).json({
+      success: true,
+      message: responseMessage,
+      invoice,
+      receipt,
+      icountData: icountResponse
+    });
+
+  } catch (error) {
+    console.error('שגיאה ביצירת חשבונית עם קבלה:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'שגיאה ביצירת חשבונית עם קבלה',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * פונקציה עזר לקבלת שם אמצעי התשלום בעברית
+ */
+function getPaymentMethodName(paymentMethod) {
+  const names = {
+    'cash': 'מזומן',
+    'credit_card': 'אשראי',
+    'bit': 'ביט',
+    'bank_transfer': 'העברה בנקאית'
+  };
+  return names[paymentMethod] || paymentMethod;
+}
 
 /**
  * בדיקת חיבור ל-iCount

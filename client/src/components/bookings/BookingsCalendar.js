@@ -23,6 +23,7 @@ import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 // רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop (מותאם RTL)
@@ -788,6 +789,17 @@ const BookingsCalendar = ({
       const isPastOrTodayAndNotPaid = (booking.paymentStatus === 'לא שולם' || booking.paymentStatus === 'unpaid' || booking.paymentStatus === 'other') && 
         (checkInDate <= today);
       
+      // בדיקה האם ההזמנה שולמה בדרכים שדורשות חשבונית+קבלה אבל עדיין לא הוצאה
+      // יוצג רק להזמנות שהתאריך שלהן עבר או הוא היום
+      const paidButNeedsInvoiceReceipt = [
+        'credit_or_yehuda',
+        'credit_rothschild', 
+        'transfer_mizrahi',
+        'bit_mizrahi',
+        'paybox_mizrahi',
+        'other'
+      ].includes(booking.paymentStatus) && !booking.hasInvoiceReceipt && (checkInDate <= today);
+      
       // בדיקה האם צריך להציג אייקון חוות דעת
       // התנאים: 1. מקור Booking או Expedia, 2. לא טופל בחוות דעת, 3. ההזמנה הסתיימה
       const needsReviewIcon = (booking.source === 'booking' || booking.source === 'expedia') && 
@@ -801,6 +813,9 @@ const BookingsCalendar = ({
         checkOutDate: checkOutDateStr,
         isPastOrToday: checkInDate <= today,
         isPastOrTodayAndNotPaid,
+        paidButNeedsInvoiceReceipt,
+        hasInvoiceReceipt: booking.hasInvoiceReceipt,
+        checkInPastOrToday: checkInDate <= today,
         source: booking.source,
         reviewHandled: booking.reviewHandled,
         checkOutPassed: checkOutDate <= today,
@@ -895,6 +910,33 @@ const BookingsCalendar = ({
                       ₪
                     </Typography>
                   </Box>
+                </Tooltip>
+              )}
+
+              {/* אייקון צריך חשבונית+קבלה */}
+              {paidButNeedsInvoiceReceipt && (
+                <Tooltip title="שולם - נדרש ליצור חשבונית+קבלה" arrow placement="top">
+                  <IconButton 
+                    size="small" 
+                    sx={{ 
+                      p: 0,
+                      width: '20px',
+                      height: '20px',
+                      minWidth: '20px',
+                      bgcolor: 'transparent',
+                      '&:hover': { bgcolor: 'transparent' }
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation(); // מניעת הפעלת האירוע של ההזמנה
+                    }}
+                  >
+                    <ReceiptIcon 
+                      sx={{ 
+                        color: '#2E7D32',
+                        fontSize: '20px'
+                      }}
+                    />
+                  </IconButton>
                 </Tooltip>
               )}
               

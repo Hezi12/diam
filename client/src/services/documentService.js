@@ -40,6 +40,44 @@ class DocumentService {
   }
 
   /**
+   * יצירת חשבונית עם קבלה
+   * 
+   * @param {string} bookingId - מזהה ההזמנה
+   * @param {string} paymentMethod - אמצעי התשלום (cash, credit_card, bit, bank_transfer)
+   * @param {number} amount - סכום החשבונית (אופציונלי)
+   * @returns {Promise<Object>} - תוצאות יצירת החשבונית עם הקבלה
+   */
+  async createInvoiceWithReceipt(bookingId, paymentMethod, amount = null) {
+    try {
+      if (!bookingId) {
+        throw new Error('מזהה הזמנה חסר');
+      }
+
+      if (!paymentMethod) {
+        throw new Error('אמצעי תשלום חסר');
+      }
+
+      const requestData = {
+        bookingId,
+        documentType: 'invoice_receipt',
+        paymentMethod
+      };
+      
+      // הוספת סכום אם סופק
+      if (amount !== null && amount !== undefined) {
+        requestData.amount = amount;
+      }
+
+      const response = await axios.post(`${API_URL}${API_ENDPOINTS.documents.base}`, requestData);
+
+      return response.data;
+    } catch (error) {
+      console.error('שגיאה ביצירת חשבונית עם קבלה:', error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
    * קבלת פרטי מסמך לפי מזהה
    * 
    * @param {string} documentId - מזהה המסמך

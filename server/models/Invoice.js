@@ -17,7 +17,7 @@ const InvoiceSchema = new Schema({
   // סוג המסמך
   documentType: {
     type: String,
-    enum: ['invoice', 'credit_invoice'],
+    enum: ['invoice', 'credit_invoice', 'invoice_receipt'],
     default: 'invoice'
   },
   
@@ -61,6 +61,7 @@ const InvoiceSchema = new Schema({
   icountData: {
     success: Boolean,
     docNumber: String,
+    paymentMethod: String,  // אמצעי התשלום לחשבונית עם קבלה
     responseData: Schema.Types.Mixed
   }
 }, { timestamps: true });

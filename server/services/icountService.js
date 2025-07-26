@@ -474,6 +474,233 @@ class ICountService {
     // קריאה לפונקציה המשולבת שמבצעת סליקה + חשבונית
     return await this.chargeCardAndCreateInvoice(booking, amount, location);
   }
+
+  /**
+   * יצירת חשבונית עם קבלה ב-iCount
+   * 
+   * @param {Object} invoiceData - נתוני החשבונית
+   * @param {string} location - מיקום (airport/rothschild)
+   * @param {string} paymentMethod - אמצעי התשלום (cash, credit_card, bit, bank_transfer)
+   * @returns {Promise<Object>} - תוצאת יצירת החשבונית עם הקבלה
+   */
+  async createInvoiceWithReceipt(invoiceData, location = 'rothschild', paymentMethod = 'cash') {
+    try {
+      console.log(`📄 יוצר חשבונית עם קבלה במיקום ${location} עם אמצעי תשלום: ${paymentMethod}`);
+      
+      // המרת המיקום לפורמט הנכון
+      const normalizedLocation = location === 'airport' ? 'airport' : 'rothschild';
+      
+      // קבלת פרטי החשבון הרלוונטיים
+      const accountDetails = this.accounts[normalizedLocation];
+      
+      if (!accountDetails) {
+        throw new Error(`פרטי חשבון לא נמצאו עבור מיקום: ${location}`);
+      }
+      
+      if (!invoiceData || !invoiceData.customer || !invoiceData.items) {
+        throw new Error('נתוני חשבונית חסרים או לא מלאים');
+      }
+
+      // בדיקה האם יש פריט פטור ממע"מ
+      const hasTaxExemptItem = invoiceData.items.some(item => item.taxExempt === true);
+      console.log(`🏷️ האם יש פריט פטור ממע"מ: ${hasTaxExemptItem ? 'כן' : 'לא'}`);
+      
+      // שלב 1: יצירת חשבונית מס
+      console.log(`📄 שלב 1: יוצר חשבונית מס`);
+      
+      const invoiceRequestData = {
+        // פרטי חשבון
+        cid: accountDetails.companyId,
+        user: accountDetails.username,
+        pass: accountDetails.password,
+        vat_id: "0",
+        
+        // סוג מסמך - חשבונית מס
+        doctype: 'invoice',
+        
+        // פרטי לקוח
+        client_name: invoiceData.customer.name,
+        client_id: "0",
+        email: invoiceData.customer.email || '',
+        client_address: invoiceData.customer.address || '',
+        client_phone: invoiceData.customer.phone || '',
+        
+        // הגדרות
+        lang: 'he',
+        currency_code: 'ILS',
+        
+        // פרטי תשלום
+        doc_date: invoiceData.issueDate || new Date().toISOString().split('T')[0],
+        
+        // פריטים
+        items: invoiceData.items.map(item => {
+          const mappedItem = {
+            description: item.description || 'שירות אירוח',
+            quantity: item.quantity || 1,
+            unitprice: item.unitPrice || 0
+          };
+          
+          if (item.taxExempt === true) {
+            mappedItem.tax_exempt = true;
+            console.log(`📋 פריט פטור ממע"מ: ${item.description} - ${item.unitPrice} ₪`);
+          } else {
+            mappedItem.tax_exempt = false;
+            console.log(`📋 פריט רגיל (עם מע"מ): ${item.description} - ${item.unitPrice} ₪`);
+          }
+          
+          return mappedItem;
+        }),
+        
+        // הערות
+        notes: invoiceData.notes || '',
+      };
+
+      // יצירת החשבונית
+      console.log(`🌐 מתחבר ל-iCount API ליצירת חשבונית מס: ${this.baseUrl}/doc/create`);
+      
+      const startTime = Date.now();
+      const invoiceResponse = await this.axiosInstance.post(
+        `${this.baseUrl}/doc/create`,
+        invoiceRequestData
+      );
+      
+      if (invoiceResponse.data && invoiceResponse.data.status === 'error') {
+        throw new Error(`שגיאה ביצירת חשבונית ב-iCount: ${invoiceResponse.data.error}`);
+      }
+      
+      const invoiceNumber = invoiceResponse.data.docnum;
+      console.log(`✅ חשבונית מס נוצרה בהצלחה: ${invoiceNumber}`);
+      
+      // שלב 2: יצירת קבלה
+      console.log(`📄 שלב 2: יוצר קבלה על אמצעי תשלום: ${paymentMethod}`);
+      
+      // הסכום לתשלום צריך להיות הסכום שבאמת נגבה (כולל מע"מ עבור תושבים)
+      const paymentAmount = invoiceData.paymentAmount || invoiceData.total;
+      
+      const receiptRequestData = {
+        // פרטי חשבון
+        cid: accountDetails.companyId,
+        user: accountDetails.username,
+        pass: accountDetails.password,
+        vat_id: "0",
+        
+        // סוג מסמך - קבלה
+        doctype: 'receipt',
+        
+        // פרטי לקוח (פשוטים יותר לקבלה)
+        client_name: invoiceData.customer.name,
+        client_id: "0",
+        
+        // הגדרות
+        lang: 'he',
+        currency_code: 'ILS',
+        
+        // פרטי תשלום
+        doc_date: invoiceData.issueDate || new Date().toISOString().split('T')[0],
+        
+        // פריט פשוט לקבלה
+        items: [{
+          description: `תשלום עבור חשבונית מס ${invoiceNumber}`,
+          quantity: 1,
+          unitprice: paymentAmount,
+          tax_exempt: true // קבלה לא צריכה מע"מ נוסף
+        }],
+        
+        // הערות עם ציון מספר החשבונית
+        notes: `קבלה על חשבונית מס מספר: ${invoiceNumber}`,
+      };
+
+      // הוספת פרטי תשלום לפי האמצעי שנבחר
+      switch (paymentMethod) {
+        case 'cash':
+          receiptRequestData.cash = { sum: paymentAmount };
+          console.log(`💰 תשלום במזומן: ${paymentAmount} ₪`);
+          break;
+          
+        case 'credit_card':
+          receiptRequestData.cc = { 
+            sum: paymentAmount,
+            card_type: 'VISA' // ברירת מחדל
+          };
+          console.log(`💳 תשלום בכרטיס אשראי: ${paymentAmount} ₪`);
+          break;
+          
+        case 'bit':
+          // ביט נחשב כהעברה בנקאית עם הערה
+          receiptRequestData.banktransfer = {
+            sum: paymentAmount,
+            reference: 'תשלום דרך ביט'
+          };
+          console.log(`📱 תשלום דרך ביט: ${paymentAmount} ₪`);
+          break;
+          
+        case 'bank_transfer':
+          receiptRequestData.banktransfer = {
+            sum: paymentAmount,
+            reference: invoiceData.transferReference || 'העברה בנקאית'
+          };
+          console.log(`🏦 תשלום בהעברה בנקאית: ${paymentAmount} ₪`);
+          break;
+          
+        default:
+          // ברירת מחדל - מזומן
+          receiptRequestData.cash = { sum: paymentAmount };
+          console.log(`💰 תשלום במזומן (ברירת מחדל): ${paymentAmount} ₪`);
+      }
+      
+      // יצירת הקבלה
+      console.log(`🌐 מתחבר ל-iCount API ליצירת קבלה: ${this.baseUrl}/doc/create`);
+      
+      const receiptResponse = await this.axiosInstance.post(
+        `${this.baseUrl}/doc/create`,
+        receiptRequestData
+      );
+      const endTime = Date.now();
+      
+      console.log(`⚡ זמן תגובה כולל מ-iCount: ${endTime - startTime}ms`);
+      
+      if (receiptResponse.data && receiptResponse.data.status === 'error') {
+        console.log(`⚠️ אזהרה: חשבונית נוצרה (${invoiceNumber}) אבל יצירת הקבלה נכשלה: ${receiptResponse.data.error}`);
+        // לא נזרוק שגיאה כי החשבונית כבר נוצרה
+        return {
+          success: true,
+          data: invoiceResponse.data,
+          invoiceNumber: invoiceNumber,
+          receiptNumber: null,
+          paymentMethod: paymentMethod,
+          message: `חשבונית נוצרה בהצלחה (${invoiceNumber}), אך יצירת הקבלה נכשלה`
+        };
+      }
+      
+      const receiptNumber = receiptResponse.data.docnum;
+      console.log(`✅ קבלה נוצרה בהצלחה: ${receiptNumber}`);
+      console.log(`🎉 חשבונית עם קבלה הושלמה בהצלחה: חשבונית ${invoiceNumber}, קבלה ${receiptNumber}`);
+      
+      return {
+        success: true,
+        data: {
+          invoice: invoiceResponse.data,
+          receipt: receiptResponse.data
+        },
+        invoiceNumber: invoiceNumber,
+        receiptNumber: receiptNumber,
+        paymentMethod: paymentMethod,
+        message: `חשבונית (${invoiceNumber}) וקבלה (${receiptNumber}) נוצרו בהצלחה`
+      };
+      
+    } catch (error) {
+      console.error('❌ שגיאה ביצירת חשבונית עם קבלה ב-iCount:', error.message);
+      
+      // טיפול מפורט בסוגי שגיאות שונים
+      if (error.code === 'ECONNABORTED') {
+        console.error('⏱️ השגיאה: timeout - החיבור ל-iCount API לקח יותר מ-30 שניות');
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error('🚫 השגיאה: חיבור נדחה - iCount API לא זמין');
+      }
+      
+      throw error;
+    }
+  }
 }
 
 module.exports = new ICountService(); 
