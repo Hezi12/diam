@@ -18,11 +18,18 @@ import {
   deleteBooking 
 } from '../../components/dashboard/dashboardUtils';
 
+// ייבוא קונטקסט הסינון
+import { useFilter } from '../../contexts/FilterContext';
+
 /**
  * דף הדאשבורד הראשי
  */
 const Dashboard = () => {
   const colors = STYLE_CONSTANTS.colors;
+  
+  // שימוש בקונטקסט הסינון
+  const { isFilterActive } = useFilter();
+  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [airportRooms, setAirportRooms] = useState([]);
   const [rothschildRooms, setRothschildRooms] = useState([]);
@@ -57,9 +64,9 @@ const Dashboard = () => {
 
   // טעינת הזמנות בכל שינוי תאריך
   useEffect(() => {
-    fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-    fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
-  }, [currentDate]);
+    fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+    fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
+  }, [currentDate, isFilterActive]);
 
   // פונקציה לשינוי תאריך
   const handleDateChange = (newDate) => {
@@ -143,8 +150,8 @@ const Dashboard = () => {
       
       // רענון הזמנות עם השהייה קצרה
       setTimeout(() => {
-        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
       }, 500);
       
       return true;
@@ -176,8 +183,8 @@ const Dashboard = () => {
       
       // רענון הזמנות עם השהייה קצרה
       setTimeout(() => {
-        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
       }, 500);
       
       return true;
@@ -209,8 +216,8 @@ const Dashboard = () => {
       
       // רענון הזמנות עם השהייה קצרה
       setTimeout(() => {
-        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
       }, 500);
       
       return true;
@@ -270,26 +277,26 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ px: 0, pb: 4, maxWidth: '1350px', mx: 'auto' }}>
-      {/* אזור ניווט בין תאריכים */}
-      <Box sx={{ px: 1 }}>
-        <DashboardDateNav 
-          currentDate={currentDate}
-          onDateChange={handleDateChange}
-        />
-      </Box>
-      
-      {/* תצוגת חדרים עם רווח מצומצם */}
-      <Grid container spacing={0.5} sx={{ px: 0.5 }}>
-        <Grid item xs={12} md={6}>
-          <LocationSection 
-            location="rothschild" 
-            rooms={sortedFilteredRothschildRooms} 
-            bookings={rothschildBookings}
-            loading={loading.rothschildRooms || loading.rothschildBookings}
-            onRoomClick={handleRoomClick}
-            getRoomStatus={getRoomStatusForCurrentDate}
+        {/* אזור ניווט בין תאריכים */}
+        <Box sx={{ px: 1 }}>
+          <DashboardDateNav 
+            currentDate={currentDate}
+            onDateChange={handleDateChange}
           />
-        </Grid>
+        </Box>
+        
+        {/* תצוגת חדרים עם רווח מצומצם */}
+        <Grid container spacing={0.5} sx={{ px: 0.5 }}>
+          <Grid item xs={12} md={6}>
+            <LocationSection 
+              location="rothschild" 
+              rooms={sortedFilteredRothschildRooms} 
+              bookings={rothschildBookings}
+              loading={loading.rothschildRooms || loading.rothschildBookings}
+              onRoomClick={handleRoomClick}
+              getRoomStatus={getRoomStatusForCurrentDate}
+            />
+          </Grid>
         
         <Grid item xs={12} md={6}>
           <LocationSection 

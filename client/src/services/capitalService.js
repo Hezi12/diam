@@ -104,6 +104,7 @@ export const getPaymentMethodName = (method) => {
     credit_rothschild: 'אשראי רוטשילד',
     bit_poalim: 'ביט פועלים',
     cash: 'מזומן',
+    cash2: 'מזומן2',
     bit_mizrahi: 'ביט מזרחי',
     paybox_poalim: 'פייבוקס פועלים',
     transfer_mizrahi: 'העברה מזרחי',

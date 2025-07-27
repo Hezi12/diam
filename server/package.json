@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "production": "NODE_ENV=production node server.js"
+    "production": "NODE_ENV=production node server.js",
+    "migrate-cash2": "node scripts/addCash2PaymentMethod.js"
   },
   "dependencies": {
     "@mui/x-date-pickers": "^8.0.0",

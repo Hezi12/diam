@@ -165,6 +165,7 @@ const BookingSchema = new mongoose.Schema(
       enum: [
         'unpaid',
         'cash',
+        'cash2',
         'credit_or_yehuda',
         'credit_rothschild',
         'transfer_mizrahi',

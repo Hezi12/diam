@@ -34,6 +34,7 @@ import {
   getPaymentMethodName
 } from '../../services/capitalService';
 import { useSnackbar } from 'notistack';
+import { useFilter } from '../../contexts/FilterContext';
 
 // פאנל לטעינת נתונים
 const LoadingPanel = () => (
@@ -98,6 +99,7 @@ const PaymentMethodCard = ({ method, name, amount, onEdit }) => {
       credit_rothschild: theme.palette.grey[700],
       bit_poalim: theme.palette.success.main,
       cash: theme.palette.warning.main,
+      cash2: theme.palette.warning.dark,
       bit_mizrahi: theme.palette.error.main,
       paybox_poalim: theme.palette.info.main,
       transfer_mizrahi: theme.palette.secondary.main,
@@ -167,6 +169,7 @@ const PaymentMethodCard = ({ method, name, amount, onEdit }) => {
 const CapitalManagement = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { shouldHidePaymentMethod, isFilterActive } = useFilter();
   const [loading, setLoading] = useState(true);
   const [syncLoading, setSyncLoading] = useState(false);
   const [capitalData, setCapitalData] = useState(null);
@@ -180,10 +183,10 @@ const CapitalManagement = () => {
     amount: 0
   });
 
-  // טעינת נתוני הון בעת טעינת הדף
+  // טעינת נתוני הון בעת טעינת הדף או שינוי מצב הסינון
   useEffect(() => {
     fetchCapitalData();
-  }, []);
+  }, [isFilterActive]);
 
   // פונקציה לטעינת נתוני הון
   const fetchCapitalData = async () => {
@@ -268,8 +271,21 @@ const CapitalManagement = () => {
     if (!capitalData || !capitalData.paymentMethods) return [];
     
     // סינון אמצעי התשלום - ללא אשראי אור יהודה ואשראי רוטשילד
+    // ובהתאם למצב הסינון הגלובלי
     return capitalData.paymentMethods
-      .filter(item => item.method !== 'credit_or_yehuda' && item.method !== 'credit_rothschild')
+      .filter(item => {
+        // תמיד מסתיר אשראי
+        if (item.method === 'credit_or_yehuda' || item.method === 'credit_rothschild') {
+          return false;
+        }
+        
+        // אם הסינון פעיל, מסתיר גם את אמצעי התשלום המסוננים
+        if (isFilterActive && shouldHidePaymentMethod(item.method)) {
+          return false;
+        }
+        
+        return true;
+      })
       .map(item => ({
         method: item.method,
         name: getPaymentMethodName(item.method),
@@ -286,6 +302,12 @@ const CapitalManagement = () => {
       if (item.method === 'credit_or_yehuda' || item.method === 'credit_rothschild') {
         return sum;
       }
+      
+      // אם הסינון פעיל, לא כולל גם את אמצעי התשלום המסוננים
+      if (isFilterActive && shouldHidePaymentMethod(item.method)) {
+        return sum;
+      }
+      
       return sum + item.totalAmount;
     }, 0);
   };

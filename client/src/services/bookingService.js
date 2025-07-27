@@ -13,20 +13,28 @@ const bookingService = {
    * @param {Date} startDate - תאריך התחלה
    * @param {Date} endDate - תאריך סיום
    * @param {string} location - מיקום ההזמנות (airport/rothschild)
+   * @param {boolean} isFilterActive - האם הסינון פעיל
    * @returns {Promise<Array>} רשימת ההזמנות בטווח התאריכים
    */
-  getBookingsByDateRange: async (startDate, endDate, location) => {
+  getBookingsByDateRange: async (startDate, endDate, location, isFilterActive = false) => {
     try {
       // פורמט תאריכים לשליחה ל-API
       const startStr = format(startDate, 'yyyy-MM-dd');
       const endStr = format(endDate, 'yyyy-MM-dd');
       
+      const params = {
+        startDate: startStr,
+        endDate: endStr,
+        location
+      };
+      
+      // הוספת מצב הסינון אם פעיל
+      if (isFilterActive) {
+        params.filterMode = 'active';
+      }
+      
       const response = await axios.get(API_ENDPOINTS.bookings.dateRange, {
-        params: {
-          startDate: startStr,
-          endDate: endStr,
-          location
-        }
+        params
       });
       
       return response.data;
@@ -37,37 +45,38 @@ const bookingService = {
   },
 
   /**
-   * חיפוש הזמנות
-   * @param {string} query - מחרוזת החיפוש (אופציונלי אם יש טווח תאריכים)
-   * @param {string} location - מיקום ההזמנות (airport/rothschild)
-   * @param {string} startDate - תאריך התחלה לחיפוש (אופציונלי)
-   * @param {string} endDate - תאריך סיום לחיפוש (אופציונלי)
-   * @returns {Promise<Array>} תוצאות החיפוש
+   * חיפוש הזמנות לפי מילות מפתח
+   * @param {string} searchTerm - מילת המפתח לחיפוש
+   * @param {string} location - מיקום החיפוש (airport/rothschild)
+   * @param {Date} startDate - תאריך התחלה (אופציונלי)
+   * @param {Date} endDate - תאריך סיום (אופציונלי)
+   * @param {boolean} isFilterActive - האם הסינון פעיל
+   * @returns {Promise<Array>} רשימת ההזמנות שנמצאו
    */
-  searchBookings: async (query, location, startDate = null, endDate = null) => {
+  searchBookings: async (searchTerm, location, startDate = null, endDate = null, isFilterActive = false) => {
     try {
-      // הכנת פרמטרים לחיפוש
-      const params = { location };
+      const params = {
+        q: searchTerm,
+        location
+      };
       
-      // הוספת פרמטר חיפוש טקסטואלי אם קיים
-      if (query && query.trim()) {
-        params.query = query;
+      // הוספת תאריכים אם צוינו
+      if (startDate) {
+        params.startDate = format(startDate, 'yyyy-MM-dd');
+      }
+      if (endDate) {
+        params.endDate = format(endDate, 'yyyy-MM-dd');
       }
       
-      // הוספת פרמטרים של טווח תאריכים אם נשלחו
-      if (startDate && endDate) {
-        params.startDate = startDate;
-        params.endDate = endDate;
+      // הוספת מצב הסינון אם פעיל
+      if (isFilterActive) {
+        params.filterMode = 'active';
       }
-      
-      // תיעוד הפרמטרים לבדיקה
-      logService.debug('שליחת בקשת חיפוש הזמנות', params);
       
       const response = await axios.get(API_ENDPOINTS.bookings.search, {
         params
       });
       
-      logService.debug(`התקבלו ${response.data.length} תוצאות חיפוש`);
       return response.data;
     } catch (error) {
       const errorInfo = errorService.handleApiError(error, 'search bookings');

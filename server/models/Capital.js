@@ -47,6 +47,7 @@ const CapitalSchema = new mongoose.Schema(
     // אלו הסכומים שהמשתמש יכול לעדכן ידנית
     initialAmounts: {
       cash: { type: Number, default: 0 },
+      cash2: { type: Number, default: 0 },
       credit_rothschild: { type: Number, default: 0 },
       credit_or_yehuda: { type: Number, default: 0 },
       transfer_poalim: { type: Number, default: 0 },
@@ -61,6 +62,7 @@ const CapitalSchema = new mongoose.Schema(
     // סכומים מצטברים - מתעדכנים אוטומטית מהכנסות והוצאות
     currentAmounts: {
       cash: { type: Number, default: 0 },
+      cash2: { type: Number, default: 0 },
       credit_rothschild: { type: Number, default: 0 },
       credit_or_yehuda: { type: Number, default: 0 },
       transfer_poalim: { type: Number, default: 0 },

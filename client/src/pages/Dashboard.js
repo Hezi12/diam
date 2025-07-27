@@ -18,6 +18,9 @@ import {
   deleteBooking 
 } from '../components/dashboard/dashboardUtils';
 
+// ייבוא קונטקסט הסינון
+import { useFilter } from '../contexts/FilterContext';
+
 /**
  * דף הדאשבורד הראשי
  */
@@ -25,6 +28,9 @@ const Dashboard = () => {
   const colors = STYLE_CONSTANTS.colors;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // שימוש בקונטקסט הסינון
+  const { isFilterActive } = useFilter();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [airportRooms, setAirportRooms] = useState([]);
@@ -58,11 +64,15 @@ const Dashboard = () => {
     fetchRooms('rothschild', setLoading, setRothschildRooms);
   }, []);
 
-  // טעינת הזמנות בכל שינוי תאריך
+  // טעינת הזמנות בכל שינוי תאריך או מצב הסינון
   useEffect(() => {
-    fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-    fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
-  }, [currentDate]);
+    const fetchData = async () => {
+      await fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+      await fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
+    };
+    
+    fetchData();
+  }, [currentDate, isFilterActive]);
 
   // פונקציה לשינוי תאריך
   const handleDateChange = (newDate) => {
@@ -146,8 +156,8 @@ const Dashboard = () => {
       
       // רענון הזמנות עם השהייה קצרה
       setTimeout(() => {
-        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
       }, 500);
       
       return true;
@@ -179,8 +189,8 @@ const Dashboard = () => {
       
       // רענון הזמנות עם השהייה קצרה
       setTimeout(() => {
-        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
       }, 500);
       
       return true;
@@ -212,8 +222,8 @@ const Dashboard = () => {
       
       // רענון הזמנות עם השהייה קצרה
       setTimeout(() => {
-        fetchBookings('airport', currentDate, setLoading, setAirportBookings);
-        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings);
+        fetchBookings('airport', currentDate, setLoading, setAirportBookings, isFilterActive);
+        fetchBookings('rothschild', currentDate, setLoading, setRothschildBookings, isFilterActive);
       }, 500);
       
       return true;

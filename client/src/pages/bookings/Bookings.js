@@ -16,6 +16,10 @@ import BookingSearchDialog from '../../components/bookings/BookingSearchDialog';
 import BookingDetails from '../../components/bookings/BookingDetails';
 import ExternalToolbar from '../../components/bookings/ExternalToolbar';
 
+// ייבוא ה-Context החדש
+import { useFilter } from '../../contexts/FilterContext';
+import bookingService from '../../services/bookingService';
+
 /**
  * דף ניהול ההזמנות הראשי
  * בעיצוב החדש המותאם לדוגמאות BookingCalendarExamples
@@ -25,6 +29,9 @@ const Bookings = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const colors = STYLE_CONSTANTS.colors;
   const { enqueueSnackbar } = useSnackbar();
+  
+  // שימוש בקונטקסט הסינון
+  const { isFilterActive } = useFilter();
   
   // מצב מיקום
   const [location, setLocation] = useState('airport');
@@ -91,23 +98,20 @@ const Bookings = () => {
   
   // טעינת ההזמנות לפי מיקום וטווח תאריכים
   useEffect(() => {
+    console.log('Bookings useEffect called, isFilterActive:', isFilterActive);
     const fetchBookings = async () => {
       setLoading(prev => ({ ...prev, bookings: true }));
       try {
-        // פורמט תאריכים לשליחה ל-API
-        const startStr = format(dateRange.startDate, 'yyyy-MM-dd');
-        const endStr = format(dateRange.endDate, 'yyyy-MM-dd');
+        // שימוש בשירות הזמנות עם מצב הסינון
+        const bookingsData = await bookingService.getBookingsByDateRange(
+          dateRange.startDate,
+          dateRange.endDate,
+          location,
+          isFilterActive
+        );
         
-        const response = await axios.get(`/api/bookings/date-range`, {
-          params: {
-            startDate: startStr,
-            endDate: endStr,
-            location
-          }
-        });
-        
-        console.log('הזמנות שהגיעו מהשרת:', response.data);
-        setBookings(response.data);
+        console.log('הזמנות שהגיעו מהשרת:', bookingsData);
+        setBookings(bookingsData);
       } catch (error) {
         console.error('Error fetching bookings:', error);
         showNotification('שגיאה בטעינת ההזמנות', 'error');
@@ -120,7 +124,7 @@ const Bookings = () => {
     if (!searchQuery.trim()) {
       fetchBookings();
     }
-  }, [location, dateRange.startDate, dateRange.endDate, searchQuery]);
+  }, [location, dateRange.startDate, dateRange.endDate, searchQuery, isFilterActive]);
   
   // חיפוש הזמנות
   useEffect(() => {
@@ -134,13 +138,15 @@ const Bookings = () => {
       setLoading(prev => ({ ...prev, bookings: true }));
       
       try {
-        const response = await axios.get(`/api/bookings/search`, {
-          params: {
-            query: searchQuery,
-            location
-          }
-        });
-        setBookings(response.data);
+        // שימוש בשירות הזמנות עם מצב הסינון
+        const searchResults = await bookingService.searchBookings(
+          searchQuery,
+          location,
+          null, // startDate
+          null, // endDate
+          isFilterActive
+        );
+        setBookings(searchResults);
       } catch (error) {
         console.error('Error searching bookings:', error);
         showNotification('שגיאה בחיפוש הזמנות', 'error');
@@ -158,7 +164,7 @@ const Bookings = () => {
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [searchQuery, location]);
+  }, [searchQuery, location, isFilterActive]);
   
   // טיפול בשינוי מיקום
   const handleLocationChange = (newLocation) => {
@@ -467,54 +473,6 @@ const Bookings = () => {
     }
   };
   
-  // טעינת ההזמנות - לוגיקה משולבת לחיפוש וטעינה רגילה
-  useEffect(() => {
-    let timer;
-    const fetchData = async () => {
-      setLoading(prev => ({ ...prev, bookings: true }));
-      
-      try {
-        if (searchQuery.trim()) {
-          // מצב חיפוש
-          setIsSearching(true);
-          const response = await axios.get(`/api/bookings/search`, {
-            params: {
-              query: searchQuery,
-              location
-            }
-          });
-          setBookings(response.data);
-        } else {
-          // מצב טעינה רגילה
-          const startStr = format(dateRange.startDate, 'yyyy-MM-dd');
-          const endStr = format(dateRange.endDate, 'yyyy-MM-dd');
-          
-          const response = await axios.get(`/api/bookings/date-range`, {
-            params: {
-              startDate: startStr,
-              endDate: endStr,
-              location
-            }
-          });
-          
-          console.log('הזמנות שהגיעו מהשרת:', response.data);
-          setBookings(response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching bookings:', error);
-        showNotification('שגיאה בטעינת ההזמנות', 'error');
-      } finally {
-        setLoading(prev => ({ ...prev, bookings: false }));
-        setIsSearching(false);
-      }
-    };
-    
-    // השהייה קצרה למניעת בקשות מיותרות במקרה של הקלדה מהירה
-    timer = setTimeout(fetchData, 300);
-    
-    return () => clearTimeout(timer);
-  }, [location, dateRange.startDate, dateRange.endDate, searchQuery]);
-  
   // טיפול בלחיצה על כפתור הזמנה חדשה
   const handleAddBooking = () => {
     // איפוס נתוני טופס הזמנה חדשה
@@ -528,37 +486,37 @@ const Bookings = () => {
   
   return (
     <Container maxWidth={false} disableGutters sx={{ height: '100%', overflow: 'hidden' }}>
-      <Box sx={{ 
-        p: { xs: 2, md: 3 }, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        height: '100%' 
-      }}>
-        {/* אזור כותרת וכפתורים */}
         <Box sx={{ 
+          p: { xs: 2, md: 3 }, 
           display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 2 
+          flexDirection: 'column', 
+          height: '100%' 
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h5" fontWeight={500} sx={{ mr: 2 }}>
-              ניהול הזמנות
-            </Typography>
-            <BookingTabs location={location} onLocationChange={handleLocationChange} />
-          </Box>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={handleAddBooking}
-              startIcon={<Add />}
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: '4px', textTransform: 'none' }}
-            >
-              הזמנה חדשה
-            </Button>
+          {/* אזור כותרת וכפתורים */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 2 
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h5" fontWeight={500} sx={{ mr: 2 }}>
+                ניהול הזמנות
+              </Typography>
+              <BookingTabs location={location} onLocationChange={handleLocationChange} />
+            </Box>
+            
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={handleAddBooking}
+                startIcon={<Add />}
+                size={isMobile ? 'small' : 'medium'}
+                sx={{ borderRadius: '4px', textTransform: 'none' }}
+              >
+                הזמנה חדשה
+              </Button>
             
             <Button 
               variant="outlined" 
@@ -673,11 +631,9 @@ const Bookings = () => {
             }}
           >
             {notification.message}
-          </Alert>
-        </Snackbar>
-      </Box>
+        </Alert>
+      </Snackbar>
+    </Box>
     </Container>
   );
-};
-
-export default Bookings; 
+};export default Bookings; 

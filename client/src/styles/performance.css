@@ -1,0 +1,67 @@
+/* =============================================
+   מערכת סינון מיידי - הסתרה עם CSS בלבד
+   ============================================= */
+
+/* הסתרה מיידית ומוחלטת לאלמנטים מסוננים */
+.filter-hide {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+}
+
+/* מצב רגיל - הצגה מלאה */
+.filter-show {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* עבור אלמנטים שצריכים להיות flex */
+.filter-show-flex {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* עבור table rows */
+.filter-show-table-row {
+  display: table-row !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* מצב טעינה לטבלאות */
+.table-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.table-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}

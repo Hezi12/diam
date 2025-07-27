@@ -10,6 +10,7 @@ import CampaignIcon from '@mui/icons-material/Campaign';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ICalSettings from '../../components/settings/ICalSettings';
+import HiddenFilterToggle from '../../components/settings/HiddenFilterToggle';
 import { useSnackbar } from 'notistack';
 
 /**
@@ -19,6 +20,9 @@ import { useSnackbar } from 'notistack';
 const Settings = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [refreshing, setRefreshing] = useState(false);
+
+  // שימוש בקומפוננט הסינון המוסתר
+  const hiddenFilter = HiddenFilterToggle();
 
   // פונקציה לרענון רשימת האורחים
   const refreshGuestList = async () => {
@@ -52,9 +56,26 @@ const Settings = () => {
   };
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom 
+        sx={{ 
+          mb: 4, 
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          userSelect: 'none',
+          '&:hover': {
+            color: 'primary.main'
+          }
+        }}
+        onClick={hiddenFilter.handleTitleClick}
+      >
         הגדרות המערכת
       </Typography>
+
+      {/* קומפוננט הסינון המוסתר */}
+      {!hiddenFilter.isHidden && hiddenFilter.component}
 
       <Grid container spacing={3}>
         {/* ניהול חדרים - שדה התעופה */}

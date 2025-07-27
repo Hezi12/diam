@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;500;600;700;800&display=swap');
 
+/* ייבוא קובץ CSS לשיפורי ביצועים */
+@import './styles/performance.css';
+
 :root {
   --primary-color: #0071e3;
   --primary-hover-color: #0077ed;

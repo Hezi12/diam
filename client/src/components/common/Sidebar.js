@@ -31,9 +31,11 @@ import {
   Menu as MenuIcon,
   AccountBalanceWallet as AccountBalanceWalletIcon,
   SwapHoriz as MigrationIcon,
-  Description as DocumentsIcon
+  Description as DocumentsIcon,
+  FilterList as FilterIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFilter } from '../../contexts/FilterContext';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 
 const drawerWidth = 70;
@@ -206,6 +208,7 @@ const LogoutButton = ({ onClick, iconColor }) => {
 
 const Sidebar = () => {
   const { logout } = useAuth();
+  const { isFilterActive, toggleFilter } = useFilter();
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -215,6 +218,10 @@ const Sidebar = () => {
   const [showRevenueSubMenu, setShowRevenueSubMenu] = useState(false);
   // משתנה חדש לשליטה בפתיחה/סגירה של תת-תפריט הכנסות בלחיצה
   const [isRevenueMenuOpen, setIsRevenueMenuOpen] = useState(false);
+  
+  // מצב כפתור הסינון הסודי
+  const [secretClickCount, setSecretClickCount] = useState(0);
+  const [showSecretFilter, setShowSecretFilter] = useState(false);
 
   // לוגיקת התנתקות
   const handleLogout = () => {
@@ -224,6 +231,30 @@ const Sidebar = () => {
   // כפתור חזרה
   const handleBack = () => {
     navigate(-1);
+  };
+  
+  // פונקציה לטיפול בלחיצות סודיות
+  const handleSecretClick = () => {
+    const newCount = secretClickCount + 1;
+    setSecretClickCount(newCount);
+    
+    if (newCount >= 4) {
+      setShowSecretFilter(true);
+      setSecretClickCount(0); // איפוס הספירה
+    }
+    
+    // איפוס הספירה אחרי 2 שניות אם לא הגענו ל-4
+    setTimeout(() => {
+      if (newCount < 4) {
+        setSecretClickCount(0);
+      }
+    }, 2000);
+  };
+  
+  // פונקציה להסתרת הכפתור הסודי (לחיצה ארוכה)
+  const handleHideSecretFilter = () => {
+    setShowSecretFilter(false);
+    setSecretClickCount(0);
   };
   
   // פתיחה/סגירה של תפריט מובייל
@@ -422,6 +453,95 @@ const Sidebar = () => {
         <List sx={{ 
           padding: isMobile ? '8px 0' : '8px 0'  // יותר פדינג ברשימה של כפתור ההתנתקות
         }}>
+          {/* אזור כפתור סינון סודי */}
+          <ListItem sx={{ 
+            padding: isMobile ? '6px' : '8px', 
+            display: 'flex', 
+            justifyContent: 'center',
+            minHeight: '48px', // שמירה על מקום קבוע
+          }}>
+            {/* כפתור סודי שנעלם - מופיע רק אחרי 4 לחיצות */}
+            {showSecretFilter ? (
+              <Tooltip 
+                title={isFilterActive ? "מצב סינון פעיל - הסתר שיטות תשלום מסוימות (לחיצה ארוכה להסתרה)" : "הפעל מצב סינון (לחיצה ארוכה להסתרה)"} 
+                placement="left"
+              >
+                <Box
+                  component="button"
+                  onClick={toggleFilter}
+                  onMouseDown={(e) => {
+                    // טיימר ללחיצה ארוכה
+                    const timer = setTimeout(() => {
+                      handleHideSecretFilter();
+                    }, 1000); // שנייה אחת
+                    
+                    const handleMouseUp = () => {
+                      clearTimeout(timer);
+                      document.removeEventListener('mouseup', handleMouseUp);
+                    };
+                    
+                    document.addEventListener('mouseup', handleMouseUp);
+                  }}
+                  sx={{
+                    border: 'none',
+                    background: 'none',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease-in-out',
+                    color: isFilterActive ? '#2196f3' : '#9e9e9e',
+                    backgroundColor: isFilterActive ? 'rgba(33, 150, 243, 0.1)' : 'transparent',
+                    animation: 'fadeIn 0.5s ease-in-out',
+                    '&:hover': {
+                      backgroundColor: isFilterActive ? 'rgba(33, 150, 243, 0.2)' : 'rgba(158, 158, 158, 0.1)',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      fontSize: isMobile ? '1.8rem' : '1.5rem',
+                    },
+                    '@keyframes fadeIn': {
+                      '0%': {
+                        opacity: 0,
+                        transform: 'scale(0.8)',
+                      },
+                      '100%': {
+                        opacity: 1,
+                        transform: 'scale(1)',
+                      },
+                    },
+                  }}
+                >
+                  <FilterIcon />
+                </Box>
+              </Tooltip>
+            ) : (
+              // אזור נעלם לקליקים סודיים
+              <Box
+                component="button"
+                onClick={handleSecretClick}
+                sx={{
+                  border: 'none',
+                  background: 'transparent',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  cursor: 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '40px',
+                  height: '40px',
+                  '&:hover': {
+                    backgroundColor: 'transparent',
+                  },
+                }}
+                aria-hidden="true"
+              >
+                {/* אזור שקוף לקליקים */}
+              </Box>
+            )}
+          </ListItem>
           <LogoutButton 
             onClick={handleLogout}
             iconColor={iconColors.logout}

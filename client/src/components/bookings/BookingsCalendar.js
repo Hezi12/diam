@@ -25,6 +25,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
+import { useFilterCSS } from '../../hooks/useFilterCSS';
 
 // רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop (מותאם RTL)
 const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant, isDragging, isDragOver }) => ({
@@ -99,6 +100,9 @@ const BookingsCalendar = ({
 }) => {
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
+  
+  // הוק פשוט לסינון CSS
+  const { getBookingClassNameFlex } = useFilterCSS();
 
   // State לניהול drag & drop
   const [dragState, setDragState] = useState({
@@ -637,9 +641,6 @@ const BookingsCalendar = ({
         originalNights: booking.nights
       });
       
-      // הוספת לוג לגבי טווח התצוגה הנוכחי
-      console.log(`טווח תצוגה נוכחי: ${format(daysInRange[0], 'yyyy-MM-dd')} עד ${format(daysInRange[daysInRange.length - 1], 'yyyy-MM-dd')}`);
-      
       // בדיקת תקינות תאריכים
       if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
         console.error('תאריכי הזמנה לא תקינים:', booking._id);
@@ -835,6 +836,7 @@ const BookingsCalendar = ({
           onDragStart={(e) => handleDragStart(e, booking)}
           onDragEnd={handleDragEnd}
           onClick={() => onBookingClick(booking._id)}
+          className={getBookingClassNameFlex(booking)}
           sx={{
             bgcolor: statusColors.bgColor,
             border: `1px solid ${statusColors.borderColor}`,

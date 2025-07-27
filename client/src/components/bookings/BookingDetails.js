@@ -34,11 +34,14 @@ import axios from 'axios';
 
 import CreateDocumentDialog from '../documents/CreateDocumentDialog';
 import CreditCardChargeDialog from '../payment/CreditCardChargeDialog';
+import { useFilter } from '../../contexts/FilterContext';
 
 /**
  * רכיב להצגת פרטי הזמנה מלאים
  */
 const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
+  const { filterPaymentMethods } = useFilter();
+  
   const [isEditing, setIsEditing] = useState(false);
   const [booking, setBooking] = useState(null);
   const [editedBooking, setEditedBooking] = useState(null);
@@ -48,6 +51,24 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [chargeDialogOpen, setChargeDialogOpen] = useState(false);
   const [hasInvoice, setHasInvoice] = useState(false);
+
+  // הגדרת אמצעי התשלום הזמינים (מסוננים לפי הקונטקסט)
+  const allPaymentMethods = [
+    { value: 'unpaid', label: 'לא שולם' },
+    { value: 'cash', label: 'מזומן' },
+    { value: 'cash2', label: 'מזומן2' },
+    { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
+    { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
+    { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
+    { value: 'bit_mizrahi', label: 'ביט מזרחי' },
+    { value: 'paybox_mizrahi', label: 'פייבוקס מזרחי' },
+    { value: 'transfer_poalim', label: 'העברה פועלים' },
+    { value: 'bit_poalim', label: 'ביט פועלים' },
+    { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
+    { value: 'other', label: 'אחר' }
+  ];
+
+  const availablePaymentMethods = filterPaymentMethods(allPaymentMethods);
 
   // הגדרות צבעים לפי סטטוס הזמנה
   const bookingStatusColors = {
@@ -452,15 +473,11 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
                         variant="outlined"
                         size="small"
                       >
-                        <MenuItem value="unpaid">לא שולם</MenuItem>
-                        <MenuItem value="cash">מזומן</MenuItem>
-                        <MenuItem value="credit_or_yehuda">אשראי אור יהודה</MenuItem>
-                        <MenuItem value="credit_rothschild">אשראי רוטשילד</MenuItem>
-                        <MenuItem value="transfer_mizrahi">העברה מזרחי</MenuItem>
-                        <MenuItem value="bit_mizrahi">ביט מזרחי</MenuItem>
-                        <MenuItem value="transfer_poalim">העברה פועלים</MenuItem>
-                        <MenuItem value="bit_poalim">ביט פועלים</MenuItem>
-                        <MenuItem value="other">אחר</MenuItem>
+                        {availablePaymentMethods.map((method) => (
+                          <MenuItem key={method.value} value={method.value}>
+                            {method.label}
+                          </MenuItem>
+                        ))}
                       </TextField>
                     </Grid>
                     <Grid item xs={12}>

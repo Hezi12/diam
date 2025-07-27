@@ -1,0 +1,24 @@
+/* CSS לטעינה חלקה של מצב הסינון */
+.filter-loading {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.filter-ready {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* מניעת הבהוב של תוכן בעת טעינה */
+.filter-context-wrapper {
+  min-height: 100vh;
+}
+
+.filter-context-wrapper.loading {
+  opacity: 0;
+}
+
+.filter-context-wrapper.ready {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}

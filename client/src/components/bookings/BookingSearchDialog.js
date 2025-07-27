@@ -36,6 +36,7 @@ import {
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { format, isValid } from 'date-fns';
 import bookingService from '../../services/bookingService';
+import { useFilter } from '../../contexts/FilterContext';
 
 /**
  * רכיב דיאלוג חיפוש הזמנות
@@ -64,6 +65,9 @@ const BookingSearchDialog = ({
   const [isDeletingBookings, setIsDeletingBookings] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+
+  // שימוש בקונטקסט הסינון
+  const { isFilterActive } = useFilter();
 
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
@@ -111,7 +115,8 @@ const BookingSearchDialog = ({
           query,
           location,
           dateStartParam,
-          dateEndParam
+          dateEndParam,
+          isFilterActive
         );
         
         console.log(`התקבלו ${results.length} תוצאות חיפוש`);

@@ -48,6 +48,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigation';
 import RevenueTabs from '../../components/revenue/RevenueTabs';
 import PaymentMethodChart from '../../components/revenue/PaymentMethodChart';
+import { useFilter } from '../../contexts/FilterContext';
 import RevenueSummaryCards from '../../components/revenue/RevenueSummaryCards';
 import ExpensesList from '../../components/revenue/ExpensesList';
 import ExpenseCategoryChart from '../../components/revenue/ExpenseCategoryChart';
@@ -170,11 +171,23 @@ const SectionTitle = ({ title, action }) => (
 // קומפוננטת תצוגת הכנסות לפי אמצעי תשלום מודרנית
 const ModernPaymentMethodsDisplay = ({ data }) => {
   const theme = useTheme();
+  const { shouldHidePaymentMethod, isFilterActive } = useFilter();
   
   // סינון נתונים - ללא אשראי אור יהודה ואשראי רוטשילד
-  const filteredData = data.filter(item => 
-    item.name !== 'credit_or_yehuda' && item.name !== 'credit_rothschild'
-  );
+  // ובהתאם למצב הסינון הגלובלי
+  const filteredData = data.filter(item => {
+    // תמיד מסתיר אשראי
+    if (item.name === 'credit_or_yehuda' || item.name === 'credit_rothschild') {
+      return false;
+    }
+    
+    // אם הסינון פעיל, מסתיר גם את אמצעי התשלום המסוננים
+    if (isFilterActive && shouldHidePaymentMethod(item.name)) {
+      return false;
+    }
+    
+    return true;
+  });
   
   // מיון הנתונים לפי גודל - מהגדול לקטן
   const sortedData = [...filteredData].sort((a, b) => b.value - a.value);
@@ -189,6 +202,7 @@ const ModernPaymentMethodsDisplay = ({ data }) => {
       credit_rothschild: theme.palette.grey[500],
       bit_poalim: theme.palette.success.main,
       cash: theme.palette.warning.main,
+      cash2: theme.palette.warning.dark,
       bit_mizrahi: theme.palette.error.main,
       paybox_poalim: theme.palette.info.main,
       transfer_mizrahi: theme.palette.secondary.main,
@@ -207,6 +221,7 @@ const ModernPaymentMethodsDisplay = ({ data }) => {
       credit_rothschild: 'אשראי רוטשילד',
       bit_poalim: 'ביט פועלים',
       cash: 'מזומן',
+      cash2: 'מזומן2',
       bit_mizrahi: 'ביט מזרחי',
       paybox_poalim: 'פייבוקס פועלים',
       transfer_mizrahi: 'העברה מזרחי',
@@ -407,6 +422,7 @@ const ModernExpenseCategoryDisplay = ({ data }) => {
 const FinancialOverview = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { filterBookings, isFilterActive } = useFilter();
   
   // שמות המתחמים - העברתי לכאן מלמעלה
   const sites = ['rothschild', 'airport'];
@@ -475,9 +491,10 @@ const FinancialOverview = () => {
     'אחר'
   ];
   
-  // שיטות תשלום
-  const paymentMethods = [
+  // שיטות תשלום - מסוננות לפי מצב הסינון
+  const allPaymentMethods = [
     { value: 'cash', label: 'מזומן' },
+    { value: 'cash2', label: 'מזומן2' },
     { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
     { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
     { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
@@ -488,6 +505,9 @@ const FinancialOverview = () => {
     { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
     { value: 'other', label: 'אחר' }
   ];
+
+  const { filterPaymentMethods } = useFilter();
+  const paymentMethods = filterPaymentMethods(allPaymentMethods);
 
   // קטגוריות הכנסה
   const defaultIncomeCategories = [
@@ -541,11 +561,11 @@ const FinancialOverview = () => {
     }
   };
 
-  // טוען נתונים בעת שינוי תאריך או מתחם
+  // טוען נתונים בעת שינוי תאריך, מתחם או מצב סינון
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchData();
-  }, [selectedDate, selectedSite]);
+  }, [selectedDate, selectedSite, isFilterActive]);
 
   // טיפול בשינוי טאב מתחם
   const handleSiteChange = (newValue) => {

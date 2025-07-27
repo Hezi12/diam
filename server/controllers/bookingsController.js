@@ -5,10 +5,49 @@ const capitalController = require('./capitalController');
 const { deleteBookingImages } = require('../middleware/bookingImageUpload');
 const path = require('path');
 
+// אמצעי תשלום שיסתננו כשהסינון פעיל
+const FILTERED_PAYMENT_METHODS = [
+  'cash2',
+  'bit_poalim',
+  'transfer_poalim', 
+  'paybox_poalim'
+];
+
+/**
+ * פונקציה עזר לבניית query עם סינון אופציונלי
+ * @param {Object} baseQuery - השאילתה הבסיסית
+ * @param {string} filterMode - מצב הסינון (active/inactive)
+ * @returns {Object} - השאילתה המעודכנת
+ */
+const buildFilteredQuery = (baseQuery, filterMode) => {
+  if (filterMode === 'active') {
+    // אם הסינון פעיל, נוציא הזמנות עם אמצעי תשלום מסוננים
+    const filteredQuery = {
+      ...baseQuery,
+      $and: [
+        baseQuery.$and || baseQuery,
+        {
+          $or: [
+            { paymentStatus: 'unpaid' }, // הזמנות לא שולמות תמיד יוצגו
+            { paymentStatus: { $nin: FILTERED_PAYMENT_METHODS } } // הזמנות ששולמו באמצעי לא מסוננים
+          ]
+        }
+      ]
+    };
+    return filteredQuery;
+  }
+  return baseQuery; // אם הסינון לא פעיל, מחזיר את השאילתה המקורית
+};
+
 // קבלת כל ההזמנות
 exports.getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find()
+    const { filterMode } = req.query; // קבלת מצב הסינון מהקלינט
+    
+    let query = {};
+    query = buildFilteredQuery(query, filterMode);
+    
+    const bookings = await Booking.find(query)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
     
@@ -23,13 +62,17 @@ exports.getAllBookings = async (req, res) => {
 exports.getBookingsByLocation = async (req, res) => {
   try {
     const { location } = req.params;
+    const { filterMode } = req.query; // קבלת מצב הסינון מהקלינט
     
     // וידוא שהמיקום תקין
     if (!['airport', 'rothschild'].includes(location)) {
       return res.status(400).json({ message: 'מיקום לא תקין' });
     }
     
-    const bookings = await Booking.find({ location })
+    let query = { location };
+    query = buildFilteredQuery(query, filterMode);
+    
+    const bookings = await Booking.find(query)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
     
@@ -43,7 +86,7 @@ exports.getBookingsByLocation = async (req, res) => {
 // קבלת הזמנות בטווח תאריכים 
 exports.getBookingsByDateRange = async (req, res) => {
   try {
-    const { startDate, endDate, location } = req.query;
+    const { startDate, endDate, location, filterMode } = req.query;
     
     if (!startDate || !endDate) {
       return res.status(400).json({ message: 'נדרשים תאריך התחלה ותאריך סיום' });
@@ -65,12 +108,6 @@ exports.getBookingsByDateRange = async (req, res) => {
       parseInt(endDateParts[1]) - 1, // בג'אווסקריפט החודשים הם 0-11
       parseInt(endDateParts[2])
     ));
-    
-    console.log('חיפוש הזמנות בטווח תאריכים:', {
-      startDate: formattedStartDate.toISOString(),
-      endDate: formattedEndDate.toISOString(),
-      location
-    });
     
     // בניית פילטר חיפוש משופר לכיסוי כל המקרים האפשריים:
     const dateFilter = {
@@ -100,15 +137,16 @@ exports.getBookingsByDateRange = async (req, res) => {
     };
     
     // הוספת פילטר לפי מיקום אם נדרש
-    const filter = location ? 
+    let filter = location ? 
       { ...dateFilter, location } :
       dateFilter;
+    
+    // הוספת סינון אם נדרש
+    filter = buildFilteredQuery(filter, filterMode);
     
     const bookings = await Booking.find(filter)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
-    
-    console.log(`נמצאו ${bookings.length} הזמנות בטווח התאריכים`);
     
     res.json(bookings);
   } catch (error) {

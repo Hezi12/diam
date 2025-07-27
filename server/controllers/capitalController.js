@@ -47,7 +47,7 @@ exports.updateInitialAmount = async (req, res) => {
     
     // אימות שאמצעי התשלום תקין
     const validPaymentMethods = [
-      'cash', 'credit_rothschild', 'credit_or_yehuda', 
+      'cash', 'cash2', 'credit_rothschild', 'credit_or_yehuda', 
       'transfer_poalim', 'transfer_mizrahi', 
       'bit_poalim', 'bit_mizrahi', 
       'paybox_poalim', 'paybox_mizrahi', 

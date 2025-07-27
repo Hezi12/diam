@@ -47,6 +47,7 @@ import axios from 'axios';
 
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
+import { useFilter } from '../../contexts/FilterContext';
 
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
@@ -92,6 +93,7 @@ const NewBookingForm = ({
   onDelete = null // פונקציה למחיקת הזמנה
 }) => {
   const { enqueueSnackbar } = useSnackbar();
+  const { filterPaymentMethods, shouldHidePaymentMethod } = useFilter();
   const style = STYLE_CONSTANTS.style;
   const accentColors = STYLE_CONSTANTS.accentColors;
   const locationColors = STYLE_CONSTANTS.colors;
@@ -113,6 +115,27 @@ const NewBookingForm = ({
 
   // מצב חלונות ההזמנה
   const [newBookingOpen, setNewBookingOpen] = useState(false);
+
+  // הגדרת אמצעי התשלום הזמינים (מסוננים לפי הקונטקסט)
+  const allPaymentMethods = [
+    { value: 'unpaid', label: 'לא שולם' },
+    { value: 'cash', label: 'מזומן' },
+    { value: 'cash2', label: 'מזומן2' },
+    { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
+    { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
+    { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
+    { value: 'bit_mizrahi', label: 'ביט מזרחי' },
+    { value: 'paybox_mizrahi', label: 'פייבוקס מזרחי' },
+    { value: 'transfer_poalim', label: 'העברה פועלים' },
+    { value: 'bit_poalim', label: 'ביט פועלים' },
+    { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
+    { value: 'other', label: 'אחר' }
+  ];
+
+  // סינון אמצעי התשלום בהתאם למצב הסינון
+  const availablePaymentMethods = useMemo(() => {
+    return filterPaymentMethods(allPaymentMethods);
+  }, [filterPaymentMethods]);
 
   // הגדרת מצב התחלתי של הטופס - משמש לאיפוס בעת פתיחת טופס חדש
   const initialFormData = {
@@ -507,6 +530,16 @@ const NewBookingForm = ({
       setError('');
     }
   }, [open, editBooking, initialData, rooms]);
+
+  // טיפול בשינוי מצב הסינון - אם אמצעי התשלום הנוכחי מוסתר, נחליף אותו
+  useEffect(() => {
+    if (formData.paymentStatus && shouldHidePaymentMethod(formData.paymentStatus)) {
+      setFormData(prev => ({
+        ...prev,
+        paymentStatus: 'unpaid'
+      }));
+    }
+  }, [formData.paymentStatus, shouldHidePaymentMethod]);
 
   /**
    * טעינת הגדרות החדר והמחירים
@@ -1326,7 +1359,7 @@ const NewBookingForm = ({
                     borderColor: '#e34a6f'
                   }
                 }),
-                ...(['cash', 'credit_or_yehuda', 'credit_rothschild', 'transfer_mizrahi', 
+                ...(['cash', 'cash2', 'credit_or_yehuda', 'credit_rothschild', 'transfer_mizrahi', 
                    'bit_mizrahi', 'paybox_mizrahi', 'transfer_poalim', 'bit_poalim', 
                    'paybox_poalim', 'other'].includes(formData.paymentStatus) && {
                   '& .MuiOutlinedInput-notchedOutline': {
@@ -1342,17 +1375,11 @@ const NewBookingForm = ({
                 })
               }}
             >
-              <MenuItem value="unpaid">לא שולם</MenuItem>
-              <MenuItem value="cash">מזומן</MenuItem>
-              <MenuItem value="credit_or_yehuda">אשראי אור יהודה</MenuItem>
-              <MenuItem value="credit_rothschild">אשראי רוטשילד</MenuItem>
-              <MenuItem value="transfer_mizrahi">העברה מזרחי</MenuItem>
-              <MenuItem value="bit_mizrahi">ביט מזרחי</MenuItem>
-              <MenuItem value="paybox_mizrahi">פייבוקס מזרחי</MenuItem>
-              <MenuItem value="transfer_poalim">העברה פועלים</MenuItem>
-              <MenuItem value="bit_poalim">ביט פועלים</MenuItem>
-              <MenuItem value="paybox_poalim">פייבוקס פועלים</MenuItem>
-              <MenuItem value="other">אחר</MenuItem>
+              {availablePaymentMethods.map((method) => (
+                <MenuItem key={method.value} value={method.value}>
+                  {method.label}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 

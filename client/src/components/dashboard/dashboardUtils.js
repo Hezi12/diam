@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import axios from 'axios';
+import bookingService from '../../services/bookingService';
 
 /**
  * פונקציה לטעינת החדרים לפי מיקום
@@ -23,7 +24,7 @@ export const fetchRooms = async (location, setLoading, setRoomsCallback) => {
  * פונקציה לטעינת ההזמנות לפי מיקום ותאריך
  * נשנה את תאריך ההתחלה והסוף כדי לטעון הזמנות מטווח רחב יותר
  */
-export const fetchBookings = async (location, currentDate, setLoading, setBookingsCallback) => {
+export const fetchBookings = async (location, currentDate, setLoading, setBookingsCallback, isFilterActive = false) => {
   setLoading(prev => ({ ...prev, [`${location}Bookings`]: true }));
   try {
     // פורמט תאריכים לשליחה ל-API - נרחיב את הטווח ל-7 ימים קדימה ו-7 ימים אחורה
@@ -32,25 +33,17 @@ export const fetchBookings = async (location, currentDate, setLoading, setBookin
     
     const endDate = new Date(currentDate);
     endDate.setDate(endDate.getDate() + 7);
+
+    // שימוש בשירות הזמנות עם מצב הסינון
+    const bookingsData = await bookingService.getBookingsByDateRange(
+      startDate,
+      endDate,
+      location,
+      isFilterActive
+    );
     
-    const startDateStr = format(startDate, 'yyyy-MM-dd');
-    const endDateStr = format(endDate, 'yyyy-MM-dd');
-    
-    console.log(`מחפש הזמנות בין ${startDateStr} ל-${endDateStr} עבור ${location}`);
-    
-    const response = await axios.get(`/api/bookings/date-range`, {
-      params: {
-        startDate: startDateStr,
-        endDate: endDateStr,
-        location
-      }
-    });
-    
-    // הדפסת לוג לבדיקה
-    console.log(`התקבלו ${response.data.length} הזמנות עבור ${location}:`, response.data);
-    
-    setBookingsCallback(response.data);
-    return response.data;
+    setBookingsCallback(bookingsData);
+    return bookingsData;
   } catch (error) {
     console.error(`Error fetching ${location} bookings:`, error);
     return [];

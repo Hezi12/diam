@@ -65,6 +65,10 @@ const PaymentMethodDialog = ({ open, onClose, onSelectPaymentMethod, booking }) 
     
     // מיפוי סטטוסי תשלום לאמצעי תשלום בדיאלוג
     const statusToMethodMap = {
+      // מזומן
+      'cash': 'cash',
+      'cash2': 'cash',
+      
       // אשראי
       'credit_rothschild': 'credit_card',
       'credit_or_yehuda': 'credit_card',
