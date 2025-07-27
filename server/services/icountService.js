@@ -5,10 +5,11 @@
  * סטטוס: פעיל ומחובר ✅
  * תכונות: סליקת אשראי אמיתית, זיהוי אוטומטי של סוג כרטיס, תמיכה בשני מתחמים, יצירת חשבוניות אוטומטית
  * 
- * ⚡ תיקון חשוב (יולי 2025): הוספת קישור טכני בין חשבוניות לקבלות
- * - פונקציית createInvoiceWithReceipt עכשיו משתמשת בפרמטר related_doc_num
- * - הקבלה מקושרת טכנית לחשבונית ומאפסת את היתרה אוטומטית
- * - פותר בעיה שבה חשבוניות נשארו פתוחות במערכת iCount
+ * 🚀 שדרוג אדריכלות INVREC (יולי 2025): החלפה למסמכים משולבים
+ * - פונקציית createInvoiceWithReceipt עכשיו משתמשת ב-doctype: 'invrec'
+ * - מסמך אחד משולב של חשבונית מס + קבלה (במקום שני מסמכים נפרדים)
+ * - פותר הפרשי אגורות ומורכבות טכנית של קישור בין מסמכים
+ * - איזון אוטומטי מושלם ללא צורך בקישור ידני
  * 
  * עדכון אחרון: יולי 2025
  */
@@ -513,9 +514,20 @@ class ICountService {
    * @param {string} paymentMethod - אמצעי התשלום (cash, credit_card, bit, bank_transfer)
    * @returns {Promise<Object>} - תוצאת יצירת החשבונית עם הקבלה המקושרת
    */
+  /**
+   * יצירת חשבונית מס קבלה משולבת ב-iCount
+   * 
+   * משתמש ב-doctype "invrec" שיוצר מסמך אחד משולב של חשבונית מס + קבלה
+   * זה פותר את הבעיות של קישור טכני והפרשי אגורות
+   * 
+   * @param {Object} invoiceData - נתוני החשבונית
+   * @param {string} location - מיקום (airport/rothschild)
+   * @param {string} paymentMethod - אמצעי תשלום
+   * @returns {Promise<Object>} - תוצאה
+   */
   async createInvoiceWithReceipt(invoiceData, location = 'rothschild', paymentMethod = 'cash') {
     try {
-      console.log(`📄 יוצר חשבונית עם קבלה במיקום ${location} עם אמצעי תשלום: ${paymentMethod}`);
+      console.log(`📄 יוצר חשבונית מס קבלה משולבת (invrec) במיקום ${location} עם אמצעי תשלום: ${paymentMethod}`);
       
       // המרת המיקום לפורמט הנכון
       const normalizedLocation = location === 'airport' ? 'airport' : 'rothschild';
@@ -535,18 +547,22 @@ class ICountService {
       const hasTaxExemptItem = invoiceData.items.some(item => item.taxExempt === true);
       console.log(`🏷️ האם יש פריט פטור ממע"מ: ${hasTaxExemptItem ? 'כן' : 'לא'}`);
       
-      // שלב 1: יצירת חשבונית מס
-      console.log(`📄 שלב 1: יוצר חשבונית מס`);
+      // הסכום לתשלום צריך להיות הסכום שבאמת נגבה
+      const paymentAmount = invoiceData.paymentAmount || invoiceData.total;
       
-      const invoiceRequestData = {
+      console.log(`💡 יוצר מסמך invrec משולב - חשבונית מס קבלה במסמך אחד`);
+      console.log(`� סכום: ${paymentAmount} ₪, אמצעי תשלום: ${paymentMethod}`);
+      
+      // יצירת מסמך invrec משולב
+      const requestData = {
         // פרטי חשבון
         cid: accountDetails.companyId,
         user: accountDetails.username,
         pass: accountDetails.password,
         vat_id: "0",
         
-        // סוג מסמך - חשבונית מס
-        doctype: 'invoice',
+        // סוג מסמך - חשבונית מס קבלה משולבת!
+        doctype: 'invrec',
         
         // פרטי לקוח
         client_name: invoiceData.customer.name,
@@ -562,7 +578,7 @@ class ICountService {
         // פרטי תשלום
         doc_date: invoiceData.issueDate || new Date().toISOString().split('T')[0],
         
-        // פריטים
+        // פריטים - אותם פריטים כמו בחשבונית
         items: invoiceData.items.map(item => {
           const mappedItem = {
             description: item.description || 'שירות אירוח',
@@ -585,74 +601,15 @@ class ICountService {
         notes: invoiceData.notes || '',
       };
 
-      // יצירת החשבונית
-      console.log(`🌐 מתחבר ל-iCount API ליצירת חשבונית מס: ${this.baseUrl}/doc/create`);
-      
-      const startTime = Date.now();
-      const invoiceResponse = await this.axiosInstance.post(
-        `${this.baseUrl}/doc/create`,
-        invoiceRequestData
-      );
-      
-      if (invoiceResponse.data && invoiceResponse.data.status === 'error') {
-        throw new Error(`שגיאה ביצירת חשבונית ב-iCount: ${invoiceResponse.data.error}`);
-      }
-      
-      const invoiceNumber = invoiceResponse.data.docnum;
-      console.log(`✅ חשבונית מס נוצרה בהצלחה: ${invoiceNumber}`);
-      
-      // שלב 2: יצירת קבלה מקושרת טכנית לחשבונית
-      console.log(`📄 שלב 2: יוצר קבלה מקושרת לחשבונית ${invoiceNumber} על אמצעי תשלום: ${paymentMethod}`);
-      console.log(`🔗 קישור טכני: הקבלה תתקשר לחשבונית ${invoiceNumber} ותאפס את היתרה`);
-      
-      // הסכום לתשלום צריך להיות הסכום שבאמת נגבה (כולל מע"מ עבור תושבים)
-      const paymentAmount = invoiceData.paymentAmount || invoiceData.total;
-      
-      const receiptRequestData = {
-        // פרטי חשבון
-        cid: accountDetails.companyId,
-        user: accountDetails.username,
-        pass: accountDetails.password,
-        vat_id: "0",
-        
-        // סוג מסמך - קבלה
-        doctype: 'receipt',
-        
-        // פרטי לקוח (פשוטים יותר לקבלה)
-        client_name: invoiceData.customer.name,
-        client_id: "0",
-        
-        // הגדרות
-        lang: 'he',
-        currency_code: 'ILS',
-        
-        // פרטי תשלום
-        doc_date: invoiceData.issueDate || new Date().toISOString().split('T')[0],
-        
-        // קישור טכני לחשבונית - זה מה שיאפס את היתרה!
-        related_doc_num: invoiceNumber,
-        
-        // פריט פשוט לקבלה
-        items: [{
-          description: `תשלום עבור חשבונית מס ${invoiceNumber}`,
-          quantity: 1,
-          unitprice: paymentAmount,
-          tax_exempt: true // קבלה לא צריכה מע"מ נוסף
-        }],
-        
-        // הערות עם ציון מספר החשבונית
-        notes: `קבלה על חשבונית מס מספר: ${invoiceNumber}`,
-      };
-
       // הוספת פרטי תשלום לפי האמצעי שנבחר
       switch (paymentMethod) {
         case 'cash':
-          receiptRequestData.cash = { sum: paymentAmount };
+          requestData.cash = { sum: paymentAmount };
           console.log(`💰 תשלום במזומן: ${paymentAmount} ₪`);
           break;
           
         case 'credit_card':
-          receiptRequestData.cc = { 
+          requestData.cc = { 
             sum: paymentAmount,
             card_type: 'VISA' // ברירת מחדל
           };
@@ -661,7 +618,7 @@ class ICountService {
           
         case 'bit':
           // ביט נחשב כהעברה בנקאית עם הערה
-          receiptRequestData.banktransfer = {
+          requestData.banktransfer = {
             sum: paymentAmount,
             reference: 'תשלום דרך ביט'
           };
@@ -669,7 +626,7 @@ class ICountService {
           break;
           
         case 'bank_transfer':
-          receiptRequestData.banktransfer = {
+          requestData.banktransfer = {
             sum: paymentAmount,
             reference: invoiceData.transferReference || 'העברה בנקאית'
           };
@@ -678,59 +635,60 @@ class ICountService {
           
         default:
           // ברירת מחדל - מזומן
-          receiptRequestData.cash = { sum: paymentAmount };
+          requestData.cash = { sum: paymentAmount };
           console.log(`💰 תשלום במזומן (ברירת מחדל): ${paymentAmount} ₪`);
       }
+
+      // יצירת המסמך המשולב
+      console.log(`🌐 מתחבר ל-iCount API ליצירת invrec: ${this.baseUrl}/doc/create`);
+      console.log(`📋 נתוני בקשה:`, {
+        doctype: requestData.doctype,
+        client_name: requestData.client_name,
+        total_amount: paymentAmount,
+        payment_method: paymentMethod,
+        items_count: requestData.items.length
+      });
       
-      // יצירת הקבלה
-      console.log(`🌐 מתחבר ל-iCount API ליצירת קבלה: ${this.baseUrl}/doc/create`);
-      
-      const receiptResponse = await this.axiosInstance.post(
+      const startTime = Date.now();
+      const response = await this.axiosInstance.post(
         `${this.baseUrl}/doc/create`,
-        receiptRequestData
+        requestData
       );
       const endTime = Date.now();
       
-      console.log(`⚡ זמן תגובה כולל מ-iCount: ${endTime - startTime}ms`);
+      console.log(`⚡ זמן תגובה מ-iCount: ${endTime - startTime}ms`);
       
-      if (receiptResponse.data && receiptResponse.data.status === 'error') {
-        console.log(`⚠️ אזהרה: חשבונית נוצרה (${invoiceNumber}) אבל יצירת הקבלה נכשלה: ${receiptResponse.data.error}`);
-        // לא נזרוק שגיאה כי החשבונית כבר נוצרה
-        return {
-          success: true,
-          data: invoiceResponse.data,
-          invoiceNumber: invoiceNumber,
-          receiptNumber: null,
-          paymentMethod: paymentMethod,
-          message: `חשבונית נוצרה בהצלחה (${invoiceNumber}), אך יצירת הקבלה נכשלה`
-        };
+      if (response.data && response.data.status === 'error') {
+        throw new Error(`שגיאה ביצירת מסמך invrec ב-iCount: ${response.data.error}`);
       }
       
-      const receiptNumber = receiptResponse.data.docnum;
-      console.log(`✅ קבלה נוצרה בהצלחה: ${receiptNumber}`);
-      console.log(`🎉 חשבונית עם קבלה הושלמה בהצלחה: חשבונית ${invoiceNumber}, קבלה ${receiptNumber}`);
-      console.log(`💰 החשבונית ${invoiceNumber} אופסה אוטומטית ע"י הקבלה ${receiptNumber}`);
+      const documentNumber = response.data.docnum;
+      console.log(`✅ חשבונית מס קבלה משולבת נוצרה בהצלחה: ${documentNumber}`);
+      console.log(`🎉 מסמך invrec ${documentNumber} כולל חשבונית + קבלה במסמך אחד`);
+      console.log(`💰 הסכום מאוזן אוטומטית - אין צורך בקישור טכני נפרד`);
       
       return {
         success: true,
-        data: {
-          invoice: invoiceResponse.data,
-          receipt: receiptResponse.data
-        },
-        invoiceNumber: invoiceNumber,
-        receiptNumber: receiptNumber,
+        data: response.data,
+        invoiceNumber: documentNumber,
+        receiptNumber: documentNumber, // אותו מספר כי זה מסמך משולב
+        doctype: 'invrec',
         paymentMethod: paymentMethod,
-        message: `חשבונית (${invoiceNumber}) וקבלה (${receiptNumber}) נוצרו בהצלחה`
+        message: `חשבונית מס קבלה משולבת (${documentNumber}) נוצרה בהצלחה`
       };
       
     } catch (error) {
-      console.error('❌ שגיאה ביצירת חשבונית עם קבלה ב-iCount:', error.message);
+      console.error('❌ שגיאה ביצירת חשבונית מס קבלה משולבת ב-iCount:', error.message);
       
       // טיפול מפורט בסוגי שגיאות שונים
       if (error.code === 'ECONNABORTED') {
         console.error('⏱️ השגיאה: timeout - החיבור ל-iCount API לקח יותר מ-30 שניות');
       } else if (error.code === 'ECONNREFUSED') {
         console.error('🚫 השגיאה: חיבור נדחה - iCount API לא זמין');
+      } else if (error.code === 'ENOTFOUND') {
+        console.error('🌐 השגיאה: DNS לא נמצא - בעיה בפתרון כתובת iCount API');
+      } else if (error.code === 'ETIMEDOUT') {
+        console.error('⏰ השגיאה: timeout ברשת - החיבור ל-iCount API נכשל');
       }
       
       throw error;
