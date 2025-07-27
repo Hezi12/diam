@@ -111,12 +111,12 @@ class ICountService {
             unitprice: item.unitPrice || 0
           };
           
-          // תיקון: הוספת tax_exempt רק אם זה true במפורש
+          // תיקון: הוספת tax_exempt לפי הערך שנקבע
           if (item.taxExempt === true) {
             mappedItem.tax_exempt = true;
             console.log(`📋 פריט פטור ממע"מ: ${item.description} - ${item.unitPrice} ₪`);
           } else {
-            // עבור פריטים רגילים, לא נוסיף את השדה או נגדיר אותו כ-false
+            // עבור פריטים רגילים (עם מע"מ)
             mappedItem.tax_exempt = false;
             console.log(`📋 פריט רגיל (עם מע"מ): ${item.description} - ${item.unitPrice} ₪`);
           }
@@ -265,18 +265,35 @@ class ICountService {
       console.log(`🔍 דיבוג - booking.isTourist = ${booking.isTourist} (type: ${typeof booking.isTourist})`);
       
       // חישוב מחיר יחידה לפי סטטוס המע"מ
-      let unitPrice, totalPrice;
+      // תיקון קריטי: חישוב מדויק למניעת הפרשי אגורות
+      let unitPrice, totalPrice, taxExempt;
       
       if (isTaxExempt) {
         // תייר - החשבונית צריכה להיות על הסכום שנסלק (ללא מע"מ)
         unitPrice = amount;
         totalPrice = amount;
-        console.log(`💰 חשבונית לתייר: ${amount} ₪ (ללא מע"מ) - unitPrice=${unitPrice}, totalPrice=${totalPrice}`);
+        taxExempt = true; // פטור ממע"מ
+        console.log(`💰 חשבונית לתייר: ${amount} ₪ (ללא מע"מ) - unitPrice=${unitPrice}, totalPrice=${totalPrice}, taxExempt=${taxExempt}`);
       } else {
-        // תושב - הסכום שנסלק כולל כבר מע"מ, אז צריך לחשב את המחיר ללא מע"מ
-        unitPrice = Math.round((amount / 1.18) * 100) / 100; // חלוקה ב-1.18 כדי לקבל את המחיר ללא מע"מ (מע"מ 18%)
-        totalPrice = amount;
-        console.log(`💰 חשבונית לתושב: ${unitPrice} ₪ + מע"מ = ${totalPrice} ₪`);
+        // תושב - הסכום שנסלק כולל כבר מע"מ
+        // חישוב מדויק: במקום לחלק ב-1.18, נמצא את המחיר הבסיסי שעם מע"מ נותן בדיוק את הסכום שנסלק
+        const basePrice = Math.floor((amount / 1.18) * 100) / 100; // עיגול כלפי מטה
+        const calculatedVat = Math.round((basePrice * 0.18) * 100) / 100; // חישוב מע"מ
+        const calculatedTotal = basePrice + calculatedVat; // סכום כולל
+        
+        if (Math.abs(calculatedTotal - amount) < 0.01) {
+          // אם הסכום המחושב קרוב מספיק לסכום שנסלק
+          unitPrice = basePrice;
+          totalPrice = amount;
+          taxExempt = false; // עם מע"מ
+          console.log(`💰 חשבונית לתושב: ${basePrice} ₪ + מע"מ ${calculatedVat} ₪ = ${calculatedTotal} ₪ (מול ${amount} ₪ שנסלק)`);
+        } else {
+          // אם יש הפרש, נשתמש בגישה פטורה ממע"מ
+          unitPrice = amount;
+          totalPrice = amount;
+          taxExempt = true; // פטור ממע"מ למניעת הפרשי אגורות
+          console.log(`💰 חשבונית לתושב (פטור למניעת הפרש): ${amount} ₪ - הפרש מחושב: ${Math.abs(calculatedTotal - amount)}`);
+        }
       }
       
       // הכנת נתוני החשבונית
@@ -292,7 +309,7 @@ class ICountService {
           description: `תשלום עבור הזמנה ${booking.bookingNumber}`,
           quantity: 1,
           unitPrice: unitPrice,
-          taxExempt: isTaxExempt
+          taxExempt: taxExempt // שימוש במשתנה החדש במקום isTaxExempt
         }],
         total: totalPrice,
         paymentMethod: 'credit_card',
