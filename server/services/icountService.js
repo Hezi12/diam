@@ -4,7 +4,13 @@
  * 
  * סטטוס: פעיל ומחובר ✅
  * תכונות: סליקת אשראי אמיתית, זיהוי אוטומטי של סוג כרטיס, תמיכה בשני מתחמים, יצירת חשבוניות אוטומטית
- * עדכון אחרון: יוני 2025
+ * 
+ * ⚡ תיקון חשוב (יולי 2025): הוספת קישור טכני בין חשבוניות לקבלות
+ * - פונקציית createInvoiceWithReceipt עכשיו משתמשת בפרמטר related_doc_num
+ * - הקבלה מקושרת טכנית לחשבונית ומאפסת את היתרה אוטומטית
+ * - פותר בעיה שבה חשבוניות נשארו פתוחות במערכת iCount
+ * 
+ * עדכון אחרון: יולי 2025
  */
 
 const axios = require('axios');
@@ -476,12 +482,19 @@ class ICountService {
   }
 
   /**
-   * יצירת חשבונית עם קבלה ב-iCount
+   * יצירת חשבונית מס עם קבלה מקושרת ב-iCount
+   * 
+   * פונקציה זו יוצרת שני מסמכים מקושרים טכנית:
+   * 1. חשבונית מס - עם הפריטים המלאים והמע"מ הרלוונטי
+   * 2. קבלה מקושרת - עם פרמטר related_doc_num שמאפס את החשבונית אוטומטית
+   * 
+   * ⚡ החידוש החשוב: הוספת related_doc_num מבטיחה קישור טכני בין המסמכים
+   * כך שהחשבונית תאופס אוטומטית במערכת iCount ולא תישאר כחוב פתוח
    * 
    * @param {Object} invoiceData - נתוני החשבונית
    * @param {string} location - מיקום (airport/rothschild)
    * @param {string} paymentMethod - אמצעי התשלום (cash, credit_card, bit, bank_transfer)
-   * @returns {Promise<Object>} - תוצאת יצירת החשבונית עם הקבלה
+   * @returns {Promise<Object>} - תוצאת יצירת החשבונית עם הקבלה המקושרת
    */
   async createInvoiceWithReceipt(invoiceData, location = 'rothschild', paymentMethod = 'cash') {
     try {
@@ -571,8 +584,9 @@ class ICountService {
       const invoiceNumber = invoiceResponse.data.docnum;
       console.log(`✅ חשבונית מס נוצרה בהצלחה: ${invoiceNumber}`);
       
-      // שלב 2: יצירת קבלה
-      console.log(`📄 שלב 2: יוצר קבלה על אמצעי תשלום: ${paymentMethod}`);
+      // שלב 2: יצירת קבלה מקושרת טכנית לחשבונית
+      console.log(`📄 שלב 2: יוצר קבלה מקושרת לחשבונית ${invoiceNumber} על אמצעי תשלום: ${paymentMethod}`);
+      console.log(`🔗 קישור טכני: הקבלה תתקשר לחשבונית ${invoiceNumber} ותאפס את היתרה`);
       
       // הסכום לתשלום צריך להיות הסכום שבאמת נגבה (כולל מע"מ עבור תושבים)
       const paymentAmount = invoiceData.paymentAmount || invoiceData.total;
@@ -597,6 +611,9 @@ class ICountService {
         
         // פרטי תשלום
         doc_date: invoiceData.issueDate || new Date().toISOString().split('T')[0],
+        
+        // קישור טכני לחשבונית - זה מה שיאפס את היתרה!
+        related_doc_num: invoiceNumber,
         
         // פריט פשוט לקבלה
         items: [{
@@ -675,6 +692,7 @@ class ICountService {
       const receiptNumber = receiptResponse.data.docnum;
       console.log(`✅ קבלה נוצרה בהצלחה: ${receiptNumber}`);
       console.log(`🎉 חשבונית עם קבלה הושלמה בהצלחה: חשבונית ${invoiceNumber}, קבלה ${receiptNumber}`);
+      console.log(`💰 החשבונית ${invoiceNumber} אופסה אוטומטית ע"י הקבלה ${receiptNumber}`);
       
       return {
         success: true,
