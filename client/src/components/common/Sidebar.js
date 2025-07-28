@@ -453,94 +453,68 @@ const Sidebar = () => {
         <List sx={{ 
           padding: isMobile ? '8px 0' : '8px 0'  // יותר פדינג ברשימה של כפתור ההתנתקות
         }}>
-          {/* אזור כפתור סינון סודי */}
+          {/* נקודה סודיה זעירה לסינון */}
           <ListItem sx={{ 
-            padding: isMobile ? '6px' : '8px', 
+            padding: 0,
+            minHeight: '8px',
             display: 'flex', 
             justifyContent: 'center',
-            minHeight: '48px', // שמירה על מקום קבוע
+            alignItems: 'center',
           }}>
-            {/* כפתור סודי שנעלם - מופיע רק אחרי 4 לחיצות */}
-            {showSecretFilter ? (
-              <Tooltip 
-                title={isFilterActive ? "מצב סינון פעיל - הסתר שיטות תשלום מסוימות (לחיצה ארוכה להסתרה)" : "הפעל מצב סינון (לחיצה ארוכה להסתרה)"} 
-                placement="left"
-              >
-                <Box
-                  component="button"
-                  onClick={toggleFilter}
-                  onMouseDown={(e) => {
-                    // טיימר ללחיצה ארוכה
-                    const timer = setTimeout(() => {
-                      handleHideSecretFilter();
-                    }, 1000); // שנייה אחת
-                    
-                    const handleMouseUp = () => {
-                      clearTimeout(timer);
-                      document.removeEventListener('mouseup', handleMouseUp);
-                    };
-                    
-                    document.addEventListener('mouseup', handleMouseUp);
-                  }}
-                  sx={{
-                    border: 'none',
-                    background: 'none',
-                    padding: '8px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease-in-out',
-                    color: isFilterActive ? '#2196f3' : '#9e9e9e',
-                    backgroundColor: isFilterActive ? 'rgba(33, 150, 243, 0.1)' : 'transparent',
-                    animation: 'fadeIn 0.5s ease-in-out',
-                    '&:hover': {
-                      backgroundColor: isFilterActive ? 'rgba(33, 150, 243, 0.2)' : 'rgba(158, 158, 158, 0.1)',
-                    },
-                    '& .MuiSvgIcon-root': {
-                      fontSize: isMobile ? '1.8rem' : '1.5rem',
-                    },
-                    '@keyframes fadeIn': {
-                      '0%': {
-                        opacity: 0,
-                        transform: 'scale(0.8)',
-                      },
-                      '100%': {
-                        opacity: 1,
-                        transform: 'scale(1)',
-                      },
-                    },
-                  }}
-                >
-                  <FilterIcon />
-                </Box>
-              </Tooltip>
-            ) : (
-              // אזור נעלם לקליקים סודיים
-              <Box
-                component="button"
-                onClick={handleSecretClick}
-                sx={{
-                  border: 'none',
-                  background: 'transparent',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  cursor: 'default',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '40px',
-                  height: '40px',
-                  '&:hover': {
-                    backgroundColor: 'transparent',
-                  },
-                }}
-                aria-hidden="true"
-              >
-                {/* אזור שקוף לקליקים */}
-              </Box>
-            )}
+            {/* תמיד נקודה זעירה - גם כשהסינון פעיל */}
+            <Box
+              component="button"
+              onClick={showSecretFilter ? toggleFilter : handleSecretClick}
+              onMouseDown={showSecretFilter ? (e) => {
+                // טיימר ללחיצה ארוכה
+                const timer = setTimeout(() => {
+                  handleHideSecretFilter();
+                }, 1000); // שנייה אחת
+                
+                const handleMouseUp = () => {
+                  clearTimeout(timer);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mouseup', handleMouseUp);
+              } : undefined}
+              sx={{
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                margin: 0,
+                cursor: showSecretFilter ? 'pointer' : 'default',
+                width: '2px',
+                height: '2px',
+                minWidth: '2px',
+                minHeight: '2px',
+                borderRadius: '50%',
+                backgroundColor: showSecretFilter && isFilterActive 
+                  ? 'rgba(33, 150, 243, 0.4)' // כחול עדין כשפעיל
+                  : showSecretFilter 
+                    ? 'rgba(158, 158, 158, 0.3)' // אפור עדין כשזמין
+                    : 'rgba(0, 0, 0, 0.03)', // שקוף כמעט כשלא זמין
+                transition: 'all 0.1s ease',
+                '&:hover': {
+                  backgroundColor: showSecretFilter && isFilterActive
+                    ? 'rgba(33, 150, 243, 0.6)'
+                    : showSecretFilter
+                      ? 'rgba(158, 158, 158, 0.5)'
+                      : 'rgba(0, 0, 0, 0.05)',
+                  transform: 'scale(2)', // הגדלה קלה בhover
+                },
+                '&:active': {
+                  backgroundColor: showSecretFilter && isFilterActive
+                    ? 'rgba(33, 150, 243, 0.8)'
+                    : showSecretFilter
+                      ? 'rgba(158, 158, 158, 0.7)'
+                      : 'rgba(0, 0, 0, 0.1)',
+                  transform: 'scale(1.5)',
+                },
+              }}
+              aria-hidden="true"
+              title={showSecretFilter ? (isFilterActive ? "סינון פעיל - לחיצה ארוכה להסתרה" : "הפעל סינון - לחיצה ארוכה להסתרה") : ""}
+            />
           </ListItem>
           <LogoutButton 
             onClick={handleLogout}
