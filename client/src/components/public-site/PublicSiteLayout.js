@@ -169,38 +169,39 @@ const PublicSiteLayout = ({ children, location: siteLocation = 'airport' }) => {
                     title={currentLanguage === 'he' ? 'Switch to English' : 'עבור לעברית'}
                     arrow
                   >
-                    <IconButton
+                    <Button
                       onClick={() => {
                         const newLanguage = currentLanguage === 'he' ? 'en' : 'he';
                         changeLanguage(newLanguage);
                       }}
+                      startIcon={<LanguageIcon />}
+                      variant="outlined"
+                      size="small"
                       sx={{ 
+                        borderColor: currentLanguage === 'he' ? '#dc2626' : '#1976d2',
                         color: currentLanguage === 'he' ? '#dc2626' : '#1976d2',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        px: 1,
+                        backgroundColor: currentLanguage === 'he' 
+                          ? 'rgba(220, 38, 38, 0.05)' 
+                          : 'rgba(25, 118, 210, 0.05)',
+                        minWidth: '100px',
+                        height: '36px',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        textTransform: 'none',
+                        borderWidth: '2px',
                         '&:hover': { 
-                          bgcolor: currentLanguage === 'he' 
+                          borderColor: currentLanguage === 'he' ? '#991b1b' : '#1565c0',
+                          backgroundColor: currentLanguage === 'he' 
                             ? 'rgba(220, 38, 38, 0.1)' 
                             : 'rgba(25, 118, 210, 0.1)',
-                          color: currentLanguage === 'he' ? '#991b1b' : '#1565c0'
+                          color: currentLanguage === 'he' ? '#991b1b' : '#1565c0',
+                          borderWidth: '2px'
                         },
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      <LanguageIcon sx={{ fontSize: '1.2rem' }} />
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                          letterSpacing: '0.1px'
-                        }}
-                      >
-                        {currentLanguage === 'he' ? 'עב' : 'EN'}
-                      </Typography>
-                    </IconButton>
+                      {currentLanguage === 'he' ? 'English' : 'עברית'}
+                    </Button>
                   </Tooltip>
 
                   <IconButton
@@ -283,45 +284,38 @@ const PublicSiteLayout = ({ children, location: siteLocation = 'airport' }) => {
             arrow
             placement="right"
           >
-            <IconButton
+            <Button
               onClick={() => {
                 const newLanguage = currentLanguage === 'he' ? 'en' : 'he';
                 changeLanguage(newLanguage);
               }}
+              startIcon={<LanguageIcon />}
+              variant="contained"
+              size="small"
               sx={{ 
                 bgcolor: currentLanguage === 'he' ? '#dc2626' : '#1976d2',
                 color: 'white',
-                width: 48,
-                height: 48,
-                position: 'relative',
+                minWidth: '90px',
+                height: '40px',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                textTransform: 'none',
+                borderRadius: '20px',
                 boxShadow: currentLanguage === 'he' 
                   ? '0 4px 12px rgba(220, 38, 38, 0.3)'
                   : '0 4px 12px rgba(25, 118, 210, 0.3)',
                 '&:hover': { 
                   bgcolor: currentLanguage === 'he' ? '#991b1b' : '#1565c0',
-                  transform: 'scale(1.1)',
+                  transform: 'translateY(-2px)',
                   boxShadow: currentLanguage === 'he' 
                     ? '0 6px 16px rgba(220, 38, 38, 0.4)'
                     : '0 6px 16px rgba(25, 118, 210, 0.4)',
                 },
-                transition: 'all 0.3s ease',
-                '&::after': {
-                  content: `"${currentLanguage === 'he' ? 'עב' : 'EN'}"`,
-                  position: 'absolute',
-                  bottom: 2,
-                  right: 2,
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  color: currentLanguage === 'he' ? '#dc2626' : '#1976d2',
-                  borderRadius: '2px',
-                  padding: '1px 3px',
-                  lineHeight: 1
-                }
+                transition: 'all 0.3s ease'
               }}
             >
-              <LanguageIcon sx={{ fontSize: '1.3rem' }} />
-            </IconButton>
+              {currentLanguage === 'he' ? 'English' : 'עברית'}
+            </Button>
           </Tooltip>
           
           <IconButton
