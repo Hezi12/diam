@@ -47,6 +47,297 @@ class ICountService {
   }
 
   /**
+   * יצירת לקוח חדש ב-iCount
+   * 
+   * @param {Object} customerData - פרטי הלקוח
+   * @param {string} location - מיקום (airport/rothschild)
+   * @returns {Promise<Object>} - תוצאת יצירת הלקוח
+   */
+  async createCustomer(customerData, location = 'rothschild') {
+    try {
+      console.log(`👤 יוצר לקוח חדש ב-iCount עבור מיקום ${location}`);
+      
+      // המרת המיקום לפורמט הנכון
+      const normalizedLocation = location === 'airport' ? 'airport' : 'rothschild';
+      
+      // קבלת פרטי החשבון הרלוונטיים
+      const accountDetails = this.accounts[normalizedLocation];
+      
+      if (!accountDetails) {
+        throw new Error(`פרטי חשבון לא נמצאו עבור מיקום: ${location}`);
+      }
+      
+      if (!customerData || !customerData.name) {
+        throw new Error('שם הלקוח הוא שדה חובה');
+      }
+
+      // יצירת מייל ייחודי לכל לקוח כדי למנוע כפילויות ב-iCount
+      const uniqueEmail = this.generateUniqueEmail(customerData, normalizedLocation);
+      
+      console.log(`📧 מייל ייחודי שנוצר: ${uniqueEmail}`);
+      
+      // הכנת נתוני הבקשה ליצירת לקוח
+      const requestData = {
+        // פרטי חשבון
+        cid: accountDetails.companyId,
+        user: accountDetails.username,
+        pass: accountDetails.password,
+        
+        // פרטי הלקוח
+        client_name: customerData.name.trim(),
+        email: uniqueEmail, // 🎯 מייל ייחודי במקום guest@diamhotels.com
+        address: customerData.address || '',
+        phone: customerData.phone || '',
+        
+        // מזהה לקוח - אם יש ת.ז. או דרכון
+        client_id: customerData.identifier || '',
+        
+        // הגדרות בסיסיות
+        lang: 'he',
+        currency_code: 'ILS'
+      };
+      
+      console.log(`📤 שולח בקשה ליצירת לקוח:`);
+      console.log(`   - שם: ${requestData.client_name}`);
+      console.log(`   - מייל: ${requestData.email} 🎯 (ייחודי!)`);
+      console.log(`   - טלפון: ${requestData.phone}`);
+      console.log(`   - מזהה: ${requestData.client_id}`);
+      
+      // שליחת הבקשה ל-API של iCount
+      const startTime = Date.now();
+      const response = await this.axiosInstance.post(
+        `${this.baseUrl}/client/create`,
+        requestData
+      );
+      const endTime = Date.now();
+      
+      console.log(`⚡ זמן תגובה מ-iCount ליצירת לקוח: ${endTime - startTime}ms`);
+      
+      if (response.data && response.data.status === 'error') {
+        // אם הלקוח כבר קיים, ננסה לחפש אותו
+        if (response.data.error && response.data.error.includes('already exists')) {
+          console.log(`🔍 לקוח כבר קיים, מחפש את המזהה שלו...`);
+          return await this.findCustomer(customerData, location);
+        }
+        throw new Error(`שגיאה ביצירת לקוח ב-iCount: ${response.data.error}`);
+      }
+      
+      const customerId = response.data.client_id || response.data.id;
+      console.log(`✅ לקוח נוצר בהצלחה עם מזהה: ${customerId}`);
+      
+      return {
+        success: true,
+        customerId: customerId,
+        data: response.data,
+        message: `לקוח ${customerData.name} נוצר בהצלחה`
+      };
+      
+    } catch (error) {
+      console.error('❌ שגיאה ביצירת לקוח ב-iCount:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * יצירת מייל ייחודי לכל לקוח כדי למנוע כפילויות ב-iCount
+   * 
+   * @param {Object} customerData - פרטי הלקוח
+   * @param {string} location - מיקום (airport/rothschild)
+   * @returns {string} - מייל ייחודי
+   */
+  generateUniqueEmail(customerData, location) {
+    try {
+      // אם יש מייל אמיתי ללקוח - נשתמש בו
+      if (customerData.email && 
+          customerData.email.trim() !== '' && 
+          customerData.email !== 'guest@diamhotels.com' &&
+          customerData.email.includes('@') && 
+          customerData.email.includes('.')) {
+        console.log(`📧 משתמש במייל אמיתי של הלקוח: ${customerData.email}`);
+        return customerData.email.trim().toLowerCase();
+      }
+      
+      // יצירת מייל ייחודי מבוסס על שם + timestamp + location
+      const cleanName = customerData.name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') // הסרת תווים מיוחדים, שמירה על עברית ואנגלית
+        .substring(0, 20); // הגבלה ל-20 תווים
+      
+      const timestamp = Date.now().toString().slice(-6); // 6 ספרות אחרונות מהזמן
+      const locationPrefix = location === 'airport' ? 'apt' : 'roth';
+      
+      const uniqueEmail = `${cleanName}-${locationPrefix}-${timestamp}@diamhotels.com`;
+      
+      console.log(`📧 נוצר מייל ייחודי: ${uniqueEmail} (מבוסס על: ${customerData.name})`);
+      return uniqueEmail;
+      
+    } catch (error) {
+      console.error('❌ שגיאה ביצירת מייל ייחודי:', error.message);
+      
+      // פולבק - מייל עם timestamp בלבד
+      const fallbackEmail = `customer-${Date.now()}@diamhotels.com`;
+      console.log(`🔄 פולבק - מייל: ${fallbackEmail}`);
+      return fallbackEmail;
+    }
+  }
+
+  /**
+   * חיפוש לקוח קיים ב-iCount לפי שם
+   * 
+   * @param {Object} customerData - פרטי הלקוח לחיפוש
+   * @param {string} location - מיקום (airport/rothschild)
+   * @returns {Promise<Object>} - תוצאת החיפוש
+   */
+  async findCustomer(customerData, location = 'rothschild') {
+    try {
+      console.log(`🔍 מחפש לקוח קיים ב-iCount עבור מיקום ${location}`);
+      
+      // המרת המיקום לפורמט הנכון
+      const normalizedLocation = location === 'airport' ? 'airport' : 'rothschild';
+      
+      // קבלת פרטי החשבון הרלוונטיים
+      const accountDetails = this.accounts[normalizedLocation];
+      
+      if (!accountDetails) {
+        throw new Error(`פרטי חשבון לא נמצאו עבור מיקום: ${location}`);
+      }
+
+      // הכנת נתוני הבקשה לחיפוש לקוחות
+      const requestData = {
+        // פרטי חשבון
+        cid: accountDetails.companyId,
+        user: accountDetails.username,
+        pass: accountDetails.password,
+        
+        // פרמטרי חיפוש - נחפש לפי שם
+        search: customerData.name.trim()
+      };
+      
+      console.log(`🔎 מחפש לקוח בשם: "${requestData.search}"`);
+      
+      // שליחת בקשת חיפוש
+      const response = await this.axiosInstance.post(
+        `${this.baseUrl}/client/search`,
+        requestData
+      );
+      
+      if (response.data && response.data.status === 'error') {
+        throw new Error(`שגיאה בחיפוש לקוח ב-iCount: ${response.data.error}`);
+      }
+      
+      // בדיקה אם נמצאו תוצאות
+      const clients = response.data.clients || response.data || [];
+      
+      if (!clients || clients.length === 0) {
+        console.log(`❌ לא נמצא לקוח בשם "${customerData.name}"`);
+        return {
+          success: false,
+          found: false,
+          message: `לקוח בשם "${customerData.name}" לא נמצא`
+        };
+      }
+      
+      // נחפש התאמה מדויקת לשם
+      const exactMatch = clients.find(client => 
+        client.client_name && 
+        client.client_name.trim().toLowerCase() === customerData.name.trim().toLowerCase()
+      );
+      
+      if (exactMatch) {
+        console.log(`✅ נמצא לקוח קיים עם מזהה: ${exactMatch.client_id}`);
+        return {
+          success: true,
+          found: true,
+          customerId: exactMatch.client_id,
+          data: exactMatch,
+          message: `נמצא לקוח קיים: ${exactMatch.client_name}`
+        };
+      }
+      
+      // אם לא נמצאה התאמה מדויקת, לא נשתמש בלקוח שגוי!
+      console.log(`⚠️ לא נמצאה התאמה מדויקת לשם "${customerData.name}"`);
+      console.log(`📋 נמצאו לקוחות דומים:`, clients.map(c => c.client_name).join(', '));
+      console.log(`❌ לא נשתמש בלקוח שגוי - נחזיר שלא נמצא כדי ליצור לקוח חדש`);
+      
+      return {
+        success: false,
+        found: false,
+        message: `לא נמצא לקוח בשם "${customerData.name}" - נדרש לקוח חדש`
+      };
+      
+    } catch (error) {
+      console.error('❌ שגיאה בחיפוש לקוח ב-iCount:', error.message);
+      
+      // אם החיפוש נכשל, נחזיר שלא נמצא
+      return {
+        success: false,
+        found: false,
+        error: error.message,
+        message: 'שגיאה בחיפוש לקוח'
+      };
+    }
+  }
+
+  /**
+   * קבלת או יצירת לקוח ב-iCount (פונקציה מרכזית)
+   * 
+   * עדכון: מכיוון שאין API תקין לחיפוש לקוחות ב-iCount,
+   * אנחנו פשוט יוצרים לקוח חדש בכל פעם.
+   * זה מבטיח שכל חשבונית תהיה תחת הלקוח הנכון.
+   * 
+   * @param {Object} customerData - פרטי הלקוח
+   * @param {string} location - מיקום (airport/rothschild)
+   * @returns {Promise<Object>} - מזהה הלקוח
+   */
+  async getOrCreateCustomer(customerData, location = 'rothschild') {
+    try {
+      console.log(`🎯 יוצר לקוח חדש: "${customerData.name}" (מיקום: ${location})`);
+      console.log(`📋 פרטי לקוח מלאים:`, {
+        name: customerData.name,
+        email: customerData.email || 'לא צוין',
+        phone: customerData.phone || 'לא צוין',
+        identifier: customerData.identifier || 'לא צוין'
+      });
+      
+      // בדיקת תקינות נתונים
+      if (!customerData || !customerData.name || customerData.name.trim() === '') {
+        throw new Error('שם הלקוח הוא שדה חובה');
+      }
+      
+      // יצירת לקוח חדש ישירות (ללא חיפוש)
+      console.log(`🆕 יוצר לקוח חדש בשם "${customerData.name}" ב-iCount...`);
+      const createResult = await this.createCustomer(customerData, location);
+      
+      if (createResult.success) {
+        console.log(`✅ נוצר לקוח חדש עם מזהה: ${createResult.customerId}`);
+        console.log(`🔒 מזהה זה שייך ל-"${customerData.name}" ולא לאף אחד אחר`);
+        return {
+          success: true,
+          customerId: createResult.customerId,
+          isNew: true,
+          message: `נוצר לקוח חדש: ${customerData.name}`
+        };
+      }
+      
+      throw new Error('נכשל ביצירת לקוח חדש');
+      
+    } catch (error) {
+      console.error('❌ שגיאה ביצירת לקוח:', error.message);
+      
+      // פולבק - נחזור ללקוח ברירת המחדל
+      console.log(`🔄 פולבק: משתמש בלקוח ברירת המחדל (client_id: "0")`);
+      return {
+        success: true,
+        customerId: "0",
+        isNew: false,
+        isDefault: true,
+        message: `שימוש בלקוח ברירת המחדל עקב שגיאה: ${error.message}`
+      };
+    }
+  }
+
+  /**
    * יצירת חשבונית ב-iCount
    * 
    * @param {Object} invoiceData - נתוני החשבונית
@@ -79,6 +370,17 @@ class ICountService {
       const hasTaxExemptItem = invoiceData.items.some(item => item.taxExempt === true);
       console.log(`🏷️ האם יש פריט פטור ממע"מ: ${hasTaxExemptItem ? 'כן' : 'לא'}`);
       
+      // שלב 1: קבלת או יצירת לקוח ב-iCount
+      console.log(`👤 שלב 1: מקבל או יוצר לקוח ב-iCount...`);
+      const customerResult = await this.getOrCreateCustomer(invoiceData.customer, normalizedLocation);
+      
+      if (!customerResult.success) {
+        throw new Error('נכשל בקבלת או יצירת לקוח ב-iCount');
+      }
+      
+      console.log(`✅ מזהה לקוח: ${customerResult.customerId} (${customerResult.isNew ? 'חדש' : 'קיים'}${customerResult.isDefault ? ' - ברירת מחדל' : ''})`);
+      console.log(`📝 הודעה: ${customerResult.message}`);
+      
       // הכנת נתוני הבקשה לפי דרישות ה-API של iCount
       const requestData = {
         // פרטי חשבון
@@ -90,9 +392,9 @@ class ICountService {
         // סוג מסמך וסטטוס
         doctype: 'invoice',
         
-        // פרטי לקוח
+        // פרטי לקוח - כעת עם מזהה אמיתי!
         client_name: invoiceData.customer.name,
-        client_id: "0",
+        client_id: customerResult.customerId, // 🎯 זה השינוי הקריטי!
         email: invoiceData.customer.email || '',
         client_address: invoiceData.customer.address || '',
         client_phone: invoiceData.customer.phone || '',
@@ -400,7 +702,7 @@ class ICountService {
         pass: accountDetails.password,
         vat_id: "0",
         
-        // פרטי לקוח
+        // פרטי לקוח - לסליקה אנחנו לא צריכים לקוח קיים, רק את הפרטים
         client_name: `${booking.firstName} ${booking.lastName}`.trim(),
         email: email,
         
@@ -547,6 +849,17 @@ class ICountService {
       const hasTaxExemptItem = invoiceData.items.some(item => item.taxExempt === true);
       console.log(`🏷️ האם יש פריט פטור ממע"מ: ${hasTaxExemptItem ? 'כן' : 'לא'}`);
       
+      // שלב 1: קבלת או יצירת לקוח ב-iCount
+      console.log(`👤 שלב 1: מקבל או יוצר לקוח ב-iCount...`);
+      const customerResult = await this.getOrCreateCustomer(invoiceData.customer, normalizedLocation);
+      
+      if (!customerResult.success) {
+        throw new Error('נכשל בקבלת או יצירת לקוח ב-iCount');
+      }
+      
+      console.log(`✅ מזהה לקוח: ${customerResult.customerId} (${customerResult.isNew ? 'חדש' : 'קיים'}${customerResult.isDefault ? ' - ברירת מחדל' : ''})`);
+      console.log(`📝 הודעה: ${customerResult.message}`);
+      
       // הסכום לתשלום צריך להיות הסכום שבאמת נגבה
       const paymentAmount = invoiceData.paymentAmount || invoiceData.total;
       
@@ -564,9 +877,9 @@ class ICountService {
         // סוג מסמך - חשבונית מס קבלה משולבת!
         doctype: 'invrec',
         
-        // פרטי לקוח
+        // פרטי לקוח - כעת עם מזהה אמיתי!
         client_name: invoiceData.customer.name,
-        client_id: "0",
+        client_id: customerResult.customerId, // 🎯 זה השינוי הקריטי!
         email: invoiceData.customer.email || '',
         client_address: invoiceData.customer.address || '',
         client_phone: invoiceData.customer.phone || '',

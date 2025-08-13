@@ -196,7 +196,9 @@ const PublicNoticeBoard = () => {
   // פונקציה לבדיקת בקשת רענון מהשרת
   const checkRefreshStatus = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || ''}/api/bookings/notice-board/refresh-status?lastCheck=${lastRefreshCheck}`);
+      // חיבור ישיר לשרת האמיתי - תיקון עבור המסך בלובי
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://diam-loy6.onrender.com';
+      const response = await fetch(`${apiUrl}/api/bookings/notice-board/refresh-status?lastCheck=${lastRefreshCheck}`);
       if (response.ok) {
         const data = await response.json();
         if (data.shouldRefresh) {
