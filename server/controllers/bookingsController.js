@@ -266,39 +266,84 @@ exports.createBooking = async (req, res) => {
     // חישוב מספר לילות במידה ולא סופק
     const calculatedNights = nights || Math.ceil((checkOutUTC - checkInUTC) / (1000 * 60 * 60 * 24));
     
-    // יצירת מספר הזמנה רץ באופן atomic
+    // יצירת מספר הזמנה רץ באופן atomic עם retry logic
     const locationKey = `bookingNumber_${location || room.location}`;
-    const bookingNumber = await Counter.getNextSequence(locationKey);
-    console.log('מספר הזמנה חדש (atomic):', bookingNumber);
+    let bookingNumber;
+    let attempts = 0;
+    const maxAttempts = 3;
     
-    // יצירת אובייקט ההזמנה
-    const newBooking = new Booking({
-      room: roomId,
-      location: location || room.location,
-      firstName,
-      lastName,
-      phone,
-      email,
-      checkIn: checkInUTC,
-      checkOut: checkOutUTC,
-      nights: calculatedNights,
-      isTourist: isTourist || false,
-      guests: req.body.guests || 2,
-      price,
-      pricePerNight,
-      pricePerNightNoVat,
-      paymentStatus: paymentStatus || 'unpaid',
-      creditCard,
-      status: status || 'pending',
-      notes,
-      bookingNumber,
-      source: req.body.source || 'direct',
-      externalBookingNumber: req.body.externalBookingNumber || '',
-      code: code || '',
-      reviewHandled: reviewHandled || false
-    });
+    while (attempts < maxAttempts) {
+      try {
+        bookingNumber = await Counter.getNextSequence(locationKey);
+        console.log(`מספר הזמנה חדש (ניסיון ${attempts + 1}):`, bookingNumber);
+        break;
+      } catch (error) {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          throw new Error('שגיאה ביצירת מספר הזמנה');
+        }
+        // המתנה קצרה לפני ניסיון נוסף
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
     
-    await newBooking.save();
+    // יצירת אובייקט ההזמנה עם retry logic לשמירה
+    let newBooking;
+    let saveAttempts = 0;
+    const maxSaveAttempts = 3;
+    
+    while (saveAttempts < maxSaveAttempts) {
+      try {
+        newBooking = new Booking({
+          room: roomId,
+          location: location || room.location,
+          firstName,
+          lastName,
+          phone,
+          email,
+          checkIn: checkInUTC,
+          checkOut: checkOutUTC,
+          nights: calculatedNights,
+          isTourist: isTourist || false,
+          guests: req.body.guests || 2,
+          price,
+          pricePerNight,
+          pricePerNightNoVat,
+          paymentStatus: paymentStatus || 'unpaid',
+          creditCard,
+          status: status || 'pending',
+          notes,
+          bookingNumber,
+          source: req.body.source || 'direct',
+          externalBookingNumber: req.body.externalBookingNumber || '',
+          code: code || '',
+          reviewHandled: reviewHandled || false
+        });
+        
+        await newBooking.save();
+        console.log(`הזמנה נשמרה בהצלחה בניסיון ${saveAttempts + 1}`);
+        break;
+        
+      } catch (saveError) {
+        saveAttempts++;
+        console.log(`❌ שגיאה בשמירת הזמנה (ניסיון ${saveAttempts}/${maxSaveAttempts}):`, saveError.message);
+        
+        // אם זו שגיאת מספר הזמנה כפול, נקבל מספר חדש וננסה שוב
+        if (saveError.code === 11000 && saveError.message.includes('bookingNumber')) {
+          if (saveAttempts >= maxSaveAttempts) {
+            throw new Error('נכשל ביצירת הזמנה אחרי מספר ניסיונות');
+          }
+          // קבלת מספר הזמנה חדש
+          bookingNumber = await Counter.getNextSequence(locationKey);
+          console.log(`מספר הזמנה חדש לאחר כפילות: ${bookingNumber}`);
+          // המתנה קצרה לפני ניסיון נוסף
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } else {
+          // שגיאה אחרת - נזרוק אותה
+          throw saveError;
+        }
+      }
+    }
     
     // אם ההזמנה כוללת תשלום, נעדכן את נתוני ההון
     if (newBooking.paymentStatus && newBooking.paymentStatus !== 'unpaid' && newBooking.price > 0) {
