@@ -64,6 +64,12 @@ class ICalService {
 
     /**
      * ייבוא הזמנות מקובץ iCal של בוקינג
+     * 
+     * לוגיקת מחיקה חכמה (עדכון 2025):
+     * - הזמנות מבוטלות בבוקינג יימחקו רק אם סטטוס התשלום הוא 'other'
+     * - כל סטטוסי התשלום האחרים מוגנים מפני מחיקה (כולל 'unpaid')
+     * - מטרה: שמירה על הזמנות שטופלו או עודכנו ידנית במערכת
+     * 
      * @param {string} icalUrl - קישור לקובץ iCal של בוקינג
      * @param {string} roomId - מזהה החדר
      * @param {string} location - מיקום
@@ -136,14 +142,26 @@ class ICalService {
                 
                 if (bookingUID && !newUIDs.includes(bookingUID)) {
                     // ההזמנה לא קיימת יותר בבוקינג - בוטלה
-                    console.log(`❌ מוחק הזמנה מבוטלת: ${booking.bookingNumber} (UID: ${bookingUID})`);
-                    await Booking.findByIdAndDelete(booking._id);
-                    deletedCount++;
+                    
+                    // 🔒 לוגיקת הגנה חדשה: מוחק רק אם סטטוס התשלום הוא 'other'
+                    if (this.shouldDeleteCancelledBooking(booking)) {
+                        console.log(`❌ מוחק הזמנה מבוטלת עם סטטוס 'other': ${booking.bookingNumber} (UID: ${bookingUID}, סטטוס: ${booking.paymentStatus})`);
+                        await Booking.findByIdAndDelete(booking._id);
+                        deletedCount++;
+                    } else {
+                        console.log(`🛡️ שומר הזמנה מבוטלת עם סטטוס מוגן: ${booking.bookingNumber} (UID: ${bookingUID}, סטטוס: ${booking.paymentStatus})`);
+                        console.log(`   📝 הזמנה זו בוטלה בבוקינג אבל נשמרת במערכת בגלל סטטוס התשלום`);
+                    }
                 } else if (!bookingUID) {
-                    // הזמנה ישנה ללא UID - מוחקים אותה גם כן
-                    console.log(`⚠️ מוחק הזמנה ישנה ללא UID: ${booking.bookingNumber}`);
-                    await Booking.findByIdAndDelete(booking._id);
-                    deletedCount++;
+                    // הזמנה ישנה ללא UID - בודק סטטוס תשלום גם כאן
+                    if (this.shouldDeleteCancelledBooking(booking)) {
+                        console.log(`⚠️ מוחק הזמנה ישנה ללא UID עם סטטוס 'other': ${booking.bookingNumber} (סטטוס: ${booking.paymentStatus})`);
+                        await Booking.findByIdAndDelete(booking._id);
+                        deletedCount++;
+                    } else {
+                        console.log(`🛡️ שומר הזמנה ישנה ללא UID עם סטטוס מוגן: ${booking.bookingNumber} (סטטוס: ${booking.paymentStatus})`);
+                        console.log(`   📝 הזמנה ישנה זו נשמרת במערכת בגלל סטטוס התשלום`);
+                    }
                 }
             }
             
@@ -275,7 +293,8 @@ class ICalService {
             }
 
             console.log(`🎉 סנכרון חכם הושלם: ${deletedCount} נמחקו, ${newBookings.length} נוספו`);
-            console.log('💡 הזמנות שנערכו ידנית נשמרו ללא שינוי');
+            console.log('🛡️ הגנה חכמה: רק הזמנות עם סטטוס "other" נמחקות כשמבוטלות בבוקינג');
+            console.log('💡 הזמנות עם כל סטטוס תשלום אחר נשמרו ללא שינוי (כולל "לא שולם")');
             
             return newBookings;
 
@@ -440,6 +459,16 @@ class ICalService {
         
         const uidMatch = notes.match(/UID:\s*([^\n\r]+)/);
         return uidMatch ? uidMatch[1].trim() : null;
+    }
+
+    /**
+     * בדיקה האם הזמנה צריכה להימחק על פי לוגיקת ההגנה החדשה
+     * @param {Object} booking - אובייקט ההזמנה
+     * @returns {boolean} - true אם צריך למחוק, false אם לשמור
+     */
+    shouldDeleteCancelledBooking(booking) {
+        // מוחק רק אם סטטוס התשלום הוא 'other'
+        return booking.paymentStatus === 'other';
     }
 }
 
