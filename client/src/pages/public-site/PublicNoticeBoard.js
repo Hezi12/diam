@@ -162,13 +162,34 @@ const PublicNoticeBoard = () => {
       
       const displayDateStr = format(displayDate, 'yyyy-MM-dd');
       
+      // לוגים מפורטים לבדיקת הבעיה
+      console.log('🔍 Notice Board Debug Info:');
+      console.log('- Current time:', now.toLocaleString());
+      console.log('- Current hour:', currentHour);
+      console.log('- Display date:', displayDate.toLocaleString());
+      console.log('- Display date string:', displayDateStr);
+      console.log('- Location: airport');
+      console.log('- API URL from config:', process.env.REACT_APP_API_URL);
+      console.log('- Current hostname:', window.location.hostname);
+      
       const bookings = await bookingService.getBookingsByDateRange(displayDate, displayDate, 'airport');
+      
+      console.log('📊 Bookings received:', bookings);
+      console.log('- Number of bookings:', bookings.length);
       
       const todayCheckins = bookings.filter(booking => {
         const checkInDate = new Date(booking.checkIn);
         const checkInDateStr = format(checkInDate, 'yyyy-MM-dd');
-        return checkInDateStr === displayDateStr && booking.status !== 'cancelled';
+        const isToday = checkInDateStr === displayDateStr;
+        const isNotCancelled = booking.status !== 'cancelled';
+        
+        console.log(`- Booking ${booking.bookingNumber}: checkIn=${checkInDateStr}, isToday=${isToday}, status=${booking.status}, isNotCancelled=${isNotCancelled}`);
+        
+        return isToday && isNotCancelled;
       });
+
+      console.log('✅ Filtered check-ins for today:', todayCheckins);
+      console.log('- Number of today check-ins:', todayCheckins.length);
 
       const guestsList = todayCheckins.map(booking => ({
         name: booking.firstName && booking.lastName ? `${booking.firstName} ${booking.lastName}` : booking.firstName || 'Guest',
@@ -179,14 +200,21 @@ const PublicNoticeBoard = () => {
         guests: booking.guests
       }));
 
+      console.log('👥 Guests list before adding defaults:', guestsList);
+
       if (guestsList.length < 4) {
         const additionalGuests = defaultGuests.slice(0, 4 - guestsList.length);
         guestsList.push(...additionalGuests);
+        console.log(`➕ Added ${additionalGuests.length} default guests`);
       }
 
+      console.log('🏁 Final guests list:', guestsList);
       setTodaysGuests(guestsList);
     } catch (error) {
-      console.error('שגיאה בשליפת אורחים:', error);
+      console.error('❌ שגיאה בשליפת אורחים:', error);
+      console.error('- Error details:', error.message);
+      console.error('- Error response:', error.response?.data);
+      console.error('- Error status:', error.response?.status);
       setTodaysGuests(defaultGuests.slice(0, 4));
     } finally {
       setLoading(false);
