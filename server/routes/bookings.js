@@ -10,6 +10,7 @@ const router = express.Router();
 router.get('/check-availability', bookingsController.checkRoomAvailability);
 router.get('/public/check-availability', bookingsController.checkRoomAvailability);
 router.post('/public/create', bookingsController.createPublicBooking);
+router.get('/public/date-range', bookingsController.getBookingsByDateRange);
 
 // נתיבים לרענון לוח המודעות (ציבוריים)
 router.post('/notice-board/refresh', bookingsController.triggerNoticeBoardRefresh);

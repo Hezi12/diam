@@ -172,7 +172,16 @@ const PublicNoticeBoard = () => {
       console.log('- API URL from config:', process.env.REACT_APP_API_URL);
       console.log('- Current hostname:', window.location.hostname);
       
-      const bookings = await bookingService.getBookingsByDateRange(displayDate, displayDate, 'airport');
+      // שימוש ב-API ציבורי ללא אימות - תיקון לבעיית 401
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://diam-loy6.onrender.com';
+      const startStr = format(displayDate, 'yyyy-MM-dd');
+      const endStr = format(displayDate, 'yyyy-MM-dd');
+      
+      const response = await fetch(`${apiUrl}/api/bookings/public/date-range?startDate=${startStr}&endDate=${endStr}&location=airport`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const bookings = await response.json();
       
       console.log('📊 Bookings received:', bookings);
       console.log('- Number of bookings:', bookings.length);
