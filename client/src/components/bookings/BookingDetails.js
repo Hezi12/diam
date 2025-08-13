@@ -39,7 +39,7 @@ import { useFilter } from '../../contexts/FilterContext';
 /**
  * רכיב להצגת פרטי הזמנה מלאים
  */
-const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
+const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh }) => {
   const { filterPaymentMethods } = useFilter();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -659,6 +659,21 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete }) => {
         open={chargeDialogOpen}
         onClose={() => setChargeDialogOpen(false)}
         booking={booking}
+        onPaymentSuccess={(bookingId, newPaymentStatus) => {
+          console.log('🔄 עדכון סטטוס תשלום בממשק:', { bookingId, newPaymentStatus });
+          // עדכון הסטטוס בנתוני ההזמנה המקומיים
+          if (booking && booking._id === bookingId) {
+            setBooking(prev => ({
+              ...prev,
+              paymentStatus: newPaymentStatus
+            }));
+          }
+          
+          // קריאה לפונקציית רענון אם קיימת (מהדף הראשי)
+          if (onRefresh) {
+            onRefresh();
+          }
+        }}
       />
     </>
   );

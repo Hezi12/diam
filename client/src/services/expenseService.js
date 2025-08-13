@@ -7,7 +7,9 @@ import { getToken } from './authService';
  * מטפל בכל הבקשות הקשורות להוצאות (קבלה, הוספת עדכון ומחיקה)
  */
 
-const API_URL = '/api';
+import { API_URL } from '../config/apiConfig';
+
+const API_BASE = '/api';
 
 // מוק זמני עד ליצירת ה-API בצד השרת
 const mockExpenses = {
@@ -47,7 +49,7 @@ export const getExpenses = async (site, year, month) => {
   // אחרת, פונים ל-API האמיתי
   try {
     const token = getToken();
-    const response = await axios.get(`${API_URL}/financial/expenses`, {
+    const response = await axios.get(`${API_BASE}/financial/expenses`, {
       headers: { Authorization: `Bearer ${token}` },
       params: {
         year,

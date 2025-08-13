@@ -2074,6 +2074,23 @@ const NewBookingForm = ({
         open={chargeDialogOpen}
         onClose={() => setChargeDialogOpen(false)}
         booking={formData}
+        onPaymentSuccess={(bookingId, newPaymentStatus) => {
+          console.log('🔄 עדכון סטטוס תשלום בטופס:', { bookingId, newPaymentStatus });
+          // עדכון הסטטוס בנתוני הטופס
+          setFormData(prev => ({
+            ...prev,
+            paymentStatus: newPaymentStatus
+          }));
+          
+          // אם יש callback לעדכון הזמנה, נקרא לו
+          if (onSave && editBooking) {
+            const updatedBooking = {
+              ...formData,
+              paymentStatus: newPaymentStatus
+            };
+            onSave(updatedBooking);
+          }
+        }}
       />
     </Dialog>
   );

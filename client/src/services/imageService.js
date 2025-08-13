@@ -155,16 +155,9 @@ const imageService = {
       axiosBaseURL: window.axios?.defaults?.baseURL || 'undefined'
     });
     
-    // בפרודקשן, ננסה לבנות URL מלא
-    let fullUrl;
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      // בפרודקשן - השתמש ב-API URL מהקונפיג
-      const apiUrl = window.axios?.defaults?.baseURL || 'https://diam-loy6.onrender.com';
-      fullUrl = `${apiUrl}${baseUrl}`;
-    } else {
-      // במקומי - השתמש בנתיב יחסי
-      fullUrl = baseUrl;
-    }
+    // תמיד נשתמש ב-API URL מהקונפיג (בטוח יותר)
+    const apiUrl = window.axios?.defaults?.baseURL || 'https://diam-loy6.onrender.com';
+    const fullUrl = `${apiUrl}${baseUrl}`;
     
     // הוספת טוקן ל-URL כ-query parameter (עדיין לא אידיאלי אבל עובד)
     const finalUrl = token ? `${fullUrl}?token=${encodeURIComponent(token)}` : fullUrl;

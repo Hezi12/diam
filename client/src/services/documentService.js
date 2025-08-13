@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios';
-import { API_URL, API_ENDPOINTS } from '../config/apiConfig';
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 class DocumentService {
   /**
@@ -30,7 +30,7 @@ class DocumentService {
         requestData.amount = amount;
       }
 
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.documents.base}`, requestData);
+      const response = await axios.post(API_ENDPOINTS.documents.base, requestData);
 
       return response.data;
     } catch (error) {
@@ -68,7 +68,7 @@ class DocumentService {
         requestData.amount = amount;
       }
 
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.documents.base}`, requestData);
+      const response = await axios.post(API_ENDPOINTS.documents.base, requestData);
 
       return response.data;
     } catch (error) {
@@ -89,7 +89,7 @@ class DocumentService {
         throw new Error('מזהה מסמך חסר');
       }
 
-      const response = await axios.get(`${API_URL}${API_ENDPOINTS.documents.byId(documentId)}`);
+      const response = await axios.get(API_ENDPOINTS.documents.byId(documentId));
       return response.data;
     } catch (error) {
       console.error('שגיאה בקבלת מסמך:', error);
@@ -105,7 +105,7 @@ class DocumentService {
    */
   async checkICountConnection(location = 'rothschild') {
     try {
-      const response = await axios.get(`${API_URL}${API_ENDPOINTS.documents.checkConnection}`, {
+      const response = await axios.get(API_ENDPOINTS.documents.checkConnection, {
         params: { location }
       });
       return response.data;

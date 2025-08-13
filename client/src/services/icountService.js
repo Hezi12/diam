@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://diam-loy6.onrender.com';
+import { API_URL } from '../config/apiConfig';
 
 /**
  * שירות לטיפול בבקשות לשרתי iCount

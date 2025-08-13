@@ -6,7 +6,9 @@ import { getMonthlyRevenueData as getMockMonthlyRevenueData } from './mockRevenu
  * מטפל בכל הבקשות הקשורות לדוחות הכנסה וסטטיסטיקה
  */
 
-const API_URL = '/api';
+import { API_URL } from '../config/apiConfig';
+
+const API_BASE = '/api';
 
 // קבוע שקובע אם להשתמש בנתוני בדיקה או נתונים אמיתיים
 const USE_MOCK_DATA = false; // שינוי ל-false כדי להשתמש בנתונים אמיתיים מה-API
@@ -26,7 +28,7 @@ export const getMonthlyRevenueData = async (site, year, month) => {
   
   // אחרת, פונים ל-API האמיתי
   try {
-    const response = await axios.get(`${API_URL}/revenue/monthly/${site}/${year}/${month}`);
+    const response = await axios.get(`${API_BASE}/revenue/monthly/${site}/${year}/${month}`);
     return response.data;
   } catch (error) {
     console.error('שגיאה בקבלת נתוני הכנסות:', error);

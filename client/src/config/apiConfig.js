@@ -13,7 +13,8 @@ const API_URLS = {
 };
 
 // בחירת הכתובת בהתאם לסביבה
-const API_URL = isLocalhost ? API_URLS.development : API_URLS.production;
+// 🔒 בטיחות: תמיד נשתמש בשרת הענן כדי לא לדפוק את השרת הקבוע
+const API_URL = API_URLS.production; // isLocalhost ? API_URLS.development : API_URLS.production;
 
 // מבנה נתיבי ה-API
 const API_ENDPOINTS = {

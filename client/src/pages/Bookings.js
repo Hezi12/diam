@@ -660,6 +660,7 @@ const Bookings = () => {
           onDelete={handleDeleteBooking}
           onUpdate={handleUpdateBooking}
           location={location}
+          onRefresh={refreshBookings}
         />
         
         {/* דיאלוג החיפוש */}

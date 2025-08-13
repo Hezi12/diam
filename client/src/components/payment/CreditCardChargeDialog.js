@@ -32,10 +32,11 @@ import {
 import { useSnackbar } from 'notistack';
 import icountService from '../../services/icountService';
 import documentService from '../../services/documentService';
+import bookingService from '../../services/bookingService';
 import PaymentMethodDialog from '../documents/PaymentMethodDialog';
 import axios from 'axios';
 
-const CreditCardChargeDialog = ({ open, onClose, booking }) => {
+const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) => {
   // מצב סכום לחיוב
   const [chargeAmount, setChargeAmount] = useState(booking?.price || 0);
   
@@ -144,6 +145,98 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
     }
   };
 
+  // פונקציה חדשה: סליקה + חשבונית-קבלה (מחברת שתי פונקציות קיימות)
+  const handleChargeWithInvoiceReceipt = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      
+      console.log('🔄 מתחיל תהליך סליקה + חשבונית-קבלה...');
+      
+      // שלב 1: ביצוע הסליקה
+      console.log('💳 שלב 1: מבצע סליקת כרטיס אשראי...');
+      const chargeResponse = await icountService.chargeCard(booking.location, booking._id, chargeAmount, false);
+      
+      if (!chargeResponse.success) {
+        throw new Error(chargeResponse.message || 'סליקה נכשלה');
+      }
+      
+      console.log('✅ סליקה הושלמה בהצלחה:', chargeResponse);
+      
+      // שלב 2: יצירת חשבונית-קבלה משולבת עם אמצעי תשלום "כרטיס אשראי"
+      console.log('📄 שלב 2: יוצר חשבונית-קבלה משולבת...');
+      const invoiceResponse = await documentService.createInvoiceWithReceipt(booking._id, 'credit_card', chargeAmount);
+      
+      if (!invoiceResponse.success) {
+        console.warn('⚠️ סליקה בוצעה בהצלחה אבל יצירת החשבונית נכשלה');
+                // גם אם החשבונית נכשלה, הסליקה בוצעה - נציג הצלחה חלקית
+        }
+        
+        // שלב 3: עדכון סטטוס התשלום אוטומטי
+        console.log('🔄 שלב 3: מעדכן סטטוס תשלום...');
+        console.log('📋 פרטי הזמנה:', { 
+          bookingId: booking._id, 
+          location: booking.location,
+          currentPaymentStatus: booking.paymentStatus 
+        });
+        
+        try {
+          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
+          console.log(`🎯 סטטוס תשלום חדש: ${paymentStatus} (מיקום: ${booking.location})`);
+          
+          const updateResult = await bookingService.updateBooking(booking._id, { paymentStatus });
+          console.log(`✅ סטטוס התשלום עודכן בהצלחה:`, updateResult);
+          
+        } catch (updateError) {
+          console.error('❌ שגיאה מפורטת בעדכון סטטוס התשלום:', updateError);
+          console.error('📄 פרטי השגיאה:', updateError.response?.data || updateError.message);
+          // לא נעצור את התהליך בגלל שגיאה בעדכון הסטטוס
+        }
+        
+        console.log('✅ תהליך הושלם בהצלחה!');
+      
+      // הצגת תוצאה משולבת
+      const successMessage = invoiceResponse.success 
+        ? `✅ סליקה וחשבונית-קבלה בוצעו בהצלחה! מספר עסקה: ${chargeResponse.transactionId}${invoiceResponse.invoice ? `, חשבונית: ${invoiceResponse.invoice.invoiceNumber}` : ''}`
+        : `✅ סליקה בוצעה בהצלחה! מספר עסקה: ${chargeResponse.transactionId} (חשבונית נכשלה - ניתן ליצור ידנית)`;
+      
+      enqueueSnackbar(successMessage, { 
+        variant: 'success',
+        autoHideDuration: 8000
+      });
+      
+      setResult({
+        success: true,
+        transactionId: chargeResponse.transactionId,
+        amount: chargeResponse.amount,
+        cardType: chargeResponse.cardType,
+        invoice: invoiceResponse.invoice,
+        hasInvoice: invoiceResponse.success,
+        message: successMessage,
+        combinedAction: true // סימון שזו פעולה משולבת
+      });
+      
+              // קריאה לפונקציית callback לרענון הנתונים
+        if (onPaymentSuccess) {
+          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
+          onPaymentSuccess(booking._id, paymentStatus);
+        }
+        
+        // סגירת הדיאלוג אחרי 4 שניות (יותר זמן לקרוא את ההודעה)
+        setTimeout(() => {
+          onClose();
+        }, 4000);
+      
+    } catch (error) {
+      console.error('❌ שגיאה בתהליך סליקה + חשבונית-קבלה:', error);
+      setError(error.message || 'שגיאה בתהליך סליקה + חשבונית-קבלה');
+      enqueueSnackbar(`שגיאה: ${error.message || 'תהליך נכשל'}`, { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // פונקציה ליצירת חשבונית נפרדת
   const handleCreateInvoice = async () => {
     if (!booking || !booking._id) {
@@ -248,6 +341,27 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
       if (response.success) {
         console.log(`🎉 סליקה הושלמה בהצלחה! מספר עסקה: ${response.transactionId}`);
         
+        // עדכון סטטוס התשלום אוטומטי
+        console.log('🔄 מעדכן סטטוס תשלום...');
+        console.log('📋 פרטי הזמנה:', { 
+          bookingId: booking._id, 
+          location: booking.location,
+          currentPaymentStatus: booking.paymentStatus 
+        });
+        
+        try {
+          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
+          console.log(`🎯 סטטוס תשלום חדש: ${paymentStatus} (מיקום: ${booking.location})`);
+          
+          const updateResult = await bookingService.updateBooking(booking._id, { paymentStatus });
+          console.log(`✅ סטטוס התשלום עודכן בהצלחה:`, updateResult);
+          
+        } catch (updateError) {
+          console.error('❌ שגיאה מפורטת בעדכון סטטוס התשלום:', updateError);
+          console.error('📄 פרטי השגיאה:', updateError.response?.data || updateError.message);
+          // לא נעצור את התהליך בגלל שגיאה בעדכון הסטטוס
+        }
+        
         // הצגת הודעת הצלחה
         const successMessage = shouldCreateInvoice 
           ? `✅ הסליקה בוצעה בהצלחה! ${response.invoice ? `חשבונית: ${response.invoice.docNum}` : ''}` 
@@ -267,6 +381,12 @@ const CreditCardChargeDialog = ({ open, onClose, booking }) => {
           hasInvoice: shouldCreateInvoice,
           message: successMessage
         });
+        
+        // קריאה לפונקציית callback לרענון הנתונים
+        if (onPaymentSuccess) {
+          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
+          onPaymentSuccess(booking._id, paymentStatus);
+        }
         
         // סגירת הדיאלוג אחרי 3 שניות
         setTimeout(() => {
@@ -747,36 +867,8 @@ ${importantInfo}
 
             
             <Grid container spacing={2}>
-              {/* אפשרות 1: סליקה + חשבונית */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Card 
-                  sx={{ 
-                    cursor: 'pointer',
-                    height: '100%',
-                    transition: 'all 0.3s ease',
-                    border: '2px solid transparent',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-                      borderColor: 'primary.main'
-                    }
-                  }}
-                  onClick={() => setSelectedAction('charge_with_invoice')}
-                >
-                  <CardContent sx={{ textAlign: 'center', p: 1.5 }}>
-                    <AllInclusiveIcon sx={{ 
-                      fontSize: 36, 
-                      color: 'primary.main', 
-                      mb: 0.5 
-                    }} />
-                    <Typography variant="body1" gutterBottom sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                      סליקה + חשבונית
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
 
-              {/* אפשרות 2: רק סליקה */}
+              {/* אפשרות 1: סליקה בלבד (לבדיקה) */}
               <Grid item xs={12} sm={6} md={3}>
                 <Card 
                   sx={{ 
@@ -799,13 +891,46 @@ ${importantInfo}
                       mb: 0.5 
                     }} />
                     <Typography variant="body1" gutterBottom sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                      סליקה בלבד
+                      סליקה בלבד (לבדיקה)
                     </Typography>
                   </CardContent>
                 </Card>
               </Grid>
 
-              {/* אפשרות 3: רק חשבונית */}
+              {/* אפשרות 2: סליקה + חשק */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Card 
+                  sx={{ 
+                    cursor: 'pointer',
+                    height: '100%',
+                    transition: 'all 0.3s ease',
+                    border: '2px solid',
+                    borderColor: 'error.light',
+                    background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.03) 0%, rgba(244, 67, 54, 0.08) 100%)',
+                    boxShadow: '0 2px 8px rgba(244, 67, 54, 0.15)',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(244, 67, 54, 0.25)',
+                      borderColor: 'error.main',
+                      background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.05) 0%, rgba(244, 67, 54, 0.12) 100%)'
+                    }
+                  }}
+                  onClick={() => setSelectedAction('charge_with_invoice_receipt')}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 1.5 }}>
+                    <AllInclusiveIcon sx={{ 
+                      fontSize: 36, 
+                      color: 'error.main', 
+                      mb: 0.5 
+                    }} />
+                    <Typography variant="body1" gutterBottom sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                      סליקה + חשק
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* אפשרות 3: חשבונית בלבד */}
               <Grid item xs={12} sm={6} md={3}>
                 <Card 
                   sx={{ 
@@ -897,7 +1022,7 @@ ${importantInfo}
           /* תוכן הפעולה הנבחרת */
           <Box>
             {/* תוכן לפי בחירה */}
-            {(selectedAction === 'charge_with_invoice' || selectedAction === 'charge_only') && (
+            {(selectedAction === 'charge_only' || selectedAction === 'charge_with_invoice_receipt') && (
               <Box sx={{ mb: 2 }}>
             <TextField
               label="סכום לחיוב"
@@ -993,8 +1118,8 @@ ${importantInfo}
                 חזור לבחירה
               </Button>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {selectedAction === 'charge_with_invoice' && 'סליקה + חשבונית'}
-                {selectedAction === 'charge_only' && 'סליקה בלבד'}
+                {selectedAction === 'charge_only' && 'סליקה בלבד (לבדיקה)'}
+                {selectedAction === 'charge_with_invoice_receipt' && 'סליקה + חשק'}
                 {selectedAction === 'invoice_only' && 'חשבונית בלבד'}
                 {selectedAction === 'invoice_receipt' && 'חשבונית + קבלה'}
                 {selectedAction === 'booking_confirmation' && 'אישור הזמנה'}
@@ -1002,7 +1127,7 @@ ${importantInfo}
         </Box>
         
         {/* מצב טעינה */}
-            {((selectedAction === 'charge_with_invoice' || selectedAction === 'charge_only') && loading) && (
+            {((selectedAction === 'charge_only' || selectedAction === 'charge_with_invoice_receipt') && loading) && (
           <Box sx={{ 
             display: 'flex', 
             justifyContent: 'center', 
@@ -1073,7 +1198,7 @@ ${importantInfo}
             )}
         
         {/* תוצאת הסליקה */}
-            {result && (selectedAction === 'charge_with_invoice' || selectedAction === 'charge_only') && (
+            {result && (selectedAction === 'charge_only' || selectedAction === 'charge_with_invoice_receipt') && (
           <Paper 
             elevation={0}
             sx={{ 
@@ -1102,33 +1227,7 @@ ${importantInfo}
                   סוג כרטיס: <strong>{result.cardType}</strong>
                 </Typography>
                 
-                {/* מידע על חשבונית */}
-                    {selectedAction === 'charge_with_invoice' && result.hasInvoice && (
-                  <>
-                    {result.invoice && result.invoice.success ? (
-                      <Typography variant="body2" sx={{ 
-                        mt: 2, 
-                        p: 1.5,
-                        bgcolor: 'rgba(255, 255, 255, 0.2)',
-                        borderRadius: 1,
-                        fontWeight: 600
-                      }}>
-                        📄 חשבונית נוצרה: {result.invoice.docNum}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" sx={{ 
-                        mt: 2, 
-                        p: 1.5,
-                        bgcolor: 'rgba(255, 193, 7, 0.2)',
-                        borderRadius: 1,
-                        color: 'warning.dark',
-                        fontWeight: 500
-                      }}>
-                        ⚠️ חשבונית לא נוצרה (סליקה בוצעה בהצלחה)
-                      </Typography>
-                    )}
-                  </>
-                    )}
+
                   </Box>
                 )}
               </Paper>
@@ -1404,20 +1503,20 @@ ${importantInfo}
         )}
         
             {/* הודעה אם אין פרטי אשראי - רק עבור סליקה */}
-            {(selectedAction === 'charge_with_invoice' || selectedAction === 'charge_only') && 
+            {(selectedAction === 'charge_only' || selectedAction === 'charge_with_invoice_receipt') && 
              booking && (!booking.creditCard || !booking.creditCard.cardNumber) && (
           <Alert severity="warning" sx={{ mt: 2 }}>
             לא נמצאו פרטי כרטיס אשראי להזמנה זו.
           </Alert>
             )}
 
-            {/* התרעה אם יש כבר חשבונית ונבחר "סליקה + חשבונית" */}
-            {selectedAction === 'charge_with_invoice' && hasExistingInvoice && existingInvoiceInfo && (
+            {/* התרעה אם יש כבר חשבונית ונבחר "סליקה + חשק" */}
+            {selectedAction === 'charge_with_invoice_receipt' && hasExistingInvoice && existingInvoiceInfo && (
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   ⚠️ <strong>קיימת כבר חשבונית להזמנה זו</strong><br/>
                   מספר חשבונית: <strong>{existingInvoiceInfo.invoiceNumber}</strong> | סכום: <strong>₪{existingInvoiceInfo.amount}</strong><br/>
-                  <em>הסליקה תתבצע ותיווצר חשבונית חדשה נוספת</em>
+                  <em>הסליקה תתבצע ותיווצר חשק חדש נוסף</em>
                 </Typography>
               </Alert>
             )}
@@ -1461,10 +1560,10 @@ ${importantInfo}
         {selectedAction && selectedAction !== 'booking_confirmation' && (
           <Button 
             onClick={
-              selectedAction === 'charge_with_invoice' 
-                ? () => handleCharge(true) 
-                : selectedAction === 'charge_only' 
-                  ? () => handleCharge(false)
+              selectedAction === 'charge_only' 
+                ? () => handleCharge(false)
+                : selectedAction === 'charge_with_invoice_receipt'
+                  ? handleChargeWithInvoiceReceipt
                   : selectedAction === 'invoice_receipt'
                     ? () => setPaymentMethodDialogOpen(true)
                     : handleCreateInvoice
@@ -1473,7 +1572,7 @@ ${importantInfo}
               (selectedAction === 'invoice_only' || selectedAction === 'invoice_receipt')
                 ? invoiceLoading || invoiceResult || (!invoiceAmount || invoiceAmount <= 0)
                 : loading || result || 
-                  ((selectedAction === 'charge_with_invoice' || selectedAction === 'charge_only') && 
+                  ((selectedAction === 'charge_only' || selectedAction === 'charge_with_invoice_receipt') && 
                    (!chargeAmount || chargeAmount <= 0))
             }
             variant="contained"
@@ -1486,8 +1585,8 @@ ${importantInfo}
               minWidth: 150
             }}
           >
-            {selectedAction === 'charge_with_invoice' && (loading ? 'מבצע סליקה...' : `בצע סליקה + חשבונית (${chargeAmount} ₪)`)}
             {selectedAction === 'charge_only' && (loading ? 'מבצע סליקה...' : `בצע סליקה (${chargeAmount} ₪)`)}
+            {selectedAction === 'charge_with_invoice_receipt' && (loading ? 'מבצע סליקה + חשק...' : `בצע סליקה + חשק (${chargeAmount} ₪)`)}
             {selectedAction === 'invoice_only' && (invoiceLoading ? 'יוצר חשבונית...' : `צור חשבונית (${invoiceAmount} ₪)`)}
             {selectedAction === 'invoice_receipt' && (invoiceLoading ? 'יוצר חשבונית + קבלה...' : `צור חשבונית + קבלה (${invoiceAmount} ₪)`)}
           </Button>
