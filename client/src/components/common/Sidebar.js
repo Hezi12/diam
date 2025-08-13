@@ -221,7 +221,6 @@ const Sidebar = () => {
   
   // מצב כפתור הסינון הסודי
   const [secretClickCount, setSecretClickCount] = useState(0);
-  const [showSecretFilter, setShowSecretFilter] = useState(false);
 
   // לוגיקת התנתקות
   const handleLogout = () => {
@@ -233,13 +232,14 @@ const Sidebar = () => {
     navigate(-1);
   };
   
-  // פונקציה לטיפול בלחיצות סודיות
+  // פונקציה לטיפול בלחיצות סודיות - 4 לחיצות להפעלה/ביטול
   const handleSecretClick = () => {
     const newCount = secretClickCount + 1;
     setSecretClickCount(newCount);
     
     if (newCount >= 4) {
-      setShowSecretFilter(true);
+      // הפעלה/ביטול של הסינון
+      toggleFilter();
       setSecretClickCount(0); // איפוס הספירה
     }
     
@@ -249,12 +249,6 @@ const Sidebar = () => {
         setSecretClickCount(0);
       }
     }, 2000);
-  };
-  
-  // פונקציה להסתרת הכפתור הסודי (לחיצה ארוכה)
-  const handleHideSecretFilter = () => {
-    setShowSecretFilter(false);
-    setSecretClickCount(0);
   };
   
   // פתיחה/סגירה של תפריט מובייל
@@ -456,64 +450,61 @@ const Sidebar = () => {
           {/* נקודה סודיה זעירה לסינון */}
           <ListItem sx={{ 
             padding: 0,
-            minHeight: '8px',
+            minHeight: '20px', // הגדלנו את הגובה
             display: 'flex', 
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-            {/* תמיד נקודה זעירה - גם כשהסינון פעיל */}
+            {/* נקודה סודית - 4 לחיצות להפעלה/ביטול */}
             <Box
               component="button"
-              onClick={showSecretFilter ? toggleFilter : handleSecretClick}
-              onMouseDown={showSecretFilter ? (e) => {
-                // טיימר ללחיצה ארוכה
-                const timer = setTimeout(() => {
-                  handleHideSecretFilter();
-                }, 1000); // שנייה אחת
-                
-                const handleMouseUp = () => {
-                  clearTimeout(timer);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                };
-                
-                document.addEventListener('mouseup', handleMouseUp);
-              } : undefined}
+              onClick={handleSecretClick}
               sx={{
                 border: 'none',
                 background: 'transparent',
-                padding: 0,
+                padding: '10px', // פדינג לאזור לחיצה גדול יותר
                 margin: 0,
-                cursor: showSecretFilter ? 'pointer' : 'default',
-                width: '2px',
-                height: '2px',
-                minWidth: '2px',
-                minHeight: '2px',
+                cursor: 'default',
+                width: '20px', // אזור לחיצה רחב יותר
+                height: '20px', // אזור לחיצה גבוה יותר
+                minWidth: '20px',
+                minHeight: '20px',
                 borderRadius: '50%',
-                backgroundColor: showSecretFilter && isFilterActive 
-                  ? 'rgba(33, 150, 243, 0.4)' // כחול עדין כשפעיל
-                  : showSecretFilter 
-                    ? 'rgba(158, 158, 158, 0.3)' // אפור עדין כשזמין
-                    : 'rgba(0, 0, 0, 0.03)', // שקוף כמעט כשלא זמין
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
                 transition: 'all 0.1s ease',
+                // הנקודה הקטנה עצמה נשארת בתוך הכפתור הגדול
+                '&::after': {
+                  content: '""',
+                  width: '2px',
+                  height: '2px',
+                  borderRadius: '50%',
+                  backgroundColor: isFilterActive 
+                    ? 'rgba(33, 150, 243, 0.4)' // כחול עדין כשהסינון פעיל
+                    : 'rgba(0, 0, 0, 0.03)', // שקוף כמעט כשלא פעיל
+                  transition: 'all 0.1s ease',
+                },
                 '&:hover': {
-                  backgroundColor: showSecretFilter && isFilterActive
-                    ? 'rgba(33, 150, 243, 0.6)'
-                    : showSecretFilter
-                      ? 'rgba(158, 158, 158, 0.5)'
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)', // רקע עדין בhover
+                  '&::after': {
+                    backgroundColor: isFilterActive
+                      ? 'rgba(33, 150, 243, 0.6)'
                       : 'rgba(0, 0, 0, 0.05)',
-                  transform: 'scale(2)', // הגדלה קלה בhover
+                    transform: 'scale(2)', // הגדלה קלה בhover
+                  },
                 },
                 '&:active': {
-                  backgroundColor: showSecretFilter && isFilterActive
-                    ? 'rgba(33, 150, 243, 0.8)'
-                    : showSecretFilter
-                      ? 'rgba(158, 158, 158, 0.7)'
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)', // רקע בלחיצה
+                  '&::after': {
+                    backgroundColor: isFilterActive
+                      ? 'rgba(33, 150, 243, 0.8)'
                       : 'rgba(0, 0, 0, 0.1)',
-                  transform: 'scale(1.5)',
+                    transform: 'scale(1.5)',
+                  },
                 },
               }}
               aria-hidden="true"
-              title={showSecretFilter ? (isFilterActive ? "סינון פעיל - לחיצה ארוכה להסתרה" : "הפעל סינון - לחיצה ארוכה להסתרה") : ""}
             />
           </ListItem>
           <LogoutButton 
