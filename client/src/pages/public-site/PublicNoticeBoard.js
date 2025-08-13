@@ -192,9 +192,12 @@ const PublicNoticeBoard = () => {
         const isToday = checkInDateStr === displayDateStr;
         const isNotCancelled = booking.status !== 'cancelled';
         
-        console.log(`- Booking ${booking.bookingNumber}: checkIn=${checkInDateStr}, isToday=${isToday}, status=${booking.status}, isNotCancelled=${isNotCancelled}`);
+        // בדיקה אם יש "סירוב" בהערות - אם כן, לא להציג בלוח המודעות
+        const hasRefusal = booking.notes && booking.notes.toLowerCase().includes('סירוב');
         
-        return isToday && isNotCancelled;
+        console.log(`- Booking ${booking.bookingNumber}: checkIn=${checkInDateStr}, isToday=${isToday}, status=${booking.status}, isNotCancelled=${isNotCancelled}, hasRefusal=${hasRefusal}`);
+        
+        return isToday && isNotCancelled && !hasRefusal;
       });
 
       console.log('✅ Filtered check-ins for today:', todayCheckins);
