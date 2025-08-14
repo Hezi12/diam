@@ -113,13 +113,13 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
     other: 'אחר'
   };
 
-  // הגדרת טקסט לפי סטטוס הזמנה
-  const bookingStatusText = {
-    confirmed: 'מאושר',
-    pending: 'בהמתנה',
-    cancelled: 'בוטל',
-    completed: 'הושלם'
-  };
+  // הגדרת טקסט לפי סטטוס הזמנה (לא בשימוש כרגע)
+  // const bookingStatusText = {
+  //   confirmed: 'מאושר',
+  //   pending: 'בהמתנה',
+  //   cancelled: 'בוטל',
+  //   completed: 'הושלם'
+  // };
 
   // בדיקה אם קיימת חשבונית להזמנה
   const checkIfInvoiceExists = async (bookingId) => {
@@ -318,9 +318,37 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
             {!isEditing && (
               <Tooltip title={hasInvoice || booking.manualInvoiceHandled ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
                 <Box 
-                  onClick={() => {
-                    // כאן נוכל להוסיף לוגיקה לעדכון השדה manualInvoiceHandled
-                    console.log('Toggle manual invoice for booking:', booking._id);
+                  onClick={async () => {
+                    try {
+                      // עדכון הסטטוס במסד הנתונים
+                      const newStatus = !booking.manualInvoiceHandled;
+                      console.log('🧾 מעדכן סטטוס חשבונית ידנית:', {
+                        bookingId: booking._id,
+                        currentStatus: booking.manualInvoiceHandled,
+                        newStatus: newStatus
+                      });
+                      
+                      const response = await axios.put(`/api/bookings/${booking._id}`, {
+                        manualInvoiceHandled: newStatus
+                      });
+                      
+                      if (response.data.success) {
+                        // עדכון המצב המקומי
+                        setBooking(prev => ({
+                          ...prev,
+                          manualInvoiceHandled: newStatus
+                        }));
+                        
+                        console.log('✅ סטטוס חשבונית ידנית עודכן בהצלחה');
+                        
+                        // רענון הדף אם יש callback
+                        if (onRefresh) {
+                          onRefresh();
+                        }
+                      }
+                    } catch (error) {
+                      console.error('❌ שגיאה בעדכון סטטוס חשבונית:', error);
+                    }
                   }}
                   sx={{ 
                     color: (hasInvoice || booking.manualInvoiceHandled) ? '#06a271' : 'text.secondary',
