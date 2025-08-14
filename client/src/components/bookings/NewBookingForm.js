@@ -387,7 +387,9 @@ const NewBookingForm = ({
             creditCard: editBooking.creditCard || { cardNumber: '', expiryDate: '', cvv: '' },
             // וידוא שהשדות החדשים קיימים
             code: editBooking.code || '',
-            reviewHandled: editBooking.reviewHandled || false
+            reviewHandled: editBooking.reviewHandled || false,
+            manualInvoiceHandled: editBooking.manualInvoiceHandled || false,
+            hasInvoiceReceipt: editBooking.hasInvoiceReceipt || false
           };
           
           console.log('טוען הזמנה לעריכה:', editFormData.firstName, 'עם פרטי אשראי:', 
@@ -1094,6 +1096,7 @@ const NewBookingForm = ({
           externalBookingNumber: formData.externalBookingNumber || '',
           code: formData.code || '',
           reviewHandled: formData.reviewHandled || false,
+          manualInvoiceHandled: formData.manualInvoiceHandled || false,
           
           location: location
         };
@@ -1268,26 +1271,42 @@ const NewBookingForm = ({
             </IconButton>
           </Tooltip>
           
-          {/* אייקון חשבונית קיימת */}
-          {hasInvoice && (
-            <Tooltip title="קיימת חשבונית להזמנה זו">
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                bgcolor: 'rgba(6, 162, 113, 0.1)',
-                border: '1px solid rgba(6, 162, 113, 0.3)',
-                borderRadius: '8px',
-                px: 1.5,
-                py: 0.5,
-                color: '#06a271',
+          {/* תג חשבונית - ניתן ללחיצה לסימון ידני */}
+          <Tooltip title={hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              bgcolor: (hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+              border: (hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? '1px solid rgba(6, 162, 113, 0.3)' : '1px solid rgba(25, 118, 210, 0.2)',
+              borderRadius: '8px',
+              px: 1,
+              py: 0.5,
+            }}>
+              <Checkbox
+                checked={(hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) || false}
+                onChange={() => setFormData({...formData, manualInvoiceHandled: !formData.manualInvoiceHandled})}
+                size="small"
+                sx={{
+                  color: currentColors.main,
+                  '&.Mui-checked': {
+                    color: '#06a271',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.1rem'
+                  },
+                  p: 0.5
+                }}
+              />
+              <Typography sx={{ 
                 fontSize: '0.75rem',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                color: (hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? '#06a271' : currentColors.main,
+                ml: 0.5
               }}>
-                <CheckCircleIcon sx={{ fontSize: '1.1rem', mr: 0.5 }} />
                 חשבונית
-              </Box>
-            </Tooltip>
-          )}
+              </Typography>
+            </Box>
+          </Tooltip>
           
           {/* מעקב חוות דעת */}
           <Tooltip title="טופל בחוות דעת">
@@ -1325,6 +1344,8 @@ const NewBookingForm = ({
               </Typography>
             </Box>
           </Tooltip>
+          
+
           
           {/* בחירת סטטוס תשלום */}
           <FormControl sx={{ minWidth: 150 }} size="small">

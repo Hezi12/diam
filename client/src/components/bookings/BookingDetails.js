@@ -314,19 +314,34 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
               </Button>
             )}
             
-            {/* הצגת סימון שקיימת חשבונית */}
-            {!isEditing && hasInvoice && (
-              <Tooltip title="קיימת חשבונית להזמנה זו">
-                <Box sx={{ 
-                  color: '#06a271', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  mr: 1,
-                  fontSize: '0.875rem',
-                  fontWeight: 'bold'
-                }}>
+            {/* תג חשבונית - ניתן ללחיצה לסימון ידני */}
+            {!isEditing && (
+              <Tooltip title={hasInvoice || booking.manualInvoiceHandled ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
+                <Box 
+                  onClick={() => {
+                    // כאן נוכל להוסיף לוגיקה לעדכון השדה manualInvoiceHandled
+                    console.log('Toggle manual invoice for booking:', booking._id);
+                  }}
+                  sx={{ 
+                    color: (hasInvoice || booking.manualInvoiceHandled) ? '#06a271' : 'text.secondary',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mr: 1,
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid',
+                    borderColor: (hasInvoice || booking.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.3)' : 'rgba(0, 0, 0, 0.12)',
+                    bgcolor: (hasInvoice || booking.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+                    '&:hover': {
+                      bgcolor: (hasInvoice || booking.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                    }
+                  }}
+                >
                   <CheckCircleIcon sx={{ fontSize: '1.2rem', mr: 0.5 }} />
-                  חשבונית קיימת
+                  חשבונית
                 </Box>
               </Tooltip>
             )}

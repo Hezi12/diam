@@ -539,6 +539,10 @@ exports.updateBooking = async (req, res) => {
     if (updateData.reviewHandled !== undefined) {
       console.log('🔄 עדכון מעקב חוות דעת:', updateData.reviewHandled);
     }
+    
+    if (updateData.manualInvoiceHandled !== undefined) {
+      console.log('🧾 עדכון סימון חשבונית ידנית:', updateData.manualInvoiceHandled);
+    }
 
     // עדכון ההזמנה
     const updatedBooking = await Booking.findByIdAndUpdate(

@@ -217,6 +217,12 @@ const BookingSchema = new mongoose.Schema(
       default: false
     },
     
+    // סימון ידני שהוצאה חשבונית (למקרים שלא הוצאה דרך המערכת)
+    manualInvoiceHandled: {
+      type: Boolean,
+      default: false
+    },
+    
     // מקור ההזמנה
     source: {
       type: String,

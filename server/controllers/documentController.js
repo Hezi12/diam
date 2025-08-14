@@ -203,11 +203,12 @@ exports.createDocument = async (req, res) => {
       }
     }
     
-    // עדכון ההזמנה עם מזהה החשבונית
+    // עדכון ההזמנה עם מזהה החשבונית וסימון שיש חשבונית
     booking.invoice = invoice._id;
+    booking.hasInvoiceReceipt = true;
     await booking.save();
     
-    console.log(`✅ הזמנה ${booking._id} עודכנה עם מזהה חשבונית`);
+    console.log(`✅ הזמנה ${booking._id} עודכנה עם מזהה חשבונית וסומנה כבעלת חשבונית`);
     
     // הכנת הודעה מתאימה
     let message = 'חשבונית נוצרה בהצלחה';
@@ -406,14 +407,17 @@ exports.createInvoiceWithReceipt = async (req, res) => {
       };
     }
 
+    // עדכון ההזמנה עם מזהה החשבונית וסימון שיש חשבונית
+    booking.invoice = invoice._id;
+    booking.hasInvoiceReceipt = true;
+    await booking.save();
+    
     const responseMessage = icountResponse.receiptNumber 
       ? `חשבונית (${icountResponse.invoiceNumber}) וקבלה (${icountResponse.receiptNumber}) נוצרו בהצלחה`
       : icountResponse.message || 'חשבונית נוצרה בהצלחה';
     
     console.log(`✅ ${responseMessage}`);
-    
-    // הזמנה עודכנה אוטומטית עם מזהה החשבונית בשלבים הקודמים
-    console.log(`✅ חשבונית עם קבלה נוצרה בהצלחה להזמנה ${bookingId}`);
+    console.log(`✅ הזמנה ${booking._id} עודכנה עם מזהה חשבונית וסומנה כבעלת חשבונית`);
     
     return res.status(201).json({
       success: true,
