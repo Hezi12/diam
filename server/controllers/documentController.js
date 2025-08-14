@@ -207,6 +207,8 @@ exports.createDocument = async (req, res) => {
     booking.invoice = invoice._id;
     await booking.save();
     
+    console.log(`✅ הזמנה ${booking._id} עודכנה עם מזהה חשבונית`);
+    
     // הכנת הודעה מתאימה
     let message = 'חשבונית נוצרה בהצלחה';
     if (existingInvoiceInfo) {
@@ -410,17 +412,8 @@ exports.createInvoiceWithReceipt = async (req, res) => {
     
     console.log(`✅ ${responseMessage}`);
     
-    // עדכון ההזמנה שיצרנו לה חשבונית+קבלה
-    try {
-      await Booking.findByIdAndUpdate(
-        bookingId,
-        { hasInvoiceReceipt: true },
-        { new: true }
-      );
-      console.log(`✅ הזמנה ${bookingId} עודכנה עם hasInvoiceReceipt: true`);
-    } catch (updateError) {
-      console.warn('⚠️  שגיאה בעדכון שדה hasInvoiceReceipt בהזמנה:', updateError.message);
-    }
+    // הזמנה עודכנה אוטומטית עם מזהה החשבונית בשלבים הקודמים
+    console.log(`✅ חשבונית עם קבלה נוצרה בהצלחה להזמנה ${bookingId}`);
     
     return res.status(201).json({
       success: true,

@@ -792,6 +792,7 @@ const BookingsCalendar = ({
       
       // בדיקה האם ההזמנה שולמה בדרכים שדורשות חשבונית+קבלה אבל עדיין לא הוצאה
       // יוצג רק להזמנות שהתאריך שלהן עבר או הוא היום
+      // 🔧 תיקון: עכשיו מבוסס על קיום חשבוניות בטבלת Invoice במקום השדה hasInvoiceReceipt
       const paidButNeedsInvoiceReceipt = [
         'credit_or_yehuda',
         'credit_rothschild', 
@@ -799,7 +800,7 @@ const BookingsCalendar = ({
         'bit_mizrahi',
         'paybox_mizrahi',
         'other'
-      ].includes(booking.paymentStatus) && !booking.hasInvoiceReceipt && (checkInDate <= today);
+      ].includes(booking.paymentStatus) && !booking.hasAnyInvoice && (checkInDate <= today);
       
       // בדיקה האם צריך להציג אייקון חוות דעת
       // התנאים: 1. מקור Booking או Expedia, 2. לא טופל בחוות דעת, 3. ההזמנה הסתיימה
@@ -815,7 +816,8 @@ const BookingsCalendar = ({
         isPastOrToday: checkInDate <= today,
         isPastOrTodayAndNotPaid,
         paidButNeedsInvoiceReceipt,
-        hasInvoiceReceipt: booking.hasInvoiceReceipt,
+        hasAnyInvoice: booking.hasAnyInvoice, // 🔧 תיקון: עכשיו מציג את השדה החדש
+        invoicesCount: booking.invoicesCount,
         checkInPastOrToday: checkInDate <= today,
         source: booking.source,
         reviewHandled: booking.reviewHandled,

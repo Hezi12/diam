@@ -51,7 +51,22 @@ exports.getAllBookings = async (req, res) => {
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
     
-    res.json(bookings);
+    // הוספת מידע על חשבוניות לכל הזמנה
+    const Invoice = require('../models/Invoice');
+    const bookingsWithInvoiceInfo = await Promise.all(
+      bookings.map(async (booking) => {
+        const bookingObj = booking.toObject();
+        
+        // בדיקה אם יש חשבוניות להזמנה זו
+        const invoices = await Invoice.find({ booking: booking._id });
+        bookingObj.hasAnyInvoice = invoices.length > 0;
+        bookingObj.invoicesCount = invoices.length;
+        
+        return bookingObj;
+      })
+    );
+    
+    res.json(bookingsWithInvoiceInfo);
   } catch (error) {
     console.error('Error getting bookings:', error);
     res.status(500).json({ message: 'שגיאה בקבלת רשימת ההזמנות' });
@@ -76,7 +91,22 @@ exports.getBookingsByLocation = async (req, res) => {
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
     
-    res.json(bookings);
+    // הוספת מידע על חשבוניות לכל הזמנה
+    const Invoice = require('../models/Invoice');
+    const bookingsWithInvoiceInfo = await Promise.all(
+      bookings.map(async (booking) => {
+        const bookingObj = booking.toObject();
+        
+        // בדיקה אם יש חשבוניות להזמנה זו
+        const invoices = await Invoice.find({ booking: booking._id });
+        bookingObj.hasAnyInvoice = invoices.length > 0;
+        bookingObj.invoicesCount = invoices.length;
+        
+        return bookingObj;
+      })
+    );
+    
+    res.json(bookingsWithInvoiceInfo);
   } catch (error) {
     console.error('Error getting bookings by location:', error);
     res.status(500).json({ message: 'שגיאה בקבלת רשימת ההזמנות' });
@@ -148,7 +178,22 @@ exports.getBookingsByDateRange = async (req, res) => {
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
     
-    res.json(bookings);
+    // הוספת מידע על חשבוניות לכל הזמנה
+    const Invoice = require('../models/Invoice');
+    const bookingsWithInvoiceInfo = await Promise.all(
+      bookings.map(async (booking) => {
+        const bookingObj = booking.toObject();
+        
+        // בדיקה אם יש חשבוניות להזמנה זו
+        const invoices = await Invoice.find({ booking: booking._id });
+        bookingObj.hasAnyInvoice = invoices.length > 0;
+        bookingObj.invoicesCount = invoices.length;
+        
+        return bookingObj;
+      })
+    );
+    
+    res.json(bookingsWithInvoiceInfo);
   } catch (error) {
     console.error('Error getting bookings by date range:', error);
     res.status(500).json({ message: 'שגיאה בקבלת רשימת ההזמנות לפי טווח תאריכים' });
