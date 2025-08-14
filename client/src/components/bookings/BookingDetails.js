@@ -121,7 +121,19 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
   //   completed: 'הושלם'
   // };
 
-  // בדיקה אם קיימת חשבונית להזמנה
+  // פונקציה אחידה לבדיקת קיום חשבונית (3 מקורות)
+  const hasAnyInvoice = (bookingData) => {
+    if (!bookingData) return false;
+    
+    return !!(
+      bookingData.hasInvoiceReceipt ||      // חשבונית אוטומטית מהמערכת
+      bookingData.manualInvoiceHandled ||   // סימון ידני
+      bookingData.hasAnyInvoice ||          // בדיקה בטבלת חשבוניות
+      hasInvoice                            // בדיקה דינמית (fallback)
+    );
+  };
+
+  // בדיקה דינמית אם קיימת חשבונית להזמנה (רק כ-fallback)
   const checkIfInvoiceExists = async (bookingId) => {
     if (!bookingId) return;
     
@@ -316,7 +328,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
             
             {/* תג חשבונית - ניתן ללחיצה לסימון ידני */}
             {!isEditing && (
-              <Tooltip title={hasInvoice || booking.manualInvoiceHandled ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
+              <Tooltip title={hasAnyInvoice(booking) ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
                 <Box 
                   onClick={async () => {
                     try {
@@ -351,7 +363,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                     }
                   }}
                   sx={{ 
-                    color: (hasInvoice || booking.manualInvoiceHandled) ? '#06a271' : 'text.secondary',
+                    color: hasAnyInvoice(booking) ? '#06a271' : 'text.secondary',
                     display: 'flex', 
                     alignItems: 'center', 
                     mr: 1,
@@ -361,10 +373,10 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                     padding: '4px 8px',
                     borderRadius: '8px',
                     border: '1px solid',
-                    borderColor: (hasInvoice || booking.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.3)' : 'rgba(0, 0, 0, 0.12)',
-                    bgcolor: (hasInvoice || booking.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+                    borderColor: hasAnyInvoice(booking) ? 'rgba(6, 162, 113, 0.3)' : 'rgba(0, 0, 0, 0.12)',
+                    bgcolor: hasAnyInvoice(booking) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(0, 0, 0, 0.04)',
                     '&:hover': {
-                      bgcolor: (hasInvoice || booking.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                      bgcolor: hasAnyInvoice(booking) ? 'rgba(6, 162, 113, 0.15)' : 'rgba(0, 0, 0, 0.08)',
                     }
                   }}
                 >

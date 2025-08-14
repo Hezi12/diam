@@ -266,7 +266,19 @@ const NewBookingForm = ({
 
   const [additionalRoomsLoading, setAdditionalRoomsLoading] = useState(false);
 
-  // בדיקה אם קיימת חשבונית להזמנה
+  // פונקציה אחידה לבדיקת קיום חשבונית (3 מקורות)
+  const hasAnyInvoiceForBooking = (bookingData) => {
+    if (!bookingData) return false;
+    
+    return !!(
+      bookingData.hasInvoiceReceipt ||      // חשבונית אוטומטית מהמערכת
+      bookingData.manualInvoiceHandled ||   // סימון ידני
+      bookingData.hasAnyInvoice ||          // בדיקה בטבלת חשבוניות
+      hasInvoice                            // בדיקה דינמית (fallback)
+    );
+  };
+
+  // בדיקה דינמית אם קיימת חשבונית להזמנה (רק כ-fallback)
   const checkIfInvoiceExists = async (bookingId) => {
     if (!bookingId) return;
     
@@ -1272,18 +1284,18 @@ const NewBookingForm = ({
           </Tooltip>
           
           {/* תג חשבונית - ניתן ללחיצה לסימון ידני */}
-          <Tooltip title={hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
+          <Tooltip title={hasAnyInvoiceForBooking(formData) ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center',
-              bgcolor: (hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(25, 118, 210, 0.08)',
-              border: (hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? '1px solid rgba(6, 162, 113, 0.3)' : '1px solid rgba(25, 118, 210, 0.2)',
+              bgcolor: hasAnyInvoiceForBooking(formData) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+              border: hasAnyInvoiceForBooking(formData) ? '1px solid rgba(6, 162, 113, 0.3)' : '1px solid rgba(25, 118, 210, 0.2)',
               borderRadius: '8px',
               px: 1,
               py: 0.5,
             }}>
               <Checkbox
-                checked={(hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) || false}
+                checked={hasAnyInvoiceForBooking(formData) || false}
                 onChange={() => setFormData({...formData, manualInvoiceHandled: !formData.manualInvoiceHandled})}
                 size="small"
                 sx={{
@@ -1300,7 +1312,7 @@ const NewBookingForm = ({
               <Typography sx={{ 
                 fontSize: '0.75rem',
                 fontWeight: 'bold',
-                color: (hasInvoice || formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? '#06a271' : currentColors.main,
+                color: hasAnyInvoiceForBooking(formData) ? '#06a271' : currentColors.main,
                 ml: 0.5
               }}>
                 חשבונית

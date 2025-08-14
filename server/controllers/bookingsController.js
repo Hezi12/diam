@@ -211,7 +211,14 @@ exports.getBookingById = async (req, res) => {
       return res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
     
-    res.json(booking);
+    // הוספת מידע על חשבוניות
+    const bookingObj = booking.toObject();
+    const Invoice = require('../models/Invoice');
+    const invoices = await Invoice.find({ booking: booking._id });
+    bookingObj.hasAnyInvoice = invoices.length > 0;
+    bookingObj.invoicesCount = invoices.length;
+    
+    res.json(bookingObj);
   } catch (error) {
     console.error('Error getting booking by id:', error);
     res.status(500).json({ message: 'שגיאה בקבלת פרטי ההזמנה' });

@@ -671,19 +671,19 @@ const EditBookingForm = ({
 
         <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
           {/* תג חשבונית - ניתן ללחיצה לסימון ידני */}
-          <Tooltip title={formData.hasInvoiceReceipt || formData.manualInvoiceHandled ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
+          <Tooltip title={(formData.hasInvoiceReceipt || formData.manualInvoiceHandled || formData.hasAnyInvoice) ? "יש חשבונית להזמנה זו - לחץ לביטול" : "לחץ לסימון חשבונית ידנית"}>
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
-              bgcolor: (formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+              bgcolor: (formData.hasInvoiceReceipt || formData.manualInvoiceHandled || formData.hasAnyInvoice) ? 'rgba(6, 162, 113, 0.1)' : 'rgba(25, 118, 210, 0.08)',
               borderRadius: '8px',
               border: '1px solid',
-              borderColor: (formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? 'rgba(6, 162, 113, 0.3)' : 'rgba(25, 118, 210, 0.2)',
+              borderColor: (formData.hasInvoiceReceipt || formData.manualInvoiceHandled || formData.hasAnyInvoice) ? 'rgba(6, 162, 113, 0.3)' : 'rgba(25, 118, 210, 0.2)',
               px: 1,
               py: 0.5
             }}>
               <Checkbox
-                checked={(formData.hasInvoiceReceipt || formData.manualInvoiceHandled) || false}
+                checked={(formData.hasInvoiceReceipt || formData.manualInvoiceHandled || formData.hasAnyInvoice) || false}
                 onChange={(e) => setFormData({...formData, manualInvoiceHandled: e.target.checked})}
                 size="small"
                 sx={{
@@ -700,7 +700,7 @@ const EditBookingForm = ({
               <Typography sx={{ 
                 fontSize: '0.8rem',
                 fontWeight: 600,
-                color: (formData.hasInvoiceReceipt || formData.manualInvoiceHandled) ? '#06a271' : 'text.secondary',
+                color: (formData.hasInvoiceReceipt || formData.manualInvoiceHandled || formData.hasAnyInvoice) ? '#06a271' : 'text.secondary',
                 ml: 0.5,
                 userSelect: 'none'
               }}>
