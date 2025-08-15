@@ -174,3 +174,87 @@ exports.updateBannerValidity = async (req, res) => {
     });
   }
 };
+
+// קבלת הגדרות לוח המודעות
+exports.getNoticeBoardSettings = async (req, res) => {
+  try {
+    const settings = await PublicSiteSettings.getDefaultSettings();
+    
+    // החזרת הגדרות לוח המודעות בלבד
+    const noticeBoardSettings = {
+      hideRealGuestNames: settings.noticeBoard?.hideRealGuestNames || false,
+      notes: settings.noticeBoard?.notes || '',
+      lastUpdatedBy: settings.noticeBoard?.lastUpdatedBy || null
+    };
+    
+    res.json({
+      success: true,
+      settings: noticeBoardSettings
+    });
+  } catch (error) {
+    console.error('שגיאה בקבלת הגדרות לוח המודעות:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'שגיאה בקבלת הגדרות לוח המודעות',
+      error: error.message 
+    });
+  }
+};
+
+// עדכון הגדרות לוח המודעות
+exports.updateNoticeBoardSettings = async (req, res) => {
+  try {
+    const updateData = req.body;
+    const userId = req.user ? req.user.id : null;
+    
+    console.log('מעדכן הגדרות לוח המודעות:', updateData);
+    
+    const settings = await PublicSiteSettings.updateNoticeBoardSettings(updateData, userId);
+    
+    console.log('הגדרות לוח המודעות עודכנו בהצלחה');
+    
+    res.json({
+      success: true,
+      message: 'הגדרות לוח המודעות עודכנו בהצלחה',
+      settings: settings.noticeBoard
+    });
+  } catch (error) {
+    console.error('שגיאה בעדכון הגדרות לוח המודעות:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'שגיאה בעדכון הגדרות לוח המודעות',
+      error: error.message 
+    });
+  }
+};
+
+// הפעלה/השבתה מהירה של הסתרת שמות אורחים
+exports.toggleGuestNamesVisibility = async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    
+    // קבלת המצב הנוכחי
+    const currentSettings = await PublicSiteSettings.getDefaultSettings();
+    const currentHideNames = currentSettings.noticeBoard?.hideRealGuestNames || false;
+    
+    // הפיכת המצב
+    const newHideNames = !currentHideNames;
+    
+    console.log(`${newHideNames ? 'מסתיר' : 'מציג'} שמות אורחים אמיתיים בלוח המודעות (מצב קודם: ${currentHideNames})`);
+    
+    const settings = await PublicSiteSettings.updateNoticeBoardSettings({ hideRealGuestNames: newHideNames }, userId);
+    
+    res.json({
+      success: true,
+      message: `שמות אורחים אמיתיים ${newHideNames ? 'מוסתרים' : 'מוצגים'} כעת בלוח המודעות`,
+      hideRealGuestNames: settings.noticeBoard.hideRealGuestNames
+    });
+  } catch (error) {
+    console.error('שגיאה בהפעלה/השבתה של הסתרת שמות אורחים:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'שגיאה בעדכון הגדרת הצגת שמות אורחים',
+      error: error.message 
+    });
+  }
+};

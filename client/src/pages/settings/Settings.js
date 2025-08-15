@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, Paper, Button, Grid, Container, IconButton, Tooltip } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Paper, Button, Grid, Container, IconButton, Tooltip, Switch, FormControlLabel } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import FlightIcon from '@mui/icons-material/Flight';
@@ -9,8 +9,12 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ICalSettings from '../../components/settings/ICalSettings';
 import { useSnackbar } from 'notistack';
+import axios from 'axios';
+import { API_URL } from '../../config/apiConfig';
 
 /**
  * עמוד הגדרות מרכזי
@@ -19,6 +23,8 @@ import { useSnackbar } from 'notistack';
 const Settings = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [refreshing, setRefreshing] = useState(false);
+  const [hideGuestNames, setHideGuestNames] = useState(false);
+  const [loadingGuestNames, setLoadingGuestNames] = useState(false);
 
   // פונקציה לרענון רשימת האורחים
   const refreshGuestList = async () => {
@@ -50,6 +56,40 @@ const Settings = () => {
   const openPublicNoticeBoard = () => {
     window.open('/notice-board-public', 'noticeBoardPublic', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
   };
+
+  // טעינת הגדרות לוח המודעות
+  const loadNoticeBoardSettings = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/public-site/notice-board/settings`);
+      if (response.data.success) {
+        setHideGuestNames(response.data.settings.hideRealGuestNames);
+      }
+    } catch (error) {
+      console.error('שגיאה בטעינת הגדרות לוח המודעות:', error);
+    }
+  };
+
+  // הפעלה/השבתה של הסתרת שמות אורחים
+  const toggleGuestNamesVisibility = async () => {
+    setLoadingGuestNames(true);
+    try {
+      const response = await axios.patch(`${API_URL}/api/public-site/notice-board/toggle-guest-names`);
+      if (response.data.success) {
+        setHideGuestNames(response.data.hideRealGuestNames);
+        enqueueSnackbar(response.data.message, { variant: 'success' });
+      }
+    } catch (error) {
+      console.error('שגיאה בעדכון הגדרת שמות אורחים:', error);
+      enqueueSnackbar('שגיאה בעדכון הגדרת שמות אורחים', { variant: 'error' });
+    } finally {
+      setLoadingGuestNames(false);
+    }
+  };
+
+  // טעינת הגדרות בטעינת הקומפוננט
+  useEffect(() => {
+    loadNoticeBoardSettings();
+  }, []);
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
@@ -236,60 +276,101 @@ const Settings = () => {
 
 
         {/* לוח מודעות - איירפורט */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12}>
           <Paper
             sx={{
               p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
               borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'rgba(33, 150, 243, 0.2)',
               transition: 'all 0.2s',
               '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-                bgcolor: 'rgba(33, 150, 243, 0.04)'
+                borderColor: 'rgba(33, 150, 243, 0.4)',
+                boxShadow: '0 4px 12px rgba(33, 150, 243, 0.1)'
               }
             }}
           >
-            <Box sx={{ maxWidth: '60%' }}>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
-                לוח מודעות - איירפורט
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                לוח מודעות ציבורי עם אורחים ומידע שימושי
-              </Typography>
+            {/* כותרת ופעולות */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#2196f3' }}>
+                  לוח מודעות ציבורי
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  רענון רשימת אורחים, הגדרות תצוגה ופתיחת לוח מודעות ציבורי
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Tooltip title="רענון רשימת אורחים">
+                  <IconButton
+                    onClick={refreshGuestList}
+                    disabled={refreshing}
+                    sx={{
+                      bgcolor: 'rgba(33, 150, 243, 0.1)',
+                      color: '#2196f3',
+                      '&:hover': {
+                        bgcolor: 'rgba(33, 150, 243, 0.2)'
+                      }
+                    }}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="פתח לוח מודעות ציבורי">
+                  <IconButton
+                    onClick={openPublicNoticeBoard}
+                    sx={{
+                      bgcolor: 'rgba(33, 150, 243, 0.1)',
+                      color: '#2196f3',
+                      '&:hover': {
+                        bgcolor: 'rgba(33, 150, 243, 0.2)'
+                      }
+                    }}
+                  >
+                    <OpenInNewIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title="רענון רשימת אורחים">
-                <IconButton
-                  onClick={refreshGuestList}
-                  disabled={refreshing}
-                  sx={{
-                    bgcolor: 'rgba(33, 150, 243, 0.1)',
-                    color: '#2196f3',
-                    '&:hover': {
-                      bgcolor: 'rgba(33, 150, 243, 0.2)'
+            
+            {/* הגדרת הסתרת שמות אורחים */}
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              bgcolor: 'rgba(33, 150, 243, 0.05)',
+              p: 2,
+              borderRadius: 1,
+              border: '1px solid rgba(33, 150, 243, 0.1)'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {hideGuestNames ? <VisibilityOffIcon color="warning" /> : <VisibilityIcon color="success" />}
+                <Box>
+                  <Typography variant="body2" fontWeight="bold">
+                    {hideGuestNames ? 'שמות אורחים מוסתרים' : 'שמות אורחים מוצגים'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {hideGuestNames 
+                      ? 'בלוח המודעות יוצגו רק שמות ברירת מחדל'
+                      : 'בלוח המודעות יוצגו שמות אורחים אמיתיים'
                     }
-                  }}
-                >
-                  <RefreshIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="פתח לוח מודעות ציבורי">
-                <IconButton
-                  onClick={openPublicNoticeBoard}
-                  sx={{
-                    bgcolor: 'rgba(33, 150, 243, 0.1)',
-                    color: '#2196f3',
-                    '&:hover': {
-                      bgcolor: 'rgba(33, 150, 243, 0.2)'
-                    }
-                  }}
-                >
-                  <OpenInNewIcon />
-                </IconButton>
-              </Tooltip>
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={hideGuestNames}
+                    onChange={toggleGuestNamesVisibility}
+                    disabled={loadingGuestNames}
+                    color="primary"
+                  />
+                }
+                label={hideGuestNames ? 'הסתר שמות' : 'הצג שמות'}
+                labelPlacement="start"
+                sx={{ m: 0 }}
+              />
             </Box>
           </Paper>
         </Grid>

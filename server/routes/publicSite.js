@@ -30,4 +30,14 @@ router.patch('/banner/launch/display', auth, publicSiteController.updateBannerDi
 // עדכון תאריכי תוקף של הבאנר
 router.patch('/banner/launch/validity', auth, publicSiteController.updateBannerValidity);
 
+// נתיבים עבור הגדרות לוח המודעות
+// קבלת הגדרות לוח המודעות
+router.get('/notice-board/settings', auth, publicSiteController.getNoticeBoardSettings);
+
+// עדכון הגדרות לוח המודעות
+router.put('/notice-board/settings', auth, publicSiteController.updateNoticeBoardSettings);
+
+// הפעלה/השבתה מהירה של הסתרת שמות אורחים
+router.patch('/notice-board/toggle-guest-names', auth, publicSiteController.toggleGuestNamesVisibility);
+
 module.exports = router;

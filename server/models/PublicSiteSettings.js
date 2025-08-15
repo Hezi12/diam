@@ -129,6 +129,25 @@ const PublicSiteSettingsSchema = new mongoose.Schema(
       }
     },
     
+    // הגדרות לוח מודעות
+    noticeBoard: {
+      // האם להסתיר שמות אורחים אמיתיים ולהציג רק שמות ברירת מחדל
+      hideRealGuestNames: {
+        type: Boolean,
+        default: false
+      },
+      // מי עדכן לאחרונה
+      lastUpdatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      // הערות
+      notes: {
+        type: String,
+        default: ''
+      }
+    },
+    
     // הגדרות נוספות לעתיד
     maintenanceMode: {
       enabled: {
@@ -237,6 +256,65 @@ PublicSiteSettingsSchema.statics.updateLaunchBanner = async function(updateData,
   
   if (userId) {
     settings.launchPromotionBanner.lastUpdatedBy = userId;
+  }
+  
+  await settings.save();
+  return settings;
+};
+
+// Static method - עדכון הגדרות לוח המודעות
+PublicSiteSettingsSchema.statics.updateNoticeBoardSettings = async function(updateData, userId = null) {
+  const settings = await this.getDefaultSettings();
+  
+  // אתחול הגדרות לוח מודעות אם לא קיימות
+  if (!settings.noticeBoard) {
+    settings.noticeBoard = {
+      hideRealGuestNames: false,
+      notes: ''
+    };
+  }
+  
+  // עדכון הנתונים
+  if (updateData.hideRealGuestNames !== undefined) {
+    settings.noticeBoard.hideRealGuestNames = updateData.hideRealGuestNames;
+  }
+  
+  if (updateData.notes !== undefined) {
+    settings.noticeBoard.notes = updateData.notes;
+  }
+  
+  if (userId) {
+    settings.noticeBoard.lastUpdatedBy = userId;
+  }
+  
+  await settings.save();
+  return settings;
+};
+
+// Static method - עדכון הגדרות לוח המודעות
+PublicSiteSettingsSchema.statics.updateNoticeBoardSettings = async function(updateData, userId = null) {
+  const settings = await this.getDefaultSettings();
+  
+  // אתחול לוח המודעות אם לא קיים
+  if (!settings.noticeBoard) {
+    settings.noticeBoard = {
+      hideRealGuestNames: false,
+      notes: '',
+      lastUpdatedBy: null
+    };
+  }
+  
+  // עדכון הנתונים
+  if (updateData.hideRealGuestNames !== undefined) {
+    settings.noticeBoard.hideRealGuestNames = updateData.hideRealGuestNames;
+  }
+  
+  if (updateData.notes !== undefined) {
+    settings.noticeBoard.notes = updateData.notes;
+  }
+  
+  if (userId) {
+    settings.noticeBoard.lastUpdatedBy = userId;
   }
   
   await settings.save();

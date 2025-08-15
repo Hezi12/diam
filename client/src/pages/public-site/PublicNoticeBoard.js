@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography, Container, Grid, Card, CardContent, Avatar, IconButton, Tooltip } from '@mui/material';
 import { format } from 'date-fns';
 import bookingService from '../../services/bookingService';
+import axios from 'axios';
+import { API_URL } from '../../config/apiConfig';
 import { 
   Wifi, 
   LocalTaxi, 
@@ -21,6 +23,7 @@ const PublicNoticeBoard = () => {
   const [lastRefreshCheck, setLastRefreshCheck] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wakeLock, setWakeLock] = useState(null);
+  const [hideRealGuestNames, setHideRealGuestNames] = useState(false);
 
   // אורחים ברירת מחדל באנגלית
   const defaultGuests = useMemo(() => [
@@ -147,6 +150,21 @@ const PublicNoticeBoard = () => {
     }
   }, [wakeLock, requestWakeLock]);
 
+  // טעינת הגדרות לוח המודעות
+  const loadNoticeBoardSettings = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/public-site/notice-board/settings`);
+      if (response.data.success) {
+        setHideRealGuestNames(response.data.settings.hideRealGuestNames);
+        console.log('🔧 הגדרות לוח מודעות נטענו:', response.data.settings);
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בטעינת הגדרות לוח המודעות:', error);
+      // ברירת מחדל - הצגת שמות אמיתיים
+      setHideRealGuestNames(false);
+    }
+  }, []);
+
   // שליפת אורחים שהצ'ק אין שלהם היום
   const fetchTodaysGuests = useCallback(async () => {
     try {
@@ -203,21 +221,30 @@ const PublicNoticeBoard = () => {
       console.log('✅ Filtered check-ins for today:', todayCheckins);
       console.log('- Number of today check-ins:', todayCheckins.length);
 
-      const guestsList = todayCheckins.map(booking => ({
-        name: booking.firstName && booking.lastName ? `${booking.firstName} ${booking.lastName}` : booking.firstName || 'Guest',
-        roomNumber: booking.roomNumber,
-        phone: booking.phone || 'Not provided',
-        checkIn: booking.checkIn,
-        checkOut: booking.checkOut,
-        guests: booking.guests
-      }));
+      let guestsList;
+      
+      // אם ההגדרה היא להסתיר שמות אמיתיים - הצג רק שמות ברירת מחדל
+      if (hideRealGuestNames) {
+        console.log('🔒 מסתיר שמות אורחים אמיתיים - מציג רק שמות ברירת מחדל');
+        guestsList = [...defaultGuests];
+      } else {
+        // אחרת, הצג אורחים אמיתיים עם השלמה של ברירת מחדל
+        guestsList = todayCheckins.map(booking => ({
+          name: booking.firstName && booking.lastName ? `${booking.firstName} ${booking.lastName}` : booking.firstName || 'Guest',
+          roomNumber: booking.roomNumber,
+          phone: booking.phone || 'Not provided',
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          guests: booking.guests
+        }));
 
-      console.log('👥 Guests list before adding defaults:', guestsList);
+        console.log('👥 Guests list before adding defaults:', guestsList);
 
-      if (guestsList.length < 4) {
-        const additionalGuests = defaultGuests.slice(0, 4 - guestsList.length);
-        guestsList.push(...additionalGuests);
-        console.log(`➕ Added ${additionalGuests.length} default guests`);
+        if (guestsList.length < 4) {
+          const additionalGuests = defaultGuests.slice(0, 4 - guestsList.length);
+          guestsList.push(...additionalGuests);
+          console.log(`➕ Added ${additionalGuests.length} default guests`);
+        }
       }
 
       console.log('🏁 Final guests list:', guestsList);
@@ -231,7 +258,7 @@ const PublicNoticeBoard = () => {
     } finally {
       setLoading(false);
     }
-  }, [defaultGuests]);
+  }, [defaultGuests, hideRealGuestNames]);
 
   // פונקציה לבדיקת בקשת רענון מהשרת
   const checkRefreshStatus = useCallback(async () => {
@@ -244,13 +271,15 @@ const PublicNoticeBoard = () => {
         if (data.shouldRefresh) {
           console.log('🔄 Refresh request detected, updating guests list...');
           setLastRefreshCheck(data.timestamp);
+          // טעינת הגדרות מחודשת לפני רענון האורחים
+          await loadNoticeBoardSettings();
           fetchTodaysGuests();
         }
       }
     } catch (error) {
       console.error('שגיאה בבדיקת סטטוס רענון:', error);
     }
-  }, [lastRefreshCheck, fetchTodaysGuests]);
+  }, [lastRefreshCheck, fetchTodaysGuests, loadNoticeBoardSettings]);
 
   // עדכון שעה כל דקה
   useEffect(() => {
@@ -261,10 +290,18 @@ const PublicNoticeBoard = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // טעינת הגדרות וחיבור ראשוני
+  useEffect(() => {
+    const initializeBoard = async () => {
+      await loadNoticeBoardSettings();
+      await fetchTodaysGuests();
+    };
+    
+    initializeBoard();
+  }, [loadNoticeBoardSettings, fetchTodaysGuests]);
+
   // עדכון נתונים כל 30 דקות
   useEffect(() => {
-    fetchTodaysGuests();
-    
     const dataTimer = setInterval(() => {
       fetchTodaysGuests();
     }, 30 * 60 * 1000);
