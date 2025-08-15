@@ -276,7 +276,7 @@ const Settings = () => {
 
 
         {/* לוח מודעות - איירפורט */}
-        <Grid item xs={12}>
+        <Grid item xs={12} sx={{ mt: 2 }}>
           <Paper
             sx={{
               p: 3,
