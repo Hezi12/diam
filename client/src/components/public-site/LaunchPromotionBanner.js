@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,17 +10,75 @@ import {
   IconButton
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
+import publicSiteService from '../../services/publicSiteService';
+import { usePublicTranslation, usePublicLanguage } from '../../contexts/PublicLanguageContext';
 
 const LaunchPromotionBanner = () => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [bannerSettings, setBannerSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
   const t = usePublicTranslation();
+  const { currentLanguage } = usePublicLanguage();
+
+  // טעינת הגדרות הבאנר מהשרת
+  useEffect(() => {
+    const fetchBannerSettings = async () => {
+      try {
+        console.log('טוען הגדרות באנר הנחת השקה...');
+        const response = await publicSiteService.getLaunchBannerSettings();
+        
+        console.log('הגדרות באנר התקבלו:', response);
+        setBannerSettings(response);
+        
+        // אם הבאנר פעיל, נציג אותו
+        if (response.enabled) {
+          // בדיקת תדירות הצגה
+          const sessionKey = 'launchBannerShown';
+          const dayKey = 'launchBannerShownDate';
+          const today = new Date().toDateString();
+          
+          const frequency = response.displaySettings?.frequency || 'once_per_session';
+          
+          switch (frequency) {
+            case 'always':
+              setOpen(true);
+              break;
+              
+            case 'once_per_day':
+              const lastShownDate = localStorage.getItem(dayKey);
+              if (lastShownDate !== today) {
+                setOpen(true);
+                localStorage.setItem(dayKey, today);
+              }
+              break;
+              
+            case 'once_per_session':
+            default:
+              const shownInSession = sessionStorage.getItem(sessionKey);
+              if (!shownInSession) {
+                setOpen(true);
+                sessionStorage.setItem(sessionKey, 'true');
+              }
+              break;
+          }
+        }
+      } catch (error) {
+        console.error('שגיאה בטעינת הגדרות באנר הנחת השקה:', error);
+        // במקרה של שגיאה, לא נציג את הבאנר
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBannerSettings();
+  }, []);
 
   const handleClose = () => {
     setOpen(false);
   };
 
-  if (!open) return null;
+  // אם עדיין טוען או הבאנר לא פעיל, לא נציג כלום
+  if (loading || !open || !bannerSettings?.enabled) return null;
 
   return (
     <Dialog
@@ -66,7 +124,7 @@ const LaunchPromotionBanner = () => {
           fontSize: '1.5rem',
           lineHeight: 1.3
         }}>
-          {t('promotion.title')}
+          {bannerSettings.content[currentLanguage]?.title || t('promotion.title')}
         </Typography>
       </DialogTitle>
 
@@ -85,7 +143,7 @@ const LaunchPromotionBanner = () => {
             lineHeight: 1,
             mb: 1
           }}>
-            {t('promotion.discount')}
+            {bannerSettings.content[currentLanguage]?.discount || t('promotion.discount')}
           </Typography>
         </Box>
 
@@ -96,7 +154,7 @@ const LaunchPromotionBanner = () => {
           fontWeight: 500,
           lineHeight: 1.6
         }}>
-          {t('promotion.description')}
+          {bannerSettings.content[currentLanguage]?.description || t('promotion.description')}
         </Typography>
 
         {/* קופון מעוצב */}
@@ -117,7 +175,7 @@ const LaunchPromotionBanner = () => {
             fontSize: '0.9rem',
             mb: 1
           }}>
-            {t('promotion.couponText')}
+            {bannerSettings.content[currentLanguage]?.couponText || t('promotion.couponText')}
           </Typography>
           <Typography variant="h4" component="div" sx={{ 
             fontWeight: 800, 
@@ -126,7 +184,7 @@ const LaunchPromotionBanner = () => {
             fontFamily: 'monospace',
             letterSpacing: '0.2em'
           }}>
-            {t('promotion.couponCode')}
+            {bannerSettings.content[currentLanguage]?.couponCode || t('promotion.couponCode')}
           </Typography>
         </Box>
 
@@ -142,7 +200,7 @@ const LaunchPromotionBanner = () => {
             fontWeight: 600,
             fontSize: '0.9rem'
           }}>
-            {t('promotion.limitation')}
+            {bannerSettings.content[currentLanguage]?.limitation || t('promotion.limitation')}
           </Typography>
         </Box>
       </DialogContent>
@@ -169,7 +227,7 @@ const LaunchPromotionBanner = () => {
             transition: 'all 0.2s ease'
           }}
         >
-          {t('promotion.button')}
+          {bannerSettings.content[currentLanguage]?.button || t('promotion.button')}
         </Button>
       </DialogActions>
     </Dialog>

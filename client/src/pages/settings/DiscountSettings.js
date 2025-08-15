@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import DiscountManagement from '../../components/discounts/DiscountManagement';
+import LaunchBannerControl from '../../components/discounts/LaunchBannerControl';
 
 /**
  * עמוד הגדרות הנחות
@@ -64,6 +65,9 @@ const DiscountSettings = () => {
           ניהול הנחות
         </Typography>
       </Box>
+
+      {/* בקרת באנר הנחת השקה */}
+      <LaunchBannerControl />
 
       <Divider sx={{ mb: 3 }} />
 

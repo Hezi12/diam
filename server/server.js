@@ -129,6 +129,7 @@ const documentsRoutes = require('./routes/documents');
 const icountRoutes = require('./routes/icount');
 const icalRoutes = require('./routes/ical');
 const emailRoutes = require('./routes/email');
+const publicSiteRoutes = require('./routes/publicSite');
 
 // הגדרת נתיבים
 app.use('/api/bookings', bookingsRoutes);
@@ -144,6 +145,7 @@ app.use('/api/icount', icountRoutes);
 app.use('/api/ical', icalRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/discounts', require('./routes/discounts'));
+app.use('/api/public-site', publicSiteRoutes);
 
 // נתיב ברירת מחדל (במקום לשרת קבצים סטטיים)
 app.get('/', (req, res) => {
