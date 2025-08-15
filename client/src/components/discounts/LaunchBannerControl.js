@@ -204,8 +204,10 @@ const LaunchBannerControl = () => {
                   {banner.enabled ? 'הבאנר פעיל באתר הציבורי' : 'הבאנר כבוי באתר הציבורי'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {banner.enabled 
+                  {banner.enabled && banner.isCurrentlyValid
                     ? 'המבקרים באתר הציבורי יראו את באנר ההנחה' 
+                    : banner.enabled && !banner.isCurrentlyValid
+                    ? 'הבאנר פעיל אבל לא בתוקף (בדוק תאריכי תוקף)'
                     : 'המבקרים באתר הציבורי לא יראו את באנר ההנחה'
                   }
                 </Typography>

@@ -64,16 +64,22 @@ exports.updateLaunchBanner = async (req, res) => {
 // הפעלה/השבתה מהירה של באנר הנחת השקה
 exports.toggleLaunchBanner = async (req, res) => {
   try {
-    const { enabled } = req.body;
     const userId = req.user ? req.user.id : null;
     
-    console.log(`${enabled ? 'מפעיל' : 'משבית'} באנר הנחת השקה`);
+    // קבלת המצב הנוכחי
+    const currentSettings = await PublicSiteSettings.getDefaultSettings();
+    const currentEnabled = currentSettings.launchPromotionBanner.enabled;
     
-    const settings = await PublicSiteSettings.updateLaunchBanner({ enabled }, userId);
+    // הפיכת המצב
+    const newEnabled = !currentEnabled;
+    
+    console.log(`${newEnabled ? 'מפעיל' : 'משבית'} באנר הנחת השקה (מצב קודם: ${currentEnabled})`);
+    
+    const settings = await PublicSiteSettings.updateLaunchBanner({ enabled: newEnabled }, userId);
     
     res.json({
       success: true,
-      message: `באנר הנחת השקה ${enabled ? 'הופעל' : 'הושבת'} בהצלחה`,
+      message: `באנר הנחת השקה ${newEnabled ? 'הופעל' : 'הושבת'} בהצלחה`,
       enabled: settings.launchPromotionBanner.enabled
     });
   } catch (error) {

@@ -30,37 +30,42 @@ const LaunchPromotionBanner = () => {
         console.log('הגדרות באנר התקבלו:', response);
         setBannerSettings(response);
         
-        // אם הבאנר פעיל, נציג אותו
-        if (response.enabled) {
-          // בדיקת תדירות הצגה
-          const sessionKey = 'launchBannerShown';
-          const dayKey = 'launchBannerShownDate';
-          const today = new Date().toDateString();
-          
-          const frequency = response.displaySettings?.frequency || 'once_per_session';
-          
-          switch (frequency) {
-            case 'always':
+        // אם הבאנר לא פעיל, נסגור אותו מיד
+        if (!response.enabled) {
+          setOpen(false);
+          setLoading(false);
+          return;
+        }
+        
+        // אם הבאנר פעיל, נבדוק האם להציג אותו
+        // בדיקת תדירות הצגה
+        const sessionKey = 'launchBannerShown';
+        const dayKey = 'launchBannerShownDate';
+        const today = new Date().toDateString();
+        
+        const frequency = response.displaySettings?.frequency || 'once_per_session';
+        
+        switch (frequency) {
+          case 'always':
+            setOpen(true);
+            break;
+            
+          case 'once_per_day':
+            const lastShownDate = localStorage.getItem(dayKey);
+            if (lastShownDate !== today) {
               setOpen(true);
-              break;
-              
-            case 'once_per_day':
-              const lastShownDate = localStorage.getItem(dayKey);
-              if (lastShownDate !== today) {
-                setOpen(true);
-                localStorage.setItem(dayKey, today);
-              }
-              break;
-              
-            case 'once_per_session':
-            default:
-              const shownInSession = sessionStorage.getItem(sessionKey);
-              if (!shownInSession) {
-                setOpen(true);
-                sessionStorage.setItem(sessionKey, 'true');
-              }
-              break;
-          }
+              localStorage.setItem(dayKey, today);
+            }
+            break;
+            
+          case 'once_per_session':
+          default:
+            const shownInSession = sessionStorage.getItem(sessionKey);
+            if (!shownInSession) {
+              setOpen(true);
+              sessionStorage.setItem(sessionKey, 'true');
+            }
+            break;
         }
       } catch (error) {
         console.error('שגיאה בטעינת הגדרות באנר הנחת השקה:', error);
@@ -71,6 +76,11 @@ const LaunchPromotionBanner = () => {
     };
 
     fetchBannerSettings();
+    
+    // רענון תקופתי כל 30 שניות לבדיקת שינויים
+    const interval = setInterval(fetchBannerSettings, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleClose = () => {
