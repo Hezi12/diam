@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme, Box, Typography } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { getPaymentMethodName } from '../../constants/paymentMethods';
 
 /**
  * גרף פילוח הכנסות לפי אמצעי תשלום
@@ -24,16 +25,7 @@ const PaymentMethodChart = ({ data }) => {
     return `₪${value.toLocaleString()}`;
   };
 
-  // מיפוי שמות אמצעי תשלום לעברית
-  const paymentMethodNames = {
-    'credit': 'אשראי',
-    'cash': 'מזומן',
-    'bankTransfer': 'העברה בנקאית',
-    'check': 'צ\'ק',
-    'paypal': 'פייפאל',
-    'bit': 'ביט',
-    'other': 'אחר'
-  };
+  // שימוש בפונקציה המרכזית לתרגום שמות אמצעי תשלום
 
   // טולטיפ מותאם אישית
   const CustomTooltip = ({ active, payload }) => {
@@ -48,7 +40,7 @@ const PaymentMethodChart = ({ data }) => {
           boxShadow: theme.shadows[1]
         }}>
           <p style={{ margin: 0, fontWeight: 'bold', color: payload[0].color }}>
-            {paymentMethodNames[data.name] || data.name}
+            {getPaymentMethodName(data.name)}
           </p>
           <p style={{ margin: '5px 0 0' }}>
             סכום: <span style={{ fontWeight: 'bold' }}>
@@ -115,7 +107,7 @@ const PaymentMethodChart = ({ data }) => {
               }} 
             />
             <Typography variant="body2" sx={{ ml: 'auto' }}>
-              {paymentMethodNames[entry.value] || entry.value}
+              {getPaymentMethodName(entry.value)}
             </Typography>
             <Typography variant="body2" sx={{ ml: 2, fontWeight: 'bold' }}>
               {formatCurrency(entry.payload.value)}

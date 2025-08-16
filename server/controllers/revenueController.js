@@ -247,9 +247,12 @@ exports.getMonthlyRevenue = async (req, res) => {
     if (prevMonthBookings.length > 0) {
       const prevDaysInMonth = getDaysInMonth(prevMonthStartDate);
       
-      // מערך ימים בחודש הקודם
+      // קביעת מספר הימים להשוואה - אותו מספר ימים כמו שעברו בחודש הנוכחי
+      const daysToCompare = isCurrentMonth ? Math.min(daysPassed, prevDaysInMonth) : prevDaysInMonth;
+      
+      // מערך ימים בחודש הקודם - רק עד היום המתאים להשוואה
       const prevMonthDaysRevenueMap = {};
-      for (let day = 1; day <= prevDaysInMonth; day++) {
+      for (let day = 1; day <= daysToCompare; day++) {
         prevMonthDaysRevenueMap[day] = 0;
       }
       
@@ -274,8 +277,8 @@ exports.getMonthlyRevenue = async (req, res) => {
           let nightsInPrevMonth = 0;
           let nightsInPrevMonthDays = [];
           
-          // בדיקה עבור כל יום בחודש הקודם
-          for (let day = 1; day <= prevDaysInMonth; day++) {
+          // בדיקה עבור כל יום בחודש הקודם - רק עד היום המתאים להשוואה
+          for (let day = 1; day <= daysToCompare; day++) {
             const currentNightDate = new Date(Date.UTC(prevMonthStartDate.getUTCFullYear(), prevMonthStartDate.getUTCMonth(), day));
             
             // בדיקה אם היום הזה הוא יום לינה בהזמנה
@@ -290,16 +293,18 @@ exports.getMonthlyRevenue = async (req, res) => {
           
           // הכנסה כוללת מהזמנה זו בחודש הקודם
           const revenuePrevMonth = ratePerNight * nightsInPrevMonth;
-          console.log(`הזמנה #${booking.bookingNumber || booking._id}: הכנסה בחודש קודם=${revenuePrevMonth}, לילות=${nightsInPrevMonth}`);
+          console.log(`הזמנה #${booking.bookingNumber || booking._id}: הכנסה בחודש קודם (עד יום ${daysToCompare})=${revenuePrevMonth}, לילות=${nightsInPrevMonth}`);
           
         } catch (error) {
           console.error(`שגיאה בחישוב הכנסה להזמנה בחודש קודם #${booking.bookingNumber || booking._id}:`, error);
         }
       });
       
-      // סיכום ההכנסות
+      // סיכום ההכנסות - רק עד היום המתאים להשוואה
       prevMonthRevenue = Object.values(prevMonthDaysRevenueMap).reduce((sum, rev) => sum + rev, 0);
-      prevMonthDailyAvg = prevMonthRevenue / prevDaysInMonth;
+      prevMonthDailyAvg = prevMonthRevenue / daysToCompare;
+      
+      console.log(`השוואה: חודש נוכחי עד יום ${daysPassed} = ₪${Math.round(totalRevenue)}, חודש קודם עד יום ${daysToCompare} = ₪${Math.round(prevMonthRevenue)}`);
     }
     
     // חישוב אחוזי שינוי

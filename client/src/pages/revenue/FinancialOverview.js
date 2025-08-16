@@ -43,6 +43,7 @@ import MoneyIcon from '@mui/icons-material/Money';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { getPaymentMethodName } from '../../constants/paymentMethods';
 
 // קומפוננטות לתצוגת הדוח
 import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigation';
@@ -214,24 +215,8 @@ const ModernPaymentMethodsDisplay = ({ data }) => {
     return colors[method] || theme.palette.grey[500];
   };
   
-  // שמות אמצעי תשלום בעברית
-  const getMethodName = (method) => {
-    const names = {
-      transfer_poalim: 'העברה פועלים',
-      credit_rothschild: 'אשראי רוטשילד',
-      bit_poalim: 'ביט פועלים',
-      cash: 'מזומן',
-      cash2: 'מזומן2',
-      bit_mizrahi: 'ביט מזרחי',
-      paybox_poalim: 'פייבוקס פועלים',
-      transfer_mizrahi: 'העברה מזרחי',
-      paybox_mizrahi: 'פייבוקס מזרחי',
-      credit_or_yehuda: 'אשראי אור יהודה',
-      other: 'אחר'
-    };
-    
-    return names[method] || method;
-  };
+  // שמות אמצעי תשלום בעברית - שימוש בפונקציה המרכזית
+  const getMethodName = getPaymentMethodName;
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
