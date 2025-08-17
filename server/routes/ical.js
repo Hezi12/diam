@@ -740,7 +740,7 @@ router.post('/sync/:platform/:location', auth, async (req, res) => {
             });
         }
         
-        console.log(`🔄 בקשת סנכרון כל חדרי ${platform}: ${location} (v2)`);
+        console.log(`🔄 בקשת סנכרון כל חדרי ${platform}: ${location}`);
         
         // קבלת הגדרות
         const settings = await ICalSettings.findOne({ location });
