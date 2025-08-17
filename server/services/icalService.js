@@ -462,6 +462,295 @@ class ICalService {
     }
 
     /**
+     * ייבוא הזמנות מקובץ iCal של Expedia
+     * 
+     * אותה לוגיקה חכמה כמו בבוקינג:
+     * - זיהוי הזמנות לפי UID
+     * - הגנה על עריכות ידניות
+     * - מחיקה רק של הזמנות עם סטטוס 'other'
+     * 
+     * @param {string} icalUrl - קישור לקובץ iCal של Expedia
+     * @param {string} roomId - מזהה החדר
+     * @param {string} location - מיקום
+     * @returns {Array} - רשימת הזמנות חדשות
+     */
+    async importExpediaCalendar(icalUrl, roomId, location) {
+        try {
+            console.log(`🌍 מייבא הזמנות מ-Expedia עבור חדר ${roomId} במיקום ${location}`);
+            
+            // הורדת קובץ iCal מ-Expedia
+            const response = await axios.get(icalUrl, {
+                timeout: 15000, // Expedia יכול להיות יותר איטי
+                headers: {
+                    'User-Agent': 'DIAM-Hotels-Calendar-Sync/1.0-Expedia'
+                }
+            });
+
+            const icalData = response.data;
+            
+            // פיענוח קובץ iCal
+            const events = this.parseICalData(icalData);
+            
+            // **הלוגיקה החכמה עם UID (זהה לבוקינג)**
+            console.log('🔄 מתחיל סנכרון חכם עם Expedia - זיהוי UID...');
+            
+            // שלב 1: איסוף כל ה-UIDs מהקובץ החדש
+            const newUIDs = events.map(event => event.uid).filter(uid => uid);
+            console.log(`📋 נמצאו ${newUIDs.length} UIDs בקובץ החדש מ-Expedia`);
+            
+            // שלב 2: מחיקת הזמנות שבוטלו ב-Expedia
+            console.log('🗑️ מחפש הזמנות שבוטלו ב-Expedia...');
+            
+            // חיפוש הזמנות קיימות מ-Expedia
+            const existingBookings = await Booking.find({
+                roomNumber: roomId,
+                location: location,
+                source: 'expedia'
+            });
+            
+            let deletedCount = 0;
+            
+            // בדיקה עבור כל הזמנה קיימת - האם היא עדיין קיימת ב-Expedia?
+            for (const booking of existingBookings) {
+                const bookingUID = this.extractUIDFromNotes(booking.notes);
+                
+                if (bookingUID && !newUIDs.includes(bookingUID)) {
+                    // ההזמנה לא קיימת יותר ב-Expedia - בוטלה
+                    
+                    if (this.shouldDeleteCancelledBooking(booking)) {
+                        console.log(`❌ מוחק הזמנה מבוטלת מ-Expedia עם סטטוס 'other': ${booking.bookingNumber} (UID: ${bookingUID})`);
+                        await Booking.findByIdAndDelete(booking._id);
+                        deletedCount++;
+                    } else {
+                        console.log(`🛡️ שומר הזמנה מבוטלת מ-Expedia עם סטטוס מוגן: ${booking.bookingNumber} (UID: ${bookingUID}, סטטוס: ${booking.paymentStatus})`);
+                    }
+                } else if (!bookingUID) {
+                    // הזמנה ישנה ללא UID
+                    if (this.shouldDeleteCancelledBooking(booking)) {
+                        console.log(`⚠️ מוחק הזמנה ישנה מ-Expedia ללא UID עם סטטוס 'other': ${booking.bookingNumber}`);
+                        await Booking.findByIdAndDelete(booking._id);
+                        deletedCount++;
+                    } else {
+                        console.log(`🛡️ שומר הזמנה ישנה מ-Expedia ללא UID עם סטטוס מוגן: ${booking.bookingNumber} (סטטוס: ${booking.paymentStatus})`);
+                    }
+                }
+            }
+            
+            console.log(`🗑️ נמחקו ${deletedCount} הזמנות מבוטלות/ישנות מ-Expedia`);
+            
+            // שלב 3: הוספת הזמנות חדשות בלבד
+            console.log('➕ מחפש הזמנות חדשות מ-Expedia להוספה...');
+            
+            const newBookings = [];
+            
+            for (const event of events) {
+                const eventUID = event.uid;
+                if (!eventUID) {
+                    console.log('⚠️ אירוע מ-Expedia ללא UID, מדלג...');
+                    continue;
+                }
+                
+                const existingBooking = await Booking.findOne({
+                    roomNumber: roomId,
+                    location: location,
+                    source: 'expedia',
+                    notes: { $regex: eventUID }
+                });
+                
+                if (existingBooking) {
+                    console.log(`✅ הזמנה קיימת מ-Expedia (UID: ${eventUID}), משאיר ללא שינוי`);
+                    continue;
+                }
+                
+                console.log(`🆕 הזמנה חדשה מ-Expedia נמצאה (UID: ${eventUID}), יוצר...`);
+                
+                // חיפוש החדר
+                const room = await Room.findOne({ roomNumber: roomId, location: location });
+                if (!room) {
+                    console.error(`החדר ${roomId} במיקום ${location} לא נמצא`);
+                    continue;
+                }
+
+                // יצירת הזמנה חדשה
+                try {
+                    const bookingData = {
+                        firstName: this.extractGuestNameFromExpedia(event.summary, event.description),
+                        lastName: '',
+                        email: 'guest@expedia.com', // Expedia לא תמיד מספקת מייל
+                        phone: '',
+                        checkIn: event.start,
+                        checkOut: event.end,
+                        room: room._id,
+                        roomNumber: roomId,
+                        location: location,
+                        guests: 2, // ברירת מחדל
+                        price: room.basePrice, // נשתמש במחיר בסיסי
+                        status: 'confirmed',
+                        paymentStatus: 'other', // ברירת מחדל - Expedia
+                        source: 'expedia', // 🎯 חשוב מאוד!
+                        notes: this.createExpediaBookingNotes(event),
+                        language: 'en' // Expedia בדרך כלל באנגלית
+                    };
+
+                    // יצירת מספר הזמנה
+                    bookingData.bookingNumber = await this.generateBookingNumber();
+
+                    const newBooking = new Booking(bookingData);
+                    await newBooking.save();
+                    
+                    newBookings.push(newBooking);
+                    console.log(`✅ הזמנה חדשה מ-Expedia נוצרה: #${newBooking.bookingNumber}`);
+                    
+                } catch (createError) {
+                    console.error(`❌ שגיאה ביצירת הזמנה מ-Expedia:`, createError.message);
+                    continue;
+                }
+            }
+
+            console.log(`🌍 סיכום ייבוא מ-Expedia עבור חדר ${roomId}:`);
+            console.log(`   📥 ${newBookings.length} הזמנות חדשות נוספו`);
+            console.log(`   🗑️ ${deletedCount} הזמנות מבוטלות נמחקו`);
+            
+            return newBookings;
+
+        } catch (error) {
+            console.error('שגיאה בייבוא מ-Expedia:', error);
+            throw new Error(`שגיאה בייבוא הזמנות מ-Expedia: ${error.message}`);
+        }
+    }
+
+    /**
+     * חילוץ שם אורח מנתוני Expedia
+     * Expedia עשויה לשלוח פורמטים שונים
+     */
+    extractGuestNameFromExpedia(summary, description) {
+        // Expedia לעיתים שולחת "Reserved" או שם האורח
+        if (summary && summary !== 'Reserved' && summary !== 'Blocked') {
+            return summary.trim();
+        }
+        
+        // נסה לחלץ מהתיאור
+        if (description) {
+            const nameMatch = description.match(/Guest:?\s*([A-Za-z\s]+)/i);
+            if (nameMatch) {
+                return nameMatch[1].trim();
+            }
+        }
+        
+        return 'Expedia Guest'; // ברירת מחדל
+    }
+
+    /**
+     * יצירת הערות להזמנה מ-Expedia
+     */
+    createExpediaBookingNotes(event) {
+        const notes = [];
+        notes.push('יובא מ-Expedia');
+        
+        if (event.uid) {
+            notes.push(`UID: ${event.uid}`);
+        }
+        
+        if (event.description && event.description.trim() !== '') {
+            notes.push(`תיאור: ${event.description.trim()}`);
+        }
+        
+        // חיפוש מספר הזמנה בתיאור או ב-UID
+        const bookingNumberMatch = (event.description || '').match(/(\d{8,})/);
+        if (bookingNumberMatch) {
+            notes.push(`מספר הזמנה חיצונית: ${bookingNumberMatch[1]}`);
+        }
+        
+        return notes.join('\n');
+    }
+
+    /**
+     * פונקציה כללית לייבוא מכל פלטפורמה
+     * @param {string} platform - 'booking' או 'expedia'
+     * @param {string} icalUrl - קישור iCal
+     * @param {string} roomId - מזהה החדר
+     * @param {string} location - מיקום
+     * @returns {Array} - רשימת הזמנות חדשות
+     */
+    async importFromPlatform(platform, icalUrl, roomId, location) {
+        if (platform === 'booking') {
+            return await this.importBookingCalendar(icalUrl, roomId, location);
+        } else if (platform === 'expedia') {
+            return await this.importExpediaCalendar(icalUrl, roomId, location);
+        } else {
+            throw new Error(`פלטפורמה לא נתמכת: ${platform}`);
+        }
+    }
+
+    /**
+     * סנכרון כל החדרים הפעילים במיקום עבור פלטפורמה ספציפית
+     * @param {Object} icalSettings - הגדרות iCal
+     * @param {string} platform - 'booking' או 'expedia'
+     * @returns {Object} - תוצאות הסנכרון
+     */
+    async syncAllRoomsForPlatform(icalSettings, platform) {
+        const results = {
+            totalNewBookings: 0,
+            successfulRooms: 0,
+            failedRooms: 0,
+            errors: []
+        };
+
+        let enabledRooms = [];
+        
+        if (platform === 'booking') {
+            enabledRooms = icalSettings.getEnabledRoomsForBooking();
+        } else if (platform === 'expedia') {
+            enabledRooms = icalSettings.getEnabledRoomsForExpedia();
+        } else {
+            throw new Error(`פלטפורמה לא נתמכת: ${platform}`);
+        }
+
+        console.log(`🔄 מתחיל סנכרון ${platform} עבור ${enabledRooms.length} חדרים פעילים`);
+
+        for (const roomConfig of enabledRooms) {
+            try {
+                const icalUrl = platform === 'booking' ? roomConfig.bookingIcalUrl : roomConfig.expediaIcalUrl;
+                
+                const newBookings = await this.importFromPlatform(
+                    platform,
+                    icalUrl,
+                    roomConfig.roomId,
+                    icalSettings.location
+                );
+
+                icalSettings.updateSyncStatus(roomConfig.roomId, platform, 'success', null, newBookings.length);
+                results.totalNewBookings += newBookings.length;
+                results.successfulRooms++;
+                
+                if (newBookings.length > 0) {
+                    console.log(`✅ ${icalSettings.location}/${roomConfig.roomId} (${platform}): ${newBookings.length} הזמנות חדשות`);
+                }
+
+                // המתנה קצרה בין חדרים
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+            } catch (error) {
+                console.error(`❌ ${icalSettings.location}/${roomConfig.roomId} (${platform}): ${error.message}`);
+                icalSettings.updateSyncStatus(roomConfig.roomId, platform, 'error', error.message);
+                results.failedRooms++;
+                results.errors.push({
+                    roomId: roomConfig.roomId,
+                    platform: platform,
+                    error: error.message
+                });
+            }
+        }
+
+        console.log(`🏁 סיכום סנכרון ${platform} עבור ${icalSettings.location}:`);
+        console.log(`   ✅ ${results.successfulRooms} חדרים בהצלחה`);
+        console.log(`   ❌ ${results.failedRooms} חדרים נכשלו`);
+        console.log(`   📥 ${results.totalNewBookings} הזמנות חדשות בסה"כ`);
+
+        return results;
+    }
+
+    /**
      * בדיקה האם הזמנה צריכה להימחק על פי לוגיקת ההגנה החדשה
      * @param {Object} booking - אובייקט ההזמנה
      * @returns {boolean} - true אם צריך למחוק, false אם לשמור

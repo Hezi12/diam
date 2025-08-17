@@ -393,5 +393,38 @@
       "email": "אימייל",
       "address": "כתובת"
     }
+  },
+  "icalSettings": {
+    "platforms": {
+      "booking": {
+        "name": "Booking.com",
+        "description": "ניהול סנכרון עם Booking.com - מהיר ויציב",
+        "syncButton": "סנכרון Booking.com",
+        "testUrl": "בדיקת קישור Booking.com",
+        "urlPlaceholder": "https://admin.booking.com/hotel/...",
+        "enabled": "פעיל ב-Booking.com"
+      },
+      "expedia": {
+        "name": "Expedia",
+        "description": "ניהול סנכרון עם Expedia - עדכונים כל מספר שעות",
+        "syncButton": "סנכרון Expedia",
+        "testUrl": "בדיקת קישור Expedia",
+        "urlPlaceholder": "https://www.expediapartnercentral.com/...",
+        "enabled": "פעיל ב-Expedia"
+      }
+    },
+    "sync": {
+      "success": "סנכרון הושלם בהצלחה!",
+      "error": "שגיאה בסנכרון",
+      "newBookings": "הזמנות חדשות נמצאו",
+      "noNewBookings": "לא נמצאו הזמנות חדשות"
+    },
+    "test": {
+      "success": "הקישור תקין!",
+      "error": "הקישור לא תקין או לא זמין",
+      "checking": "בודק קישור...",
+      "recommendations": "המלצות",
+      "suggestions": "הצעות לתיקון"
+    }
   }
 } 

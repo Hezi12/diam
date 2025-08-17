@@ -392,5 +392,38 @@
       "email": "Email",
       "address": "Address"
     }
+  },
+  "icalSettings": {
+    "platforms": {
+      "booking": {
+        "name": "Booking.com",
+        "description": "Manage sync with Booking.com - fast and reliable",
+        "syncButton": "Sync Booking.com",
+        "testUrl": "Test Booking.com URL",
+        "urlPlaceholder": "https://admin.booking.com/hotel/...",
+        "enabled": "Active on Booking.com"
+      },
+      "expedia": {
+        "name": "Expedia",
+        "description": "Manage sync with Expedia - updates every few hours",
+        "syncButton": "Sync Expedia",
+        "testUrl": "Test Expedia URL",
+        "urlPlaceholder": "https://www.expediapartnercentral.com/...",
+        "enabled": "Active on Expedia"
+      }
+    },
+    "sync": {
+      "success": "Sync completed successfully!",
+      "error": "Sync error",
+      "newBookings": "New bookings found",
+      "noNewBookings": "No new bookings found"
+    },
+    "test": {
+      "success": "URL is valid!",
+      "error": "URL is invalid or unavailable",
+      "checking": "Checking URL...",
+      "recommendations": "Recommendations",
+      "suggestions": "Suggestions for fixing"
+    }
   }
 } 

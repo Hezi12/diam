@@ -523,4 +523,362 @@ router.delete('/imported-bookings/:location', auth, async (req, res) => {
     }
 });
 
+// === נתיבים חדשים ל-Expedia ===
+
+// סנכרון Expedia לחדר ספציפי
+router.post('/sync/expedia/:location/:roomId', auth, async (req, res) => {
+    try {
+        const { location, roomId } = req.params;
+        
+        console.log(`🌍 בקשת סנכרון Expedia: ${location}/${roomId}`);
+        
+        // קבלת הגדרות
+        const settings = await ICalSettings.findOne({ location });
+        if (!settings) {
+            return res.status(404).json({ 
+                error: 'הגדרות iCal לא נמצאו למיקום זה' 
+            });
+        }
+        
+        // חיפוש החדר
+        const roomConfig = settings.getRoomConfig(roomId);
+        if (!roomConfig) {
+            return res.status(404).json({ 
+                error: 'החדר לא נמצא בהגדרות' 
+            });
+        }
+        
+        // בדיקה שהחדר מופעל ויש קישור
+        if (!roomConfig.expediaEnabled || !roomConfig.expediaIcalUrl) {
+            return res.status(400).json({ 
+                error: 'החדר לא מופעל עבור Expedia או שאין קישור iCal' 
+            });
+        }
+        
+        // ביצוע הסנכרון
+        const newBookings = await icalService.importExpediaCalendar(
+            roomConfig.expediaIcalUrl,
+            roomId,
+            location
+        );
+        
+        // עדכון סטטוס
+        settings.updateSyncStatus(roomId, 'expedia', 'success', null, newBookings.length);
+        await settings.save();
+        
+        console.log(`✅ סנכרון Expedia הושלם: ${location}/${roomId} - ${newBookings.length} הזמנות חדשות`);
+        
+        res.json({
+            success: true,
+            message: `סנכרון Expedia הושלם בהצלחה`,
+            newBookings: newBookings.length,
+            roomId,
+            location,
+            platform: 'expedia'
+        });
+        
+    } catch (error) {
+        console.error('שגיאה בסנכרון Expedia:', error);
+        
+        // עדכון סטטוס שגיאה
+        try {
+            const settings = await ICalSettings.findOne({ location: req.params.location });
+            if (settings) {
+                settings.updateSyncStatus(req.params.roomId, 'expedia', 'error', error.message);
+                await settings.save();
+            }
+        } catch (updateError) {
+            console.error('שגיאה בעדכון סטטוס:', updateError);
+        }
+        
+        res.status(500).json({ 
+            error: 'שגיאה בסנכרון עם Expedia',
+            details: error.message 
+        });
+    }
+});
+
+// סנכרון כל חדרי Expedia במיקום
+router.post('/sync/expedia/:location', auth, async (req, res) => {
+    try {
+        const { location } = req.params;
+        
+        console.log(`🌍 בקשת סנכרון כל חדרי Expedia: ${location}`);
+        
+        const settings = await ICalSettings.findOne({ location });
+        if (!settings) {
+            return res.status(404).json({ 
+                error: 'הגדרות iCal לא נמצאו למיקום זה' 
+            });
+        }
+        
+        // ביצוע הסנכרון
+        const results = await icalService.syncAllRoomsForPlatform(settings, 'expedia');
+        await settings.save();
+        
+        console.log(`✅ סנכרון כל חדרי Expedia הושלם: ${location}`);
+        console.log(`   📥 ${results.totalNewBookings} הזמנות חדשות`);
+        console.log(`   ✅ ${results.successfulRooms} חדרים בהצלחה`);
+        console.log(`   ❌ ${results.failedRooms} חדרים נכשלו`);
+        
+        res.json({
+            success: true,
+            message: `סנכרון כל חדרי Expedia הושלם`,
+            location,
+            platform: 'expedia',
+            results
+        });
+        
+    } catch (error) {
+        console.error('שגיאה בסנכרון כל חדרי Expedia:', error);
+        res.status(500).json({ 
+            error: 'שגיאה בסנכרון עם Expedia',
+            details: error.message 
+        });
+    }
+});
+
+// סנכרון פלטפורמה ספציפית (Booking או Expedia)
+router.post('/sync/:platform/:location/:roomId', auth, async (req, res) => {
+    try {
+        const { platform, location, roomId } = req.params;
+        
+        if (!['booking', 'expedia'].includes(platform)) {
+            return res.status(400).json({ 
+                error: 'פלטפורמה לא נתמכת. השתמש ב-booking או expedia' 
+            });
+        }
+        
+        console.log(`🔄 בקשת סנכרון ${platform}: ${location}/${roomId}`);
+        
+        // קבלת הגדרות
+        const settings = await ICalSettings.findOne({ location });
+        if (!settings) {
+            return res.status(404).json({ 
+                error: 'הגדרות iCal לא נמצאו למיקום זה' 
+            });
+        }
+        
+        // חיפוש החדר
+        const roomConfig = settings.getRoomConfig(roomId);
+        if (!roomConfig) {
+            return res.status(404).json({ 
+                error: 'החדר לא נמצא בהגדרות' 
+            });
+        }
+        
+        // בדיקת הפעלה וקישור לפי פלטפורמה
+        let isEnabled = false;
+        let icalUrl = '';
+        
+        if (platform === 'booking') {
+            isEnabled = roomConfig.bookingEnabled;
+            icalUrl = roomConfig.bookingIcalUrl;
+        } else if (platform === 'expedia') {
+            isEnabled = roomConfig.expediaEnabled;
+            icalUrl = roomConfig.expediaIcalUrl;
+        }
+        
+        if (!isEnabled || !icalUrl) {
+            return res.status(400).json({ 
+                error: `החדר לא מופעל עבור ${platform} או שאין קישור iCal` 
+            });
+        }
+        
+        // ביצוע הסנכרון
+        const newBookings = await icalService.importFromPlatform(
+            platform,
+            icalUrl,
+            roomId,
+            location
+        );
+        
+        // עדכון סטטוס
+        settings.updateSyncStatus(roomId, platform, 'success', null, newBookings.length);
+        await settings.save();
+        
+        console.log(`✅ סנכרון ${platform} הושלם: ${location}/${roomId} - ${newBookings.length} הזמנות חדשות`);
+        
+        res.json({
+            success: true,
+            message: `סנכרון ${platform} הושלם בהצלחה`,
+            newBookings: newBookings.length,
+            roomId,
+            location,
+            platform
+        });
+        
+    } catch (error) {
+        console.error(`שגיאה בסנכרון ${req.params.platform}:`, error);
+        
+        // עדכון סטטוס שגיאה
+        try {
+            const settings = await ICalSettings.findOne({ location: req.params.location });
+            if (settings) {
+                settings.updateSyncStatus(req.params.roomId, req.params.platform, 'error', error.message);
+                await settings.save();
+            }
+        } catch (updateError) {
+            console.error('שגיאה בעדכון סטטוס:', updateError);
+        }
+        
+        res.status(500).json({ 
+            error: `שגיאה בסנכרון עם ${req.params.platform}`,
+            details: error.message 
+        });
+    }
+});
+
+// בדיקת קישור iCal (משופר עבור Expedia)
+router.post('/test-url-expedia', auth, async (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ 
+                error: 'חסר קישור לבדיקה' 
+            });
+        }
+        
+        console.log(`בודק קישור Expedia iCal: ${url}`);
+        
+        // ניסיון הורדת הקובץ עם timeout ארוך יותר ל-Expedia
+        const axios = require('axios');
+        const response = await axios.get(url, {
+            timeout: 15000, // Expedia יכול להיות יותר איטי
+            headers: {
+                'User-Agent': 'DIAM-Hotels-Calendar-Test/1.0-Expedia'
+            }
+        });
+        
+        // בדיקה שזה באמת קובץ iCal
+        const content = response.data;
+        if (!content.includes('BEGIN:VCALENDAR') || !content.includes('END:VCALENDAR')) {
+            return res.status(400).json({ 
+                error: 'הקישור לא מחזיר קובץ iCal תקין' 
+            });
+        }
+        
+        // פיענוח והצגת מידע בסיסי
+        const events = icalService.parseICalData(content);
+        
+        // ניתוח מיוחד עבור Expedia
+        const expediaAnalysis = {
+            totalEvents: events.length,
+            hasUIDs: events.filter(e => e.uid).length,
+            futureEvents: events.filter(e => new Date(e.start) > new Date()).length,
+            sampleEvents: events.slice(0, 3).map(event => ({
+                summary: event.summary,
+                start: event.start,
+                end: event.end,
+                uid: event.uid ? event.uid.substring(0, 20) + '...' : 'אין UID'
+            }))
+        };
+        
+        res.json({
+            success: true,
+            message: 'הקישור של Expedia תקין!',
+            platform: 'expedia',
+            analysis: expediaAnalysis,
+            recommendations: [
+                expediaAnalysis.hasUIDs > 0 ? '✅ יש UIDs - זיהוי הזמנות יעבוד מושלם' : '⚠️ אין UIDs - ייתכנו בעיות בזיהוי',
+                expediaAnalysis.futureEvents > 0 ? `✅ יש ${expediaAnalysis.futureEvents} הזמנות עתידיות` : '⚠️ אין הזמנות עתידיות',
+                'ℹ️ Expedia עשויה לעדכן לוח השנה כל מספר שעות'
+            ]
+        });
+        
+    } catch (error) {
+        console.error('שגיאה בבדיקת קישור Expedia:', error);
+        res.status(400).json({ 
+            error: 'הקישור של Expedia לא תקין או לא זמין',
+            details: error.message,
+            platform: 'expedia',
+            suggestions: [
+                'ודא שהקישור נלקח מ-Expedia Partner Central',
+                'בדוק שהקישור לא פג תוקף',
+                'Expedia עשויה להיות יותר איטית - נסה שוב בעוד כמה דקות'
+            ]
+        });
+    }
+});
+
+// קבלת סטטוס מפורט עבור פלטפורמה ספציפית
+router.get('/status/:platform/:location', auth, async (req, res) => {
+    try {
+        const { platform, location } = req.params;
+        
+        if (!['booking', 'expedia'].includes(platform)) {
+            return res.status(400).json({ 
+                error: 'פלטפורמה לא נתמכת. השתמש ב-booking או expedia' 
+            });
+        }
+        
+        const settings = await ICalSettings.findOne({ location });
+        if (!settings) {
+            return res.status(404).json({ 
+                error: 'הגדרות iCal לא נמצאו למיקום זה' 
+            });
+        }
+        
+        // חישוב סטטיסטיקות לפי פלטפורמה
+        let enabledRooms = [];
+        let totalBookings = 0;
+        let roomsStatus = [];
+        
+        if (platform === 'booking') {
+            enabledRooms = settings.getEnabledRoomsForBooking();
+        } else if (platform === 'expedia') {
+            enabledRooms = settings.getEnabledRoomsForExpedia();
+        }
+        
+        for (const room of settings.rooms) {
+            let status, lastSync, importedBookings, syncError;
+            
+            if (platform === 'booking') {
+                status = room.bookingSyncStatus || 'never';
+                lastSync = room.bookingLastSync;
+                importedBookings = room.bookingImportedBookings || 0;
+                syncError = room.bookingSyncError;
+            } else if (platform === 'expedia') {
+                status = room.expediaSyncStatus || 'never';
+                lastSync = room.expediaLastSync;
+                importedBookings = room.expediaImportedBookings || 0;
+                syncError = room.expediaSyncError;
+            }
+            
+            totalBookings += importedBookings;
+            
+            roomsStatus.push({
+                roomId: room.roomId,
+                roomName: room.roomName,
+                enabled: platform === 'booking' ? room.bookingEnabled : room.expediaEnabled,
+                status,
+                lastSync,
+                importedBookings,
+                syncError
+            });
+        }
+        
+        res.json({
+            location,
+            platform,
+            summary: {
+                totalRooms: settings.rooms.length,
+                enabledRooms: enabledRooms.length,
+                totalImportedBookings: totalBookings,
+                autoSyncEnabled: settings.globalSettings.autoSyncEnabled
+            },
+            rooms: roomsStatus,
+            globalSettings: settings.globalSettings
+        });
+        
+    } catch (error) {
+        console.error('שגיאה בקבלת סטטוס:', error);
+        res.status(500).json({ 
+            error: 'שגיאה בקבלת סטטוס',
+            details: error.message 
+        });
+    }
+});
+
 module.exports = router; 

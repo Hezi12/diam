@@ -17,7 +17,7 @@ class CronService {
             return;
         }
 
-        console.log('מתחיל שירות סנכרון אוטומטי עם בוקינג...');
+        console.log('מתחיל שירות סנכרון אוטומטי עם Booking.com ו-Expedia...');
 
         // סנכרון דינמי לפי הגדרות (ברירת מחדל: כל שעתיים)
         const syncJob = cron.schedule('*/30 * * * *', async () => {
@@ -103,63 +103,10 @@ class CronService {
                 
                 console.log(`מסנכרן מיקום: ${settings.location} (${Math.round(minutesSinceLastSync)} דקות מהסנכרון האחרון)`);
                 
-                const enabledRooms = settings.getEnabledRooms();
-                if (enabledRooms.length === 0) {
-                    console.log(`אין חדרים מופעלים במיקום ${settings.location}`);
-                    continue;
-                }
-
-                for (const roomConfig of enabledRooms) {
-                    try {
-                        console.log(`מסנכרן חדר ${roomConfig.roomId} במיקום ${settings.location}`);
-                        
-                        const newBookings = await icalService.importBookingCalendar(
-                            roomConfig.bookingIcalUrl,
-                            roomConfig.roomId,
-                            settings.location
-                        );
-
-                        // עדכון סטטוס
-                        settings.updateSyncStatus(roomConfig.roomId, 'success', null, newBookings.length);
-                        totalNewBookings += newBookings.length;
-
-                        syncResults.push({
-                            location: settings.location,
-                            roomId: roomConfig.roomId,
-                            status: 'success',
-                            newBookings: newBookings.length
-                        });
-
-                        if (newBookings.length > 0) {
-                            console.log(`✅ נמצאו ${newBookings.length} הזמנות חדשות בחדר ${roomConfig.roomId}`);
-                            
-                            // שליחת התראה על הזמנות חדשות
-                            if (settings.globalSettings.notifications?.onNewBooking) {
-                                await this.sendNewBookingNotification(settings, roomConfig, newBookings);
-                            }
-                        }
-
-                        // המתנה קצרה בין חדרים
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-
-                    } catch (roomError) {
-                        console.error(`❌ שגיאה בסנכרון חדר ${roomConfig.roomId}:`, roomError.message);
-                        
-                        settings.updateSyncStatus(roomConfig.roomId, 'error', roomError.message);
-                        
-                        syncResults.push({
-                            location: settings.location,
-                            roomId: roomConfig.roomId,
-                            status: 'error',
-                            error: roomError.message
-                        });
-
-                        // שליחת התראה על שגיאה
-                        if (settings.globalSettings.notifications?.onSyncError) {
-                            await this.sendSyncErrorNotification(settings, roomConfig, roomError);
-                        }
-                    }
-                }
+                // ביצוע סנכרון לכל הפלטפורמות
+                const locationResults = await this.performLocationSync(settings);
+                totalNewBookings += locationResults.totalNewBookings;
+                syncResults.push(...locationResults.results);
 
                 // שמירת ההגדרות המעודכנות
                 await settings.save();
@@ -201,42 +148,114 @@ class CronService {
     }
 
     /**
-     * סנכרון מיקום ספציפי
+     * סנכרון מיקום ספציפי - מתמוך בשתי הפלטפורמות
      */
     async performLocationSync(settings) {
-        const enabledRooms = settings.getEnabledRooms();
+        const results = {
+            totalNewBookings: 0,
+            results: []
+        };
+
+        // סנכרון Booking.com
+        console.log(`🔄 מסנכרן Booking.com עבור ${settings.location}...`);
+        const bookingResults = await icalService.syncAllRoomsForPlatform(settings, 'booking');
+        results.totalNewBookings += bookingResults.totalNewBookings;
         
-        for (const roomConfig of enabledRooms) {
-            try {
-                const newBookings = await icalService.importBookingCalendar(
-                    roomConfig.bookingIcalUrl,
-                    roomConfig.roomId,
-                    settings.location
-                );
+        // הוספת תוצאות עם פלטפורמה
+        bookingResults.errors.forEach(error => {
+            results.results.push({
+                location: settings.location,
+                roomId: error.roomId,
+                platform: 'booking',
+                status: 'error',
+                error: error.error
+            });
+        });
 
-                settings.updateSyncStatus(roomConfig.roomId, 'success', null, newBookings.length);
-                
-                if (newBookings.length > 0) {
-                    console.log(`✅ ${settings.location}/${roomConfig.roomId}: ${newBookings.length} הזמנות חדשות`);
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-            } catch (error) {
-                console.error(`❌ ${settings.location}/${roomConfig.roomId}: ${error.message}`);
-                settings.updateSyncStatus(roomConfig.roomId, 'error', error.message);
+        // הוספת תוצאות הצלחה
+        const bookingEnabledRooms = settings.getEnabledRoomsForBooking();
+        bookingEnabledRooms.forEach(room => {
+            const hasError = bookingResults.errors.find(e => e.roomId === room.roomId);
+            if (!hasError) {
+                results.results.push({
+                    location: settings.location,
+                    roomId: room.roomId,
+                    platform: 'booking',
+                    status: 'success',
+                    newBookings: 0 // יעודכן בפועל מהנתונים
+                });
             }
+        });
+
+        // המתנה בין פלטפורמות
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // סנכרון Expedia
+        console.log(`🌍 מסנכרן Expedia עבור ${settings.location}...`);
+        const expediaResults = await icalService.syncAllRoomsForPlatform(settings, 'expedia');
+        results.totalNewBookings += expediaResults.totalNewBookings;
+        
+        // הוספת תוצאות Expedia
+        expediaResults.errors.forEach(error => {
+            results.results.push({
+                location: settings.location,
+                roomId: error.roomId,
+                platform: 'expedia',
+                status: 'error',
+                error: error.error
+            });
+        });
+
+        // הוספת תוצאות הצלחה Expedia
+        const expediaEnabledRooms = settings.getEnabledRoomsForExpedia();
+        expediaEnabledRooms.forEach(room => {
+            const hasError = expediaResults.errors.find(e => e.roomId === room.roomId);
+            if (!hasError) {
+                results.results.push({
+                    location: settings.location,
+                    roomId: room.roomId,
+                    platform: 'expedia',
+                    status: 'success',
+                    newBookings: 0 // יעודכן בפועל מהנתונים
+                });
+            }
+        });
+
+        // שליחת התראות על הזמנות חדשות
+        if (results.totalNewBookings > 0) {
+            await this.sendNewBookingNotification(settings, null, results.totalNewBookings, {
+                booking: bookingResults.totalNewBookings,
+                expedia: expediaResults.totalNewBookings
+            });
         }
 
-        await settings.save();
+        console.log(`🏁 סיכום סנכרון ${settings.location}:`);
+        console.log(`   📊 Booking.com: ${bookingResults.totalNewBookings} הזמנות חדשות, ${bookingResults.successfulRooms} חדרים בהצלחה, ${bookingResults.failedRooms} כשלו`);
+        console.log(`   📊 Expedia: ${expediaResults.totalNewBookings} הזמנות חדשות, ${expediaResults.successfulRooms} חדרים בהצלחה, ${expediaResults.failedRooms} כשלו`);
+        console.log(`   📥 סה"כ: ${results.totalNewBookings} הזמנות חדשות`);
+
+        return results;
     }
 
     /**
-     * שליחת התראה על הזמנות חדשות
+     * שליחת התראה על הזמנות חדשות (משופרת עבור שתי הפלטפורמות)
      */
-    async sendNewBookingNotification(settings, roomConfig, newBookings) {
+    async sendNewBookingNotification(settings, roomConfig, totalBookings, platformBreakdown = null) {
         try {
-            console.log(`📧 התראה על ${newBookings.length} הזמנות חדשות ב-${settings.location.toUpperCase()}`);
+            if (platformBreakdown) {
+                // התראה משולבת משתי הפלטפורמות
+                console.log(`📧 התראה על ${totalBookings} הזמנות חדשות ב-${settings.location.toUpperCase()}:`);
+                if (platformBreakdown.booking > 0) {
+                    console.log(`   🔵 Booking.com: ${platformBreakdown.booking} הזמנות`);
+                }
+                if (platformBreakdown.expedia > 0) {
+                    console.log(`   🌍 Expedia: ${platformBreakdown.expedia} הזמנות`);
+                }
+            } else {
+                // התראה רגילה (תאימות לאחור)
+                const bookingCount = typeof totalBookings === 'number' ? totalBookings : totalBookings.length;
+                console.log(`📧 התראה על ${bookingCount} הזמנות חדשות ב-${settings.location.toUpperCase()}`);
+            }
             console.log('(מערכת המיילים הוסרה זמנית)');
         } catch (error) {
             console.error('שגיאה בשליחת התראה על הזמנות חדשות:', error);
