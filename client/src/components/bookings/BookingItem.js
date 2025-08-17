@@ -43,22 +43,22 @@ const BookingItem = ({ booking, onClick, location = 'airport' }) => {
     },
     expedia: {
       confirmed: {
-        bgColor: `rgba(255, 107, 53, 0.1)`,
-        borderColor: `#ff6b35`,
-        textColor: `#cc4a1f`,
-        icon: <CheckCircleIcon fontSize="small" sx={{ color: '#cc4a1f' }} />
+        bgColor: `rgba(32, 178, 170, 0.1)`,
+        borderColor: `#20b2aa`,
+        textColor: `#137a73`,
+        icon: <CheckCircleIcon fontSize="small" sx={{ color: '#137a73' }} />
       },
       pending: {
-        bgColor: `rgba(255, 107, 53, 0.08)`,
-        borderColor: `#ff6b35`,
-        textColor: `#cc4a1f`,
-        icon: <PendingIcon fontSize="small" sx={{ color: '#cc4a1f' }} />
+        bgColor: `rgba(32, 178, 170, 0.08)`,
+        borderColor: `#20b2aa`,
+        textColor: `#137a73`,
+        icon: <PendingIcon fontSize="small" sx={{ color: '#137a73' }} />
       },
       cancelled: {
-        bgColor: `rgba(255, 107, 53, 0.05)`,
-        borderColor: `#ff8a5b`,
-        textColor: `#b8431c`,
-        icon: <CancelIcon fontSize="small" sx={{ color: '#b8431c' }} />
+        bgColor: `rgba(32, 178, 170, 0.05)`,
+        borderColor: `#48cae4`,
+        textColor: `#0f5f5a`,
+        icon: <CancelIcon fontSize="small" sx={{ color: '#0f5f5a' }} />
       }
     }
   };

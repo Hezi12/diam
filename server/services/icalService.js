@@ -558,7 +558,33 @@ class ICalService {
                 });
                 
                 if (existingBooking) {
-                    console.log(`✅ הזמנה קיימת מ-Expedia (UID: ${eventUID}), משאיר ללא שינוי`);
+                    // עדכון הזמנה קיימת עם שמות חדשים
+                    const fullName = this.extractGuestNameFromExpedia(event.summary, event.description);
+                    const nameParts = fullName.split(' ');
+                    const firstName = nameParts[0] || 'Expedia';
+                    const lastName = nameParts.slice(1).join(' ') || 'Guest';
+                    
+                    // עדכון רק אם השם השתנה
+                    const currentFullName = `${existingBooking.firstName} ${existingBooking.lastName}`;
+                    const newFullName = `${firstName} ${lastName}`;
+                    
+                    if (currentFullName !== newFullName) {
+                        console.log(`🔄 מעדכן שם הזמנה מ-Expedia: "${currentFullName}" → "${newFullName}" (UID: ${eventUID})`);
+                        existingBooking.firstName = firstName;
+                        existingBooking.lastName = lastName;
+                        
+                        // עדכון מספר הזמנה חיצוני אם חסר
+                        const externalBookingNumber = this.extractExpediaBookingNumber(event);
+                        if (externalBookingNumber && !existingBooking.externalBookingNumber) {
+                            existingBooking.externalBookingNumber = externalBookingNumber;
+                            console.log(`   📝 הוסף מספר הזמנה חיצוני: ${externalBookingNumber}`);
+                        }
+                        
+                        await existingBooking.save();
+                        console.log(`   ✅ הזמנה #${existingBooking.bookingNumber} עודכנה בהצלחה`);
+                    } else {
+                        console.log(`✅ הזמנה קיימת מ-Expedia עם שם נכון (UID: ${eventUID}), משאיר ללא שינוי`);
+                    }
                     continue;
                 }
                 

@@ -25,7 +25,7 @@ export const STYLE_CONSTANTS = {
       purple: '#8e44ad',
       teal: '#16a085',
       navy: '#2c3e50',
-      expedia: '#ff6b35' // צבע כתום-אדום מיוחד ל-Expedia
+      expedia: '#20b2aa' // צבע תכלת-ירוק מיוחד ל-Expedia
     },
     text: {
       primary: '#121212',
@@ -44,7 +44,7 @@ export const STYLE_CONSTANTS = {
     purple: '#8e44ad',
     teal: '#16a085',
     navy: '#2c3e50',
-    expedia: '#ff6b35' // צבע כתום-אדום מיוחד ל-Expedia
+    expedia: '#20b2aa' // צבע תכלת-ירוק מיוחד ל-Expedia
   },
   style: {
     card: {

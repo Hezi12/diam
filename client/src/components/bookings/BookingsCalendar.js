@@ -515,19 +515,19 @@ const BookingsCalendar = ({
     },
     expedia: {
       confirmed: {
-        bgColor: `rgba(255, 107, 53, 0.2)`, // כתום-אדום עמוק
-        borderColor: `#ff6b35`,
-        textColor: `#cc4a1f`
+        bgColor: `rgba(32, 178, 170, 0.2)`, // תכלת-ירוק עמוק
+        borderColor: `#20b2aa`,
+        textColor: `#137a73`
       },
       pending: {
-        bgColor: `rgba(255, 107, 53, 0.15)`, // כתום-אדום בהיר יותר
-        borderColor: `#ff6b35`,
-        textColor: `#cc4a1f`
+        bgColor: `rgba(32, 178, 170, 0.15)`, // תכלת-ירוק בהיר יותר
+        borderColor: `#20b2aa`,
+        textColor: `#137a73`
       },
       cancelled: {
-        bgColor: `rgba(255, 107, 53, 0.1)`, // כתום-אדום בהיר מאוד
-        borderColor: `#ff8a5b`,
-        textColor: `#b8431c`
+        bgColor: `rgba(32, 178, 170, 0.1)`, // תכלת-ירוק בהיר מאוד
+        borderColor: `#48cae4`,
+        textColor: `#0f5f5a`
       }
     }
   };
