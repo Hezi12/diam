@@ -16,6 +16,7 @@ import Settings from './pages/settings/Settings';
 import AirportRooms from './pages/settings/rooms/AirportRooms';
 import RothschildRooms from './pages/settings/rooms/RothschildRooms';
 import DiscountSettings from './pages/settings/DiscountSettings';
+import SyncSettings from './pages/settings/SyncSettings';
 
 import Cleaning from './pages/Cleaning';
 import QuickBooking from './pages/QuickBooking';
@@ -251,6 +252,16 @@ const AppContent = () => {
                     <ProtectedRoute>
                       <Layout>
                         <DiscountSettings />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings/sync"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <SyncSettings />
                       </Layout>
                     </ProtectedRoute>
                   }

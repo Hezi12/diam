@@ -11,7 +11,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import ICalSettings from '../../components/settings/ICalSettings';
+
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import { API_URL } from '../../config/apiConfig';
@@ -118,11 +118,8 @@ const Settings = () => {
             }}
           >
             <Box sx={{ maxWidth: '70%' }}>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
                 ניהול חדרים - אור יהודה
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                הוספה, עריכה ומחיקת חדרים במתחם אור יהודה
               </Typography>
             </Box>
             <Box
@@ -162,11 +159,8 @@ const Settings = () => {
             }}
           >
             <Box sx={{ maxWidth: '70%' }}>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
                 ניהול חדרים - רוטשילד
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                הוספה, עריכה ומחיקת חדרים במתחם רוטשילד
               </Typography>
             </Box>
             <Box
@@ -206,11 +200,8 @@ const Settings = () => {
             }}
           >
             <Box sx={{ maxWidth: '70%' }}>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
                 ניהול הנחות
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                יצירה ועריכה של הנחות לאתרי ההזמנות
               </Typography>
             </Box>
             <Box
@@ -225,6 +216,47 @@ const Settings = () => {
               }}
             >
               <LocalOfferIcon fontSize="large" />
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* הגדרות סנכרון */}
+        <Grid item xs={12} sm={6}>
+          <Paper
+            component={RouterLink}
+            to="/settings/sync"
+            sx={{
+              p: 3,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: 2,
+              transition: 'all 0.2s',
+              '&:hover': {
+                transform: 'translateY(-3px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                bgcolor: 'rgba(76, 175, 80, 0.04)'
+              }
+            }}
+          >
+            <Box sx={{ maxWidth: '70%' }}>
+              <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
+                הגדרות סנכרון
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                bgcolor: 'rgba(76, 175, 80, 0.1)',
+                color: '#4caf50',
+                p: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 2,
+              }}
+            >
+              <SyncIcon fontSize="large" />
             </Box>
           </Paper>
         </Grid>
@@ -250,11 +282,8 @@ const Settings = () => {
             }}
           >
             <Box sx={{ maxWidth: '70%' }}>
-              <Typography variant="h6" color="inherit" gutterBottom sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
                 תצוגה מקדימה - מיילים
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                צפייה ובדיקת תבניות המיילים של המערכת
               </Typography>
             </Box>
             <Box
@@ -273,116 +302,88 @@ const Settings = () => {
           </Paper>
         </Grid>
 
-
-
-        {/* לוח מודעות - איירפורט */}
-        <Grid item xs={12} sx={{ mt: 2 }}>
+        {/* לוח מודעות */}
+        <Grid item xs={12} sm={6}>
           <Paper
             sx={{
               p: 3,
               borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'rgba(33, 150, 243, 0.2)',
               transition: 'all 0.2s',
               '&:hover': {
-                borderColor: 'rgba(33, 150, 243, 0.4)',
-                boxShadow: '0 4px 12px rgba(33, 150, 243, 0.1)'
+                transform: 'translateY(-3px)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                bgcolor: 'rgba(33, 150, 243, 0.04)'
               }
             }}
           >
-            {/* כותרת ופעולות */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Box>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#2196f3' }}>
-                  לוח מודעות ציבורי
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="h6" color="inherit" sx={{ fontWeight: 'bold' }}>
+                  לוח מודעות
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  רענון רשימת אורחים, הגדרות תצוגה ופתיחת לוח מודעות ציבורי
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                
                 <Tooltip title="רענון רשימת אורחים">
                   <IconButton
                     onClick={refreshGuestList}
                     disabled={refreshing}
+                    size="small"
                     sx={{
                       bgcolor: 'rgba(33, 150, 243, 0.1)',
                       color: '#2196f3',
-                      '&:hover': {
-                        bgcolor: 'rgba(33, 150, 243, 0.2)'
-                      }
+                      '&:hover': { bgcolor: 'rgba(33, 150, 243, 0.2)' }
                     }}
                   >
-                    <RefreshIcon />
+                    <RefreshIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="פתח לוח מודעות ציבורי">
+                
+                <Tooltip title="פתח לוח מודעות">
                   <IconButton
                     onClick={openPublicNoticeBoard}
+                    size="small"
                     sx={{
                       bgcolor: 'rgba(33, 150, 243, 0.1)',
                       color: '#2196f3',
-                      '&:hover': {
-                        bgcolor: 'rgba(33, 150, 243, 0.2)'
-                      }
+                      '&:hover': { bgcolor: 'rgba(33, 150, 243, 0.2)' }
                     }}
                   >
-                    <OpenInNewIcon />
+                    <OpenInNewIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-              </Box>
-            </Box>
-            
-            {/* הגדרת הסתרת שמות אורחים */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              bgcolor: 'rgba(33, 150, 243, 0.05)',
-              p: 2,
-              borderRadius: 1,
-              border: '1px solid rgba(33, 150, 243, 0.1)'
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {hideGuestNames ? <VisibilityOffIcon color="warning" /> : <VisibilityIcon color="success" />}
-                <Box>
-                  <Typography variant="body2" fontWeight="bold">
-                    {hideGuestNames ? 'שמות אורחים מוסתרים' : 'שמות אורחים מוצגים'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {hideGuestNames 
-                      ? 'בלוח המודעות יוצגו רק שמות ברירת מחדל'
-                      : 'בלוח המודעות יוצגו שמות אורחים אמיתיים'
-                    }
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <FormControlLabel
-                control={
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {hideGuestNames ? <VisibilityOffIcon color="warning" fontSize="small" /> : <VisibilityIcon color="success" fontSize="small" />}
                   <Switch
                     checked={hideGuestNames}
                     onChange={toggleGuestNamesVisibility}
                     disabled={loadingGuestNames}
                     color="primary"
+                    size="small"
                   />
-                }
-                label={hideGuestNames ? 'הסתר שמות' : 'הצג שמות'}
-                labelPlacement="start"
-                sx={{ m: 0 }}
-              />
+                </Box>
+              </Box>
+              
+              <Box
+                sx={{
+                  bgcolor: 'rgba(33, 150, 243, 0.1)',
+                  color: '#2196f3',
+                  p: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 2,
+                }}
+              >
+                <CampaignIcon fontSize="large" />
+              </Box>
             </Box>
           </Paper>
         </Grid>
+
+
+
       </Grid>
 
-      {/* הגדרות סנכרון iCal עם Booking.com */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3, fontWeight: 'bold' }}>
-          סנכרון עם Booking.com
-        </Typography>
-        <ICalSettings />
-      </Box>
     </Container>
   );
 };

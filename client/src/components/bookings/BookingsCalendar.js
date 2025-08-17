@@ -846,8 +846,8 @@ const BookingsCalendar = ({
         'credit_rothschild', 
         'transfer_mizrahi',
         'bit_mizrahi',
-        'paybox_mizrahi',
-        'other'
+        'paybox_mizrahi'
+        // הוסר 'other' - לא דורש חשבונית
       ].includes(booking.paymentStatus) && !booking.hasAnyInvoice && !booking.hasInvoiceReceipt && !booking.manualInvoiceHandled && (checkInDate < today);
       
       // בדיקה האם צריך להציג אייקון חוות דעת
