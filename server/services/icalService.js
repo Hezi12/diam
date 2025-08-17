@@ -402,7 +402,7 @@ class ICalService {
 
     /**
      * יצירת מספר הזמנה ייחודי
-     * @returns {string} - מספר הזמנה
+     * @returns {number} - מספר הזמנה
      */
     async generateBookingNumber() {
         const Counter = require('../models/Counter');
@@ -414,10 +414,10 @@ class ICalService {
                 { new: true, upsert: true }
             );
             
-            return `BK${String(counter.value).padStart(6, '0')}`;
+            return counter.value;
         } catch (error) {
             // במקרה של שגיאה, נשתמש בזמן נוכחי
-            return `BK${Date.now().toString().slice(-6)}`;
+            return parseInt(Date.now().toString().slice(-6));
         }
     }
 
@@ -573,9 +573,18 @@ class ICalService {
 
                 // יצירת הזמנה חדשה
                 try {
+                    // חילוץ מספר הזמנה חיצוני מ-Expedia
+                    const externalBookingNumber = this.extractExpediaBookingNumber(event);
+                    
+                    // חילוץ ופיצול השם
+                    const fullName = this.extractGuestNameFromExpedia(event.summary, event.description);
+                    const nameParts = fullName.split(' ');
+                    const firstName = nameParts[0] || 'Expedia';
+                    const lastName = nameParts.slice(1).join(' ') || 'Guest';
+                    
                     const bookingData = {
-                        firstName: this.extractGuestNameFromExpedia(event.summary, event.description),
-                        lastName: '',
+                        firstName: firstName,
+                        lastName: lastName,
                         email: 'guest@expedia.com', // Expedia לא תמיד מספקת מייל
                         phone: '',
                         checkIn: event.start,
@@ -589,17 +598,18 @@ class ICalService {
                         paymentStatus: 'other', // ברירת מחדל - Expedia
                         source: 'expedia', // 🎯 חשוב מאוד!
                         notes: this.createExpediaBookingNotes(event),
-                        language: 'en' // Expedia בדרך כלל באנגלית
+                        language: 'en', // Expedia בדרך כלל באנגלית
+                        externalBookingNumber: externalBookingNumber // מספר הזמנה מ-Expedia
                     };
 
-                    // יצירת מספר הזמנה
+                    // יצירת מספר הזמנה פנימי
                     bookingData.bookingNumber = await this.generateBookingNumber();
 
                     const newBooking = new Booking(bookingData);
                     await newBooking.save();
                     
                     newBookings.push(newBooking);
-                    console.log(`✅ הזמנה חדשה מ-Expedia נוצרה: #${newBooking.bookingNumber}`);
+                    console.log(`✅ הזמנה חדשה מ-Expedia נוצרה: #${newBooking.bookingNumber} (חיצוני: ${externalBookingNumber || 'לא זמין'})`);
                     
                 } catch (createError) {
                     console.error(`❌ שגיאה ביצירת הזמנה מ-Expedia:`, createError.message);
@@ -625,15 +635,22 @@ class ICalService {
      */
     extractGuestNameFromExpedia(summary, description) {
         // Expedia לעיתים שולחת "Reserved" או שם האורח
-        if (summary && summary !== 'Reserved' && summary !== 'Blocked') {
+        if (summary && summary !== 'Reserved on Expedia' && summary !== 'Reserved' && summary !== 'Blocked') {
             return summary.trim();
         }
         
-        // נסה לחלץ מהתיאור
+        // נסה לחלץ מהתיאור - Expedia משתמשת ב"Reserved by"
         if (description) {
-            const nameMatch = description.match(/Guest:?\s*([A-Za-z\s]+)/i);
-            if (nameMatch) {
-                return nameMatch[1].trim();
+            // חיפוש "Reserved by [שם]"
+            const reservedByMatch = description.match(/Reserved\s+by\s+([A-Za-z\s]+)/i);
+            if (reservedByMatch) {
+                return reservedByMatch[1].trim();
+            }
+            
+            // חיפוש "Guest: [שם]" (למקרה שישתנה הפורמט)
+            const guestMatch = description.match(/Guest:?\s*([A-Za-z\s]+)/i);
+            if (guestMatch) {
+                return guestMatch[1].trim();
             }
         }
         
@@ -655,13 +672,35 @@ class ICalService {
             notes.push(`תיאור: ${event.description.trim()}`);
         }
         
-        // חיפוש מספר הזמנה בתיאור או ב-UID
-        const bookingNumberMatch = (event.description || '').match(/(\d{8,})/);
-        if (bookingNumberMatch) {
-            notes.push(`מספר הזמנה חיצונית: ${bookingNumberMatch[1]}`);
+        return notes.join('\n');
+    }
+
+    /**
+     * חילוץ מספר הזמנה חיצוני מ-Expedia
+     * מחפש מספרי BK או מספרים ארוכים
+     */
+    extractExpediaBookingNumber(event) {
+        // חיפוש מספר BK בתיאור
+        const bkMatch = (event.description || '').match(/BK(\d+)/i);
+        if (bkMatch) {
+            return `BK${bkMatch[1]}`;
         }
         
-        return notes.join('\n');
+        // חיפוש מספר הזמנה רגיל
+        const numberMatch = (event.description || '').match(/(\d{6,})/);
+        if (numberMatch) {
+            return numberMatch[1];
+        }
+        
+        // אם לא נמצא, ננסה לחלץ מה-UID
+        if (event.uid) {
+            const uidMatch = event.uid.match(/-?(\d+)@/);
+            if (uidMatch) {
+                return `BK${Math.abs(parseInt(uidMatch[1]))}`;
+            }
+        }
+        
+        return null;
     }
 
     /**

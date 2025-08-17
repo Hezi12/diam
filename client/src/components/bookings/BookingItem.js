@@ -19,6 +19,50 @@ const BookingItem = ({ booking, onClick, location = 'airport' }) => {
   const colors = STYLE_CONSTANTS.colors;
   const statusColors = getBookingStatusColors(colors);
 
+  // צבעים מיוחדים לפי מקור ההזמנה
+  const bookingSourceColors = {
+    booking: {
+      confirmed: {
+        bgColor: `rgba(39, 174, 96, 0.1)`,
+        borderColor: `#27ae60`,
+        textColor: `#186a3b`,
+        icon: <CheckCircleIcon fontSize="small" sx={{ color: '#186a3b' }} />
+      },
+      pending: {
+        bgColor: `rgba(46, 204, 113, 0.1)`,
+        borderColor: `#2ecc71`,
+        textColor: `#1e8449`,
+        icon: <PendingIcon fontSize="small" sx={{ color: '#1e8449' }} />
+      },
+      cancelled: {
+        bgColor: `rgba(88, 214, 141, 0.1)`,
+        borderColor: `#58d68d`,
+        textColor: `#229954`,
+        icon: <CancelIcon fontSize="small" sx={{ color: '#229954' }} />
+      }
+    },
+    expedia: {
+      confirmed: {
+        bgColor: `rgba(255, 107, 53, 0.1)`,
+        borderColor: `#ff6b35`,
+        textColor: `#cc4a1f`,
+        icon: <CheckCircleIcon fontSize="small" sx={{ color: '#cc4a1f' }} />
+      },
+      pending: {
+        bgColor: `rgba(255, 107, 53, 0.08)`,
+        borderColor: `#ff6b35`,
+        textColor: `#cc4a1f`,
+        icon: <PendingIcon fontSize="small" sx={{ color: '#cc4a1f' }} />
+      },
+      cancelled: {
+        bgColor: `rgba(255, 107, 53, 0.05)`,
+        borderColor: `#ff8a5b`,
+        textColor: `#b8431c`,
+        icon: <CancelIcon fontSize="small" sx={{ color: '#b8431c' }} />
+      }
+    }
+  };
+
   // הגדרות צבעים לפי סטטוס הזמנה
   const bookingStatusColors = {
     confirmed: {
@@ -85,7 +129,18 @@ const BookingItem = ({ booking, onClick, location = 'airport' }) => {
     completed: 'הושלם'
   };
 
-  const itemStatusColors = bookingStatusColors[booking.status] || bookingStatusColors.pending;
+  // בחירת צבע בהתאם למקור ההזמנה
+  let itemStatusColors;
+  if (booking.source === 'booking' && bookingSourceColors.booking[booking.status]) {
+    // הזמנה מבוקינג - צבע ירוק
+    itemStatusColors = bookingSourceColors.booking[booking.status];
+  } else if (booking.source === 'expedia' && bookingSourceColors.expedia[booking.status]) {
+    // הזמנה מ-Expedia - צבע כתום-אדום
+    itemStatusColors = bookingSourceColors.expedia[booking.status];
+  } else {
+    // הזמנה רגילה - צבע כחול
+    itemStatusColors = bookingStatusColors[booking.status] || bookingStatusColors.pending;
+  }
 
   return (
     <Box 

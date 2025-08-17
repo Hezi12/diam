@@ -512,6 +512,23 @@ const BookingsCalendar = ({
         borderColor: `#58d68d`,
         textColor: `#229954`
       }
+    },
+    expedia: {
+      confirmed: {
+        bgColor: `rgba(255, 107, 53, 0.2)`, // כתום-אדום עמוק
+        borderColor: `#ff6b35`,
+        textColor: `#cc4a1f`
+      },
+      pending: {
+        bgColor: `rgba(255, 107, 53, 0.15)`, // כתום-אדום בהיר יותר
+        borderColor: `#ff6b35`,
+        textColor: `#cc4a1f`
+      },
+      cancelled: {
+        bgColor: `rgba(255, 107, 53, 0.1)`, // כתום-אדום בהיר מאוד
+        borderColor: `#ff8a5b`,
+        textColor: `#b8431c`
+      }
     }
   };
 
@@ -821,6 +838,9 @@ const BookingsCalendar = ({
       if (booking.source === 'booking' && bookingSourceColors.booking[booking.status]) {
         // הזמנה מבוקינג - צבע ירוק
         statusColors = bookingSourceColors.booking[booking.status];
+      } else if (booking.source === 'expedia' && bookingSourceColors.expedia[booking.status]) {
+        // הזמנה מ-Expedia - צבע כתום-אדום
+        statusColors = bookingSourceColors.expedia[booking.status];
       } else {
         // הזמנה רגילה - צבע כחול
         statusColors = bookingStatusColors[booking.status] || bookingStatusColors.pending;
