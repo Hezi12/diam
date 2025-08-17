@@ -729,6 +729,53 @@ router.post('/sync/:platform/:location/:roomId', auth, async (req, res) => {
     }
 });
 
+// סנכרון כללי לפלטפורמה (Booking או Expedia)
+router.post('/sync/:platform/:location', auth, async (req, res) => {
+    try {
+        const { platform, location } = req.params;
+        
+        if (!['booking', 'expedia'].includes(platform)) {
+            return res.status(400).json({ 
+                error: 'פלטפורמה לא נתמכת. השתמש ב-booking או expedia' 
+            });
+        }
+        
+        console.log(`🔄 בקשת סנכרון כל חדרי ${platform}: ${location}`);
+        
+        // קבלת הגדרות
+        const settings = await ICalSettings.findOne({ location });
+        if (!settings) {
+            return res.status(404).json({ 
+                error: 'הגדרות iCal לא נמצאו למיקום זה' 
+            });
+        }
+        
+        // ביצוע הסנכרון לפלטפורמה
+        const results = await icalService.syncAllRoomsForPlatform(settings, platform);
+        
+        console.log(`✅ סנכרון כל חדרי ${platform} הושלם: ${location} - ${results.totalNewBookings} הזמנות חדשות`);
+        
+        res.json({
+            success: true,
+            message: `סנכרון כל חדרי ${platform === 'booking' ? 'Booking.com' : 'Expedia'} הושלם בהצלחה`,
+            results: {
+                totalNewBookings: results.totalNewBookings,
+                successfulRooms: results.successfulRooms,
+                failedRooms: results.failedRooms
+            },
+            location,
+            platform
+        });
+        
+    } catch (error) {
+        console.error(`שגיאה בסנכרון כל חדרי ${req.params.platform}:`, error);
+        res.status(500).json({ 
+            error: `שגיאה בסנכרון כל החדרים`,
+            details: error.message 
+        });
+    }
+});
+
 // בדיקת קישור iCal (משופר עבור Expedia)
 router.post('/test-url-expedia', auth, async (req, res) => {
     try {
