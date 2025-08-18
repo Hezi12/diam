@@ -130,7 +130,7 @@ const ICalSettings = () => {
             setError('');
             
             const platformName = selectedPlatform === 'booking' ? 'Booking.com' : 'Expedia';
-            const response = await axios.post(`/api/ical/sync/${selectedPlatform}/${selectedLocation}/${roomId}`);
+            const response = await axios.post(`/api/ical/sync/${selectedLocation}/${roomId}`);
             
             if (response.data.success) {
                 const platformIcon = selectedPlatform === 'booking' ? '🔵' : '🌍';
@@ -153,7 +153,7 @@ const ICalSettings = () => {
             setError('');
             
             const platformName = selectedPlatform === 'booking' ? 'Booking.com' : 'Expedia';
-            const response = await axios.post(`/api/ical/sync/${selectedPlatform}/${selectedLocation}`);
+            const response = await axios.post(`/api/ical/sync/${selectedLocation}`);
             
             if (response.data.success) {
                 const platformIcon = selectedPlatform === 'booking' ? '🔵' : '🌍';
