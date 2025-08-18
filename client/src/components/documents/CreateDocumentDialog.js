@@ -31,7 +31,7 @@ import axios from 'axios';
 import PaymentMethodDialog from './PaymentMethodDialog';
 
 
-const CreateDocumentDialog = ({ open, onClose, booking }) => {
+const CreateDocumentDialog = ({ open, onClose, booking, onRefresh }) => {
   // מצב סוג המסמך
   const [documentType, setDocumentType] = useState('invoice');
   
@@ -141,6 +141,11 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
           if (response.invoice) {
             setExistingInvoice(response.invoice);
           }
+          
+          // 🔄 רענון הנתונים בדף הראשי
+          if (onRefresh) {
+            onRefresh();
+          }
         }
       } else {
         throw new Error(response.message || 'שגיאה ביצירת החשבונית');
@@ -169,6 +174,11 @@ const CreateDocumentDialog = ({ open, onClose, booking }) => {
         enqueueSnackbar('חשבונית עם קבלה נוצרה בהצלחה', { variant: 'success' });
         if (response.invoice) {
           setExistingInvoice(response.invoice);
+        }
+        
+        // 🔄 רענון הנתונים בדף הראשי
+        if (onRefresh) {
+          onRefresh();
         }
       } else {
         throw new Error(response.message || 'שגיאה ביצירת חשבונית עם קבלה');

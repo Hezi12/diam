@@ -174,6 +174,7 @@ const NewBookingForm = ({
     externalBookingNumber: '',
     notes: '',
     reviewHandled: false,
+    passportImageHandled: false,
   };
 
   // מצב טופס
@@ -213,6 +214,7 @@ const NewBookingForm = ({
     externalBookingNumber: '',
     notes: '',
     reviewHandled: false,
+    passportImageHandled: false,
   });
 
   // מצב שדות תיקוף
@@ -1951,26 +1953,52 @@ const NewBookingForm = ({
                   <Typography variant="h6" sx={{ fontWeight: 500 }}>
                     פרטי מחיר
                   </Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch 
-                        checked={formData.isTourist} 
-                        onChange={handleTouristChange}
-                        color="primary"
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: accentColors.purple,
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: accentColors.purple,
-                          },
-                        }}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto' }}>
+                    {/* צ'קבוקס תמונת פספורט - רק אם זה תייר ובמצב עריכה */}
+                    {formData.isTourist && isEditMode && (
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={formData.passportImageHandled || false} 
+                            onChange={(e) => setFormData(prev => ({...prev, passportImageHandled: e.target.checked}))}
+                            color="secondary"
+                            sx={{
+                              '& .MuiSwitch-switchBase.Mui-checked': {
+                                color: accentColors.orange,
+                              },
+                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                backgroundColor: accentColors.orange,
+                              },
+                            }}
+                          />
+                        }
+                        label="תמונת דרכון טופלה"
+                        labelPlacement="start"
+                        sx={{ marginRight: 2, justifyContent: 'flex-end' }}
                       />
-                    }
-                    label="תייר (ללא מע״מ)"
-                    labelPlacement="start"
-                    sx={{ marginRight: 3, marginLeft: 'auto', justifyContent: 'flex-end' }}
-                  />
+                    )}
+                    
+                    <FormControlLabel
+                      control={
+                        <Switch 
+                          checked={formData.isTourist} 
+                          onChange={handleTouristChange}
+                          color="primary"
+                          sx={{
+                            '& .MuiSwitch-switchBase.Mui-checked': {
+                              color: accentColors.purple,
+                            },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                              backgroundColor: accentColors.purple,
+                            },
+                          }}
+                        />
+                      }
+                      label="תייר (ללא מע״מ)"
+                      labelPlacement="start"
+                      sx={{ marginRight: 0, justifyContent: 'flex-end' }}
+                    />
+                  </Box>
                 </Box>
               
                 <Grid container spacing={2}>

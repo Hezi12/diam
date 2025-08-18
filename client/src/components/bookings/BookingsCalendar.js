@@ -877,13 +877,14 @@ const BookingsCalendar = ({
         !booking.reviewHandled && 
         (checkOutDate <= today && checkOutDate >= threeDaysAgo);
 
-      // בדיקה האם צריך להציג אייקון תמונת פספורט לתייר
-      // התנאים: 1. שולם באשראי, 2. תייר ללא מע"מ, 3. צ'ק-אאוט עבר אחרי 16/8/25, 4. אין תמונות מצורפות
+      // בדיקה האם צריך להציג אייקון תמונת דרכון לתייר
+      // התנאים: 1. שולם באשראי, 2. תייר ללא מע"מ, 3. צ'ק-אאוט עבר אחרי 16/8/25, 4. אין תמונות מצורפות, 5. לא סומן שטופל ידנית
       const cutoffDate = new Date('2025-08-16T23:59:59.999Z');
       const needsPassportImage = ['credit_or_yehuda', 'credit_rothschild'].includes(booking.paymentStatus) && 
         booking.isTourist && 
         (checkOutDate <= today && checkOutDate > cutoffDate) &&
-        (!booking.attachedImages || booking.attachedImages.length === 0);
+        (!booking.attachedImages || booking.attachedImages.length === 0) &&
+        !booking.passportImageHandled;
       
       console.log('בדיקת תשלום וחוות דעת:', {
         bookingId: booking._id,

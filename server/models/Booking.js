@@ -223,6 +223,12 @@ const BookingSchema = new mongoose.Schema(
       default: false
     },
     
+    // סימון ידני שטופלה תמונת דרכון לתייר (למניעת הצגת אייקון)
+    passportImageHandled: {
+      type: Boolean,
+      default: false
+    },
+    
     // מקור ההזמנה
     source: {
       type: String,

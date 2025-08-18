@@ -27,6 +27,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -386,6 +387,66 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
               </Tooltip>
             )}
             
+            {/* תג תמונת דרכון - רק לתיירים ובמצב לא-עריכה */}
+            {!isEditing && booking.isTourist && (
+              <Tooltip title={booking.passportImageHandled ? "תמונת דרכון טופלה - לחץ לביטול" : "לחץ לסימון שתמונת דרכון טופלה"}>
+                <Box 
+                  onClick={async () => {
+                    try {
+                      // עדכון הסטטוס במסד הנתונים
+                      const newStatus = !booking.passportImageHandled;
+                      console.log('📷 מעדכן סטטוס תמונת דרכון:', {
+                        bookingId: booking._id,
+                        currentStatus: booking.passportImageHandled,
+                        newStatus: newStatus
+                      });
+                      
+                      const response = await axios.put(`/api/bookings/${booking._id}`, {
+                        passportImageHandled: newStatus
+                      });
+                      
+                      if (response.data.success) {
+                        // עדכון המצב המקומי
+                        setBooking(prev => ({
+                          ...prev,
+                          passportImageHandled: newStatus
+                        }));
+                        
+                        console.log('✅ סטטוס תמונת פספורט עודכן בהצלחה');
+                        
+                        // רענון הדף אם יש callback
+                        if (onRefresh) {
+                          onRefresh();
+                        }
+                      }
+                    } catch (error) {
+                      console.error('❌ שגיאה בעדכון סטטוס תמונת פספורט:', error);
+                    }
+                  }}
+                  sx={{ 
+                    color: booking.passportImageHandled ? '#ff9800' : 'text.secondary',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mr: 1,
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid',
+                    borderColor: booking.passportImageHandled ? 'rgba(255, 152, 0, 0.3)' : 'rgba(0, 0, 0, 0.12)',
+                    bgcolor: booking.passportImageHandled ? 'rgba(255, 152, 0, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+                    '&:hover': {
+                      bgcolor: booking.passportImageHandled ? 'rgba(255, 152, 0, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                    }
+                  }}
+                >
+                  <PhotoCameraIcon sx={{ fontSize: '1.2rem', mr: 0.5 }} />
+                  פספורט
+                </Box>
+              </Tooltip>
+            )}
+            
             <Button
               startIcon={isEditing ? null : <EditIcon />}
               variant={isEditing ? "contained" : "outlined"}
@@ -707,6 +768,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
         open={documentDialogOpen}
         onClose={() => setDocumentDialogOpen(false)}
         booking={booking}
+        onRefresh={onRefresh}
       />
 
       {/* דיאלוג סליקת אשראי */}
