@@ -270,7 +270,7 @@ class ICalService {
                 if (event.contact) notes += `\nיצירת קשר: ${event.contact}`;
 
                 const newBooking = new Booking({
-                    bookingNumber: parseInt(bookingNumber.replace('BK', '')), // המודל מצפה למספר
+                    bookingNumber: bookingNumber, // המודל מצפה למספר - bookingNumber כבר מספר
                     firstName: firstName,
                     lastName: lastName,
                     room: room._id, // ObjectId של החדר
