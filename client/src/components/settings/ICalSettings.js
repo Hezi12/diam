@@ -97,7 +97,7 @@ const ICalSettings = () => {
     const loadSettings = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`/ical/settings/${selectedLocation}`);
+            const response = await axios.get(`/api/ical/settings/${selectedLocation}`);
             setSettings(response.data);
         } catch (error) {
             console.error('שגיאה בטעינת הגדרות:', error);
@@ -112,7 +112,7 @@ const ICalSettings = () => {
             setSaving(true);
             setError('');
             
-            await axios.put(`/ical/settings/${selectedLocation}`, settings);
+            await axios.put(`/api/ical/settings/${selectedLocation}`, settings);
             setSuccess('הגדרות נשמרו בהצלחה!');
             
             setTimeout(() => setSuccess(''), 3000);
@@ -130,7 +130,7 @@ const ICalSettings = () => {
             setError('');
             
             const platformName = selectedPlatform === 'booking' ? 'Booking.com' : 'Expedia';
-            const response = await axios.post(`/ical/sync/${selectedPlatform}/${selectedLocation}/${roomId}`);
+            const response = await axios.post(`/api/ical/sync/${selectedPlatform}/${selectedLocation}/${roomId}`);
             
             if (response.data.success) {
                 const platformIcon = selectedPlatform === 'booking' ? '🔵' : '🌍';
@@ -153,7 +153,7 @@ const ICalSettings = () => {
             setError('');
             
             const platformName = selectedPlatform === 'booking' ? 'Booking.com' : 'Expedia';
-            const response = await axios.post(`/ical/sync/${selectedPlatform}/${selectedLocation}`);
+            const response = await axios.post(`/api/ical/sync/${selectedPlatform}/${selectedLocation}`);
             
             if (response.data.success) {
                 const platformIcon = selectedPlatform === 'booking' ? '🔵' : '🌍';
@@ -177,7 +177,7 @@ const ICalSettings = () => {
             setTestResult(null);
             
             // בחירת endpoint לפי פלטפורמה
-            const endpoint = selectedPlatform === 'expedia' ? '/ical/test-url-expedia' : '/ical/test-url';
+            const endpoint = selectedPlatform === 'expedia' ? '/api/ical/test-url-expedia' : '/api/ical/test-url';
             
             const response = await axios.post(endpoint, { url: testUrl });
             setTestResult({
@@ -207,7 +207,7 @@ const ICalSettings = () => {
             setDeleting(true);
             setError('');
             
-            const response = await axios.delete(`/ical/imported-bookings/${selectedLocation}`);
+            const response = await axios.delete(`/api/ical/imported-bookings/${selectedLocation}`);
             
             if (response.data.success) {
                 setSuccess(`נמחקו ${response.data.deletedCount} הזמנות מיובאות בהצלחה!`);
