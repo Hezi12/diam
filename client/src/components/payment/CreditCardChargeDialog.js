@@ -154,51 +154,24 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
       
       console.log('🔄 מתחיל תהליך סליקה + חשבונית-קבלה...');
       
-      // שלב 1: ביצוע הסליקה
-      console.log('💳 שלב 1: מבצע סליקת כרטיס אשראי...');
-      const chargeResponse = await icountService.chargeCard(booking.location, booking._id, chargeAmount, false);
+      // 🔧 מבצע סליקה עם חשבונית אוטומטית...
+      console.log('💳 מבצע סליקה עם חשבונית אוטומטית...');
+      const chargeResponse = await icountService.chargeCard(booking.location, booking._id, chargeAmount, true);
       
       if (!chargeResponse.success) {
         throw new Error(chargeResponse.message || 'סליקה נכשלה');
       }
       
-      console.log('✅ סליקה הושלמה בהצלחה:', chargeResponse);
+      console.log('✅ סליקה עם חשבונית הושלמה בהצלחה:', chargeResponse);
       
-      // שלב 2: יצירת חשבונית-קבלה משולבת עם אמצעי תשלום "כרטיס אשראי"
-      console.log('📄 שלב 2: יוצר חשבונית-קבלה משולבת...');
-      const invoiceResponse = await documentService.createInvoiceWithReceipt(booking._id, 'credit_card', chargeAmount);
+      // 🔧 השדה hasInvoiceReceipt מתעדכן אוטומטית בשרת
+      // לא צריך לעדכן ידנית את סטטוס התשלום - זה מתעדכן אוטומטית
       
-      if (!invoiceResponse.success) {
-        console.warn('⚠️ סליקה בוצעה בהצלחה אבל יצירת החשבונית נכשלה');
-                // גם אם החשבונית נכשלה, הסליקה בוצעה - נציג הצלחה חלקית
-        }
-        
-        // שלב 3: עדכון סטטוס התשלום אוטומטי
-        console.log('🔄 שלב 3: מעדכן סטטוס תשלום...');
-        console.log('📋 פרטי הזמנה:', { 
-          bookingId: booking._id, 
-          location: booking.location,
-          currentPaymentStatus: booking.paymentStatus 
-        });
-        
-        try {
-          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
-          console.log(`🎯 סטטוס תשלום חדש: ${paymentStatus} (מיקום: ${booking.location})`);
-          
-          const updateResult = await bookingService.updateBooking(booking._id, { paymentStatus });
-          console.log(`✅ סטטוס התשלום עודכן בהצלחה:`, updateResult);
-          
-        } catch (updateError) {
-          console.error('❌ שגיאה מפורטת בעדכון סטטוס התשלום:', updateError);
-          console.error('📄 פרטי השגיאה:', updateError.response?.data || updateError.message);
-          // לא נעצור את התהליך בגלל שגיאה בעדכון הסטטוס
-        }
-        
-        console.log('✅ תהליך הושלם בהצלחה!');
+      console.log('✅ תהליך הושלם בהצלחה!');
       
-      // הצגת תוצאה משולבת
-      const successMessage = invoiceResponse.success 
-        ? `✅ סליקה וחשבונית-קבלה בוצעו בהצלחה! מספר עסקה: ${chargeResponse.transactionId}${invoiceResponse.invoice ? `, חשבונית: ${invoiceResponse.invoice.invoiceNumber}` : ''}`
+      // הצגת תוצאה
+      const successMessage = chargeResponse.invoice?.success 
+        ? `✅ סליקה וחשבונית בוצעו בהצלחה! מספר עסקה: ${chargeResponse.transactionId}, חשבונית: ${chargeResponse.invoice.invoiceNumber}`
         : `✅ סליקה בוצעה בהצלחה! מספר עסקה: ${chargeResponse.transactionId} (חשבונית נכשלה - ניתן ליצור ידנית)`;
       
       enqueueSnackbar(successMessage, { 
@@ -211,22 +184,26 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
         transactionId: chargeResponse.transactionId,
         amount: chargeResponse.amount,
         cardType: chargeResponse.cardType,
-        invoice: invoiceResponse.invoice,
-        hasInvoice: invoiceResponse.success,
+        invoice: chargeResponse.invoice,
+        hasInvoice: chargeResponse.invoice?.success || false,
         message: successMessage,
-        combinedAction: true // סימון שזו פעולה משולבת
+        combinedAction: true, // סימון שזו פעולה משולבת
+        // הוספת מידע על העדכון האוטומטי
+        bookingUpdated: chargeResponse.bookingUpdated
       });
       
-              // קריאה לפונקציית callback לרענון הנתונים
-        if (onPaymentSuccess) {
-          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
-          onPaymentSuccess(booking._id, paymentStatus);
-        }
-        
-        // סגירת הדיאלוג אחרי 4 שניות (יותר זמן לקרוא את ההודעה)
-        setTimeout(() => {
-          onClose();
-        }, 4000);
+      // קריאה לפונקציית callback לרענון הנתונים
+      if (onPaymentSuccess) {
+        // 🔧 השתמש במידע מהשרת במקום חישוב ידני
+        const paymentStatus = chargeResponse.bookingUpdated?.paymentStatus || 
+          (booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild');
+        onPaymentSuccess(booking._id, paymentStatus);
+      }
+      
+      // סגירת הדיאלוג אחרי 4 שניות (יותר זמן לקרוא את ההודעה)
+      setTimeout(() => {
+        onClose();
+      }, 4000);
       
     } catch (error) {
       console.error('❌ שגיאה בתהליך סליקה + חשבונית-קבלה:', error);
@@ -341,30 +318,13 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
       if (response.success) {
         console.log(`🎉 סליקה הושלמה בהצלחה! מספר עסקה: ${response.transactionId}`);
         
-        // עדכון סטטוס התשלום אוטומטי
-        console.log('🔄 מעדכן סטטוס תשלום...');
-        console.log('📋 פרטי הזמנה:', { 
-          bookingId: booking._id, 
-          location: booking.location,
-          currentPaymentStatus: booking.paymentStatus 
-        });
-        
-        try {
-          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
-          console.log(`🎯 סטטוס תשלום חדש: ${paymentStatus} (מיקום: ${booking.location})`);
-          
-          const updateResult = await bookingService.updateBooking(booking._id, { paymentStatus });
-          console.log(`✅ סטטוס התשלום עודכן בהצלחה:`, updateResult);
-          
-        } catch (updateError) {
-          console.error('❌ שגיאה מפורטת בעדכון סטטוס התשלום:', updateError);
-          console.error('📄 פרטי השגיאה:', updateError.response?.data || updateError.message);
-          // לא נעצור את התהליך בגלל שגיאה בעדכון הסטטוס
-        }
+        // 🔧 תיקון: השדות מתעדכנים אוטומטית בשרת
+        // לא צריך לעדכן ידנית את סטטוס התשלום - זה מתעדכן אוטומטית
+        console.log('✅ השדות עודכנו אוטומטית בשרת:', response.bookingUpdated);
         
         // הצגת הודעת הצלחה
         const successMessage = shouldCreateInvoice 
-          ? `✅ הסליקה בוצעה בהצלחה! ${response.invoice ? `חשבונית: ${response.invoice.docNum}` : ''}` 
+          ? `✅ הסליקה בוצעה בהצלחה! ${response.invoice ? `חשבונית: ${response.invoice.invoiceNumber || response.invoice.docNum}` : ''}` 
           : '✅ הסליקה בוצעה בהצלחה ללא חשבונית!';
         
         enqueueSnackbar(successMessage, { 
@@ -378,13 +338,17 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
           amount: response.amount,
           cardType: response.cardType,
           invoice: response.invoice,
-          hasInvoice: shouldCreateInvoice,
-          message: successMessage
+          hasInvoice: response.invoice?.success || false,
+          message: successMessage,
+          // הוספת מידע על העדכון האוטומטי
+          bookingUpdated: response.bookingUpdated
         });
         
         // קריאה לפונקציית callback לרענון הנתונים
         if (onPaymentSuccess) {
-          const paymentStatus = booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
+          // 🔧 תיקון: השתמש במידע מהשרת במקום חישוב ידני
+          const paymentStatus = response.bookingUpdated?.paymentStatus || 
+            (booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild');
           onPaymentSuccess(booking._id, paymentStatus);
         }
         

@@ -403,7 +403,8 @@ const NewBookingForm = ({
             code: editBooking.code || '',
             reviewHandled: editBooking.reviewHandled || false,
             manualInvoiceHandled: editBooking.manualInvoiceHandled || false,
-            hasInvoiceReceipt: editBooking.hasInvoiceReceipt || false
+            hasInvoiceReceipt: editBooking.hasInvoiceReceipt || false,
+            passportImageHandled: editBooking.passportImageHandled || false
           };
           
           console.log('טוען הזמנה לעריכה:', editFormData.firstName, 'עם פרטי אשראי:', 
@@ -1111,6 +1112,7 @@ const NewBookingForm = ({
           code: formData.code || '',
           reviewHandled: formData.reviewHandled || false,
           manualInvoiceHandled: formData.manualInvoiceHandled || false,
+          passportImageHandled: formData.passportImageHandled || false,
           
           location: location
         };

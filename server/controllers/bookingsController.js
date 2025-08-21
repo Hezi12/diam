@@ -551,6 +551,10 @@ exports.updateBooking = async (req, res) => {
       console.log('🧾 עדכון סימון חשבונית ידנית:', updateData.manualInvoiceHandled);
     }
 
+    if (updateData.passportImageHandled !== undefined) {
+      console.log('📷 עדכון סימון תמונת דרכון:', updateData.passportImageHandled);
+    }
+
     // עדכון ההזמנה
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,

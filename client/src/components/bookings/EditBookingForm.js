@@ -182,6 +182,7 @@ const EditBookingForm = ({
         reviewHandled: booking.reviewHandled || false,
         manualInvoiceHandled: booking.manualInvoiceHandled || false,
         hasInvoiceReceipt: booking.hasInvoiceReceipt || false,
+        passportImageHandled: booking.passportImageHandled || false,
         creditCard: booking.creditCard || {
           cardNumber: '',
           expiryDate: '',
@@ -514,7 +515,8 @@ const EditBookingForm = ({
         checkOut: checkOutDate,
         code: formData.code || '',
         reviewHandled: formData.reviewHandled || false,
-        manualInvoiceHandled: formData.manualInvoiceHandled || false
+        manualInvoiceHandled: formData.manualInvoiceHandled || false,
+        passportImageHandled: formData.passportImageHandled || false
       });
       
       // סגירת הטופס

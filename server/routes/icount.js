@@ -173,6 +173,38 @@ router.post('/charge', auth, async (req, res) => {
         invoiceNumber: result.invoice?.invoiceNumber || 'לא נוצרה חשבונית',
         invoiceSuccess: result.invoice?.success || false
       });
+
+      // 🔧 תיקון קריטי: עדכון אוטומטי של השדות בהזמנה אחרי סליקה מוצלחת
+      try {
+        // עדכון סטטוס התשלום לפי המיקום
+        const paymentStatus = location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild';
+        
+        // עדכון השדות בהזמנה
+        const updateData = {
+          paymentStatus: paymentStatus,
+          // אם נוצרה חשבונית, נסמן שיש חשבונית
+          ...(result.invoice && result.invoice.success && {
+            hasInvoiceReceipt: true
+          })
+        };
+
+        console.log(`🔄 מעדכן הזמנה ${booking.bookingNumber}:`, updateData);
+        
+        // עדכון ההזמנה במסד הנתונים
+        await Booking.findByIdAndUpdate(bookingId, updateData, { new: true });
+        
+        console.log(`✅ הזמנה ${booking.bookingNumber} עודכנה בהצלחה עם סטטוס תשלום: ${paymentStatus}`);
+        
+        // עדכון האובייקט המקומי לצורך התגובה
+        booking.paymentStatus = paymentStatus;
+        if (result.invoice && result.invoice.success) {
+          booking.hasInvoiceReceipt = true;
+        }
+        
+      } catch (updateError) {
+        console.error('⚠️ אזהרה: שגיאה בעדכון הזמנה אחרי סליקה:', updateError.message);
+        // לא נכשיל את הסליקה בגלל שגיאה בעדכון
+      }
       
       return res.status(200).json({
         success: true,
@@ -189,6 +221,11 @@ router.post('/charge', auth, async (req, res) => {
           success: result.charge?.success,
           transactionId: result.charge?.transactionId,
           confirmationCode: result.charge?.confirmationCode
+        },
+        // הוספת מידע על העדכון
+        bookingUpdated: {
+          paymentStatus: location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild',
+          hasInvoiceReceipt: !!(result.invoice && result.invoice.success)
         }
       });
     } else {

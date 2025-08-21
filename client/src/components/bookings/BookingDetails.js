@@ -16,7 +16,8 @@ import {
   CircularProgress,
   Tooltip,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Switch
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -40,7 +41,7 @@ import { useFilter } from '../../contexts/FilterContext';
 /**
  * רכיב להצגת פרטי הזמנה מלאים
  */
-const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh }) => {
+const BookingDetails = ({ open, onClose, bookingId, onEdit, onUpdate, onDelete, onRefresh }) => {
   const { filterPaymentMethods } = useFilter();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -237,7 +238,7 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
   const handleEditToggle = () => {
     if (isEditing) {
       // שמירת השינויים
-      onEdit(editedBooking);
+      onUpdate(editedBooking);
     }
     setIsEditing(!isEditing);
   };
@@ -529,6 +530,24 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                           size="small"
                         />
                       </Grid>
+                      
+                      {/* שדה תייר */}
+                      <Grid item xs={12}>
+                        <FormControlLabel
+                          control={
+                            <Switch 
+                              checked={editedBooking.isTourist || false} 
+                              onChange={(e) => setEditedBooking(prev => ({
+                                ...prev, 
+                                isTourist: e.target.checked
+                              }))}
+                              color="primary"
+                            />
+                          }
+                          label="תייר (ללא מע״מ)"
+                          labelPlacement="start"
+                        />
+                      </Grid>
                     </Grid>
                   </>
                 ) : (
@@ -549,6 +568,20 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                       <Typography variant="body2" color="text.secondary">הערות:</Typography>
                       <Typography variant="body1">{booking.notes || 'אין הערות'}</Typography>
                     </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">סטטוס תייר:</Typography>
+                      <Typography variant="body1">
+                        {booking.isTourist ? 'תייר (ללא מע״מ)' : 'תושב (כולל מע״מ)'}
+                      </Typography>
+                    </Box>
+                    {booking.isTourist && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">תמונת דרכון:</Typography>
+                        <Typography variant="body1">
+                          {booking.passportImageHandled ? 'טופלה' : 'לא טופלה'}
+                        </Typography>
+                      </Box>
+                    )}
                   </>
                 )}
               </Paper>
@@ -596,6 +629,27 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                         ))}
                       </TextField>
                     </Grid>
+                    
+                    {/* שדה תמונת דרכון - רק לתיירים */}
+                    {editedBooking.isTourist && (
+                      <Grid item xs={12}>
+                        <FormControlLabel
+                          control={
+                            <Switch 
+                              checked={editedBooking.passportImageHandled || false} 
+                              onChange={(e) => setEditedBooking(prev => ({
+                                ...prev, 
+                                passportImageHandled: e.target.checked
+                              }))}
+                              color="secondary"
+                            />
+                          }
+                          label="תמונת דרכון טופלה"
+                          labelPlacement="start"
+                        />
+                      </Grid>
+                    )}
+                    
                     <Grid item xs={12}>
                       <TextField
                         select
@@ -716,8 +770,8 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                       readOnly
                       sx={{
                         color: booking.reviewHandled ? '#06a271' : 'text.secondary',
-                        '&.Mui-checked': {
-                          color: '#06a271',
+                        '& .MuiCheckbox-root': {
+                          color: booking.reviewHandled ? '#06a271' : 'text.secondary',
                         }
                       }}
                     />
@@ -732,6 +786,34 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onDelete, onRefresh 
                   }
                 />
               </Grid>
+              
+              {/* תמונת דרכון - רק לתיירים */}
+              {booking.isTourist && (
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={booking.passportImageHandled || false}
+                        readOnly
+                        sx={{
+                          color: booking.passportImageHandled ? '#ff9800' : 'text.secondary',
+                          '& .MuiCheckbox-root': {
+                            color: booking.passportImageHandled ? '#ff9800' : 'text.secondary',
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ 
+                        color: booking.passportImageHandled ? '#ff9800' : 'text.secondary',
+                        fontWeight: booking.passportImageHandled ? 'bold' : 'normal'
+                      }}>
+                        תמונת דרכון טופלה
+                      </Typography>
+                    }
+                  />
+                </Grid>
+              )}
             </Grid>
           </Grid>
         </DialogContent>
