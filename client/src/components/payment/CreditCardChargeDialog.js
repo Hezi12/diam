@@ -197,7 +197,8 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
         // 🔧 השתמש במידע מהשרת במקום חישוב ידני
         const paymentStatus = chargeResponse.bookingUpdated?.paymentStatus || 
           (booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild');
-        onPaymentSuccess(booking._id, paymentStatus);
+        const hasInvoice = chargeResponse.invoice?.success || false;
+        onPaymentSuccess(booking._id, paymentStatus, hasInvoice);
       }
       
       // סגירת הדיאלוג אחרי 4 שניות (יותר זמן לקרוא את ההודעה)
@@ -349,7 +350,8 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
           // 🔧 תיקון: השתמש במידע מהשרת במקום חישוב ידני
           const paymentStatus = response.bookingUpdated?.paymentStatus || 
             (booking.location === 'airport' ? 'credit_or_yehuda' : 'credit_rothschild');
-          onPaymentSuccess(booking._id, paymentStatus);
+          const hasInvoice = response.invoice?.success || false;
+          onPaymentSuccess(booking._id, paymentStatus, hasInvoice);
         }
         
         // סגירת הדיאלוג אחרי 3 שניות

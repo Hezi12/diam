@@ -2137,12 +2137,14 @@ const NewBookingForm = ({
         open={chargeDialogOpen}
         onClose={() => setChargeDialogOpen(false)}
         booking={formData}
-        onPaymentSuccess={(bookingId, newPaymentStatus) => {
-          console.log('🔄 עדכון סטטוס תשלום בטופס:', { bookingId, newPaymentStatus });
+        onPaymentSuccess={(bookingId, newPaymentStatus, hasInvoice = false) => {
+          console.log('🔄 עדכון סטטוס תשלום בטופס:', { bookingId, newPaymentStatus, hasInvoice });
           // עדכון הסטטוס בנתוני הטופס
           setFormData(prev => ({
             ...prev,
-            paymentStatus: newPaymentStatus
+            paymentStatus: newPaymentStatus,
+            // אם נוצרה חשבונית, נעדכן גם את השדה
+            ...(hasInvoice && { hasInvoiceReceipt: true })
           }));
           
           // אם יש callback לעדכון הזמנה, נקרא לו

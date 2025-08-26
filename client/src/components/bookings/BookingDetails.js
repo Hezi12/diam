@@ -858,13 +858,15 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onUpdate, onDelete, 
         open={chargeDialogOpen}
         onClose={() => setChargeDialogOpen(false)}
         booking={booking}
-        onPaymentSuccess={(bookingId, newPaymentStatus) => {
-          console.log('🔄 עדכון סטטוס תשלום בממשק:', { bookingId, newPaymentStatus });
+        onPaymentSuccess={(bookingId, newPaymentStatus, hasInvoice = false) => {
+          console.log('🔄 עדכון סטטוס תשלום בממשק:', { bookingId, newPaymentStatus, hasInvoice });
           // עדכון הסטטוס בנתוני ההזמנה המקומיים
           if (booking && booking._id === bookingId) {
             setBooking(prev => ({
               ...prev,
-              paymentStatus: newPaymentStatus
+              paymentStatus: newPaymentStatus,
+              // אם נוצרה חשבונית, נעדכן גם את השדה
+              ...(hasInvoice && { hasInvoiceReceipt: true })
             }));
           }
           
