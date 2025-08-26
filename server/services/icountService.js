@@ -538,16 +538,16 @@ class ICountService {
   }
 
   /**
-   * סליקת כרטיס אשראי ויצירת חשבונית בפעולה אחת
+   * סליקת כרטיס אשראי ויצירת חשבונית עם קבלה בפעולה אחת
    * 
    * @param {Object} booking - פרטי ההזמנה
    * @param {number} amount - סכום הסליקה
    * @param {string} location - מיקום (airport/rothschild)
-   * @returns {Promise<Object>} - תוצאת הסליקה והחשבונית
+   * @returns {Promise<Object>} - תוצאת הסליקה והחשבונית עם הקבלה
    */
   async chargeCardAndCreateInvoice(booking, amount, location = 'rothschild') {
     try {
-      console.log(`🔄 מתחיל תהליך סליקת אשראי + יצירת חשבונית עבור מתחם ${location}`);
+      console.log(`🔄 מתחיל תהליך סליקת אשראי + יצירת חשבונית עם קבלה עבור מתחם ${location}`);
       
       // שלב 1: ביצוע סליקת כרטיס אשראי
       console.log(`💳 שלב 1: מבצע סליקת כרטיס אשראי בסכום ${amount} ₪`);
@@ -559,8 +559,8 @@ class ICountService {
       
       console.log(`✅ סליקה הושלמה בהצלחה: ${chargeResult.transactionId}`);
       
-      // שלב 2: יצירת חשבונית על סכום הסליקה בפועל
-      console.log(`📄 שלב 2: יוצר חשבונית על סכום ${amount} ₪`);
+      // שלב 2: יצירת חשבונית עם קבלה על סכום הסליקה בפועל
+      console.log(`📄 שלב 2: יוצר חשבונית עם קבלה על סכום ${amount} ₪`);
       
       // בדיקה אם הלקוח תייר - אם כן, פטור ממע"מ
       const isTaxExempt = booking.isTourist === true;
@@ -635,13 +635,13 @@ class ICountService {
       console.log(`   - פטור ממע"מ: ${invoiceData.items[0].taxExempt}`);
       console.log(`   - סכום כולל: ${invoiceData.total} ₪`);
       
-      const invoiceResult = await this.createInvoice(invoiceData, location, 'invoice');
+      const invoiceResult = await this.createInvoiceWithReceipt(invoiceData, location, 'credit_card');
       
       if (!invoiceResult.success) {
-        console.log(`⚠️  אזהרה: סליקה הצליחה אבל יצירת החשבונית נכשלה`);
+        console.log(`⚠️  אזהרה: סליקה הצליחה אבל יצירת החשבונית עם הקבלה נכשלה`);
         // לא נזרוק שגיאה כי הסליקה עצמה הצליחה
       } else {
-        console.log(`✅ חשבונית נוצרה בהצלחה: ${invoiceResult.invoiceNumber}`);
+        console.log(`✅ חשבונית עם קבלה נוצרה בהצלחה: ${invoiceResult.invoiceNumber}`);
       }
       
       return {
@@ -649,8 +649,8 @@ class ICountService {
         charge: chargeResult,
         invoice: invoiceResult,
         message: invoiceResult.success 
-          ? 'סליקה וחשבונית בוצעו בהצלחה'
-          : 'סליקה בוצעה בהצלחה, אך יצירת החשבונית נכשלה'
+          ? 'סליקה וחשבונית עם קבלה בוצעו בהצלחה'
+          : 'סליקה בוצעה בהצלחה, אך יצירת החשבונית עם הקבלה נכשלה'
       };
       
     } catch (error) {

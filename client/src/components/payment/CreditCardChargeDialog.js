@@ -171,8 +171,8 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
       
       // הצגת תוצאה
       const successMessage = chargeResponse.invoice?.success 
-        ? `✅ סליקה וחשבונית בוצעו בהצלחה! מספר עסקה: ${chargeResponse.transactionId}, חשבונית: ${chargeResponse.invoice.invoiceNumber}`
-        : `✅ סליקה בוצעה בהצלחה! מספר עסקה: ${chargeResponse.transactionId} (חשבונית נכשלה - ניתן ליצור ידנית)`;
+        ? `✅ סליקה וחשבונית עם קבלה בוצעו בהצלחה! מספר עסקה: ${chargeResponse.transactionId}, חשבונית: ${chargeResponse.invoice.invoiceNumber}`
+        : `✅ סליקה בוצעה בהצלחה! מספר עסקה: ${chargeResponse.transactionId} (חשבונית עם קבלה נכשלה - ניתן ליצור ידנית)`;
       
       enqueueSnackbar(successMessage, { 
         variant: 'success',

@@ -146,12 +146,12 @@ router.post('/charge', auth, async (req, res) => {
       });
     }
 
-    console.log(`💳 מבצע סליקה עבור הזמנה ${booking.bookingNumber} בסכום ${amount} ₪${createInvoice ? ' + חשבונית' : ' ללא חשבונית'}`);
+    console.log(`💳 מבצע סליקה עבור הזמנה ${booking.bookingNumber} בסכום ${amount} ₪${createInvoice ? ' + חשבונית עם קבלה' : ' ללא חשבונית'}`);
 
     // קריאה לשירות iCount - עם או בלי חשבונית
     let result;
     if (createInvoice) {
-      // סליקה + חשבונית
+      // סליקה + חשבונית עם קבלה
       result = await icountService.chargeCard(booking, amount, location);
     } else {
       // סליקה בלבד
