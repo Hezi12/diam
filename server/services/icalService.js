@@ -180,6 +180,16 @@ class ICalService {
                     continue;
                 }
                 
+                // 🔥 פילטר חדש: לא מייבא הזמנות שעבר עליהן יותר מ-3 ימים
+                const threeDaysAgo = new Date();
+                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                threeDaysAgo.setHours(0, 0, 0, 0);
+                
+                if (event.end && new Date(event.end) < threeDaysAgo) {
+                    console.log(`⏰ מדלג על הזמנה ישנה (סיום: ${event.end}) - עבר עליה יותר מ-3 ימים`);
+                    continue;
+                }
+                
                 const existingBooking = await Booking.findOne({
                     roomNumber: roomId,
                     location: location,
@@ -547,6 +557,16 @@ class ICalService {
                 const eventUID = event.uid;
                 if (!eventUID) {
                     console.log('⚠️ אירוע מ-Expedia ללא UID, מדלג...');
+                    continue;
+                }
+                
+                // 🔥 פילטר חדש: לא מייבא הזמנות שעבר עליהן יותר מ-3 ימים
+                const threeDaysAgo = new Date();
+                threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                threeDaysAgo.setHours(0, 0, 0, 0);
+                
+                if (event.end && new Date(event.end) < threeDaysAgo) {
+                    console.log(`⏰ מדלג על הזמנה ישנה מ-Expedia (סיום: ${event.end}) - עבר עליה יותר מ-3 ימים`);
                     continue;
                 }
                 
