@@ -241,26 +241,23 @@ const RoomCard = ({ room, status, booking, onClick }) => {
     let message = '';
     
     if (room.location === 'airport') {
-      message = `Hello!
+      message = `Hello, thank you for your reservation at Airport Guest House!
 
-I'm David from the Airport Guest House—thank you for choosing to stay with us! I want to ensure you have a smooth and comfortable stay.
+✅ *Self Check-in:*
+Address: 12 Ha'Erez Street, Or Yehuda
+Building code: 1818
+Room: ${room.roomNumber} (already unlocked, key inside)
 
-*✅ Self Check-in Instructions:*
-When you arrive at 12 Ha'Erez Street, Or Yehuda, enter the code 1818 to access the building. Your room number is ${room.roomNumber}, and I've already unlocked it for you. Your key will be waiting inside, so you can settle in easily.
-
-*📍 Address in Hebrew (for taxis):*
+📍 *Address in Hebrew (for taxis):*
 הארז 12, אור יהודה
 
-*🚖 Important Taxi Tip:*
-To ensure a fair price and avoid any issues, please take a licensed taxi from the official taxi stand at the airport. Ask the driver to use the meter and request a receipt—unfortunately, some drivers overcharge tourists, and I want to help you avoid that. If you need any advice, feel free to reach out!
+🚖 *Taxi Tip:*
+Please take a licensed taxi from the official airport stand and ask the driver to use the meter.
 
-*📄 VAT Exemption:*
-To avoid paying VAT, kindly send me a photocopy of your passport.
+📄 *VAT Exemption:*
+Kindly send me a photo of your passport with the entry stamp.
 
-🌍 If you have any questions during your stay—whether it's about the guest house, transportation, or even travel tips around Israel—feel free to reach out! As a local, I'd be happy to help. Wishing you a great time and a pleasant stay!
-
-Warm regards,
-🙂🙂🙂`;
+I'm available anytime for any questions. Wishing you a pleasant stay!`;
     } else if (room.location === 'rothschild') {
       message = `רוטשילד 79 פתח תקווה
 ממש ליד הכניסה לסופרמרקט "יש בשכונה" יש דלת זכוכית 
