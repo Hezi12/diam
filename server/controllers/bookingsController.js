@@ -116,7 +116,7 @@ exports.getBookingsByLocation = async (req, res) => {
 // קבלת הזמנות בטווח תאריכים 
 exports.getBookingsByDateRange = async (req, res) => {
   try {
-    const { startDate, endDate, location, filterMode } = req.query;
+    const { startDate, endDate, location, filterMode, hideRefusals } = req.query;
     
     if (!startDate || !endDate) {
       return res.status(400).json({ message: 'נדרשים תאריך התחלה ותאריך סיום' });
@@ -193,7 +193,29 @@ exports.getBookingsByDateRange = async (req, res) => {
       })
     );
     
-    res.json(bookingsWithInvoiceInfo);
+    // 🛡️ סינון הזמנות עם סירוב עבור לוח המודעות (רק אם נדרש)
+    let finalBookings = bookingsWithInvoiceInfo;
+    if (hideRefusals === 'true') {
+      finalBookings = bookingsWithInvoiceInfo.filter(booking => {
+        // אם אין הערות, ההזמנה תוצג
+        if (!booking.notes) return true;
+        
+        // בדיקה מדויקת של מילות סירוב בעברית ואנגלית
+        const notesLower = booking.notes.toLowerCase();
+        const refusalKeywords = ['סירוב', 'refusal', 'refuse', 'declined', 'reject', 'rejection'];
+        
+        // אם נמצאה מילת סירוב, לא להציג את ההזמנה
+        const hasRefusal = refusalKeywords.some(keyword => notesLower.includes(keyword));
+        
+        if (hasRefusal) {
+          console.log(`🚫 מסתיר הזמנה #${booking.bookingNumber} מלוח המודעות בגלל סירוב בהערות: "${booking.notes}"`);
+        }
+        
+        return !hasRefusal;
+      });
+    }
+    
+    res.json(finalBookings);
   } catch (error) {
     console.error('Error getting bookings by date range:', error);
     res.status(500).json({ message: 'שגיאה בקבלת רשימת ההזמנות לפי טווח תאריכים' });

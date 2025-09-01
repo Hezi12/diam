@@ -195,7 +195,7 @@ const PublicNoticeBoard = () => {
       const startStr = format(displayDate, 'yyyy-MM-dd');
       const endStr = format(displayDate, 'yyyy-MM-dd');
       
-      const response = await fetch(`${apiUrl}/api/bookings/public/date-range?startDate=${startStr}&endDate=${endStr}&location=airport`);
+      const response = await fetch(`${apiUrl}/api/bookings/public/date-range?startDate=${startStr}&endDate=${endStr}&location=airport&hideRefusals=true`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -210,10 +210,17 @@ const PublicNoticeBoard = () => {
         const isToday = checkInDateStr === displayDateStr;
         const isNotCancelled = booking.status !== 'cancelled';
         
-        // בדיקה אם יש "סירוב" בהערות - אם כן, לא להציג בלוח המודעות
-        const hasRefusal = booking.notes && booking.notes.toLowerCase().includes('סירוב');
+        // 🛡️ בדיקה מדויקת יותר אם יש "סירוב" בהערות - אם כן, לא להציג בלוח המודעות
+        // בודק גם "סירוב" וגם "REFUSAL" וגם "refuse" למקרים שונים
+        const hasRefusal = booking.notes && (
+          booking.notes.toLowerCase().includes('סירוב') ||
+          booking.notes.toLowerCase().includes('refusal') ||
+          booking.notes.toLowerCase().includes('refuse') ||
+          booking.notes.toLowerCase().includes('declined') ||
+          booking.notes.toLowerCase().includes('reject')
+        );
         
-        console.log(`- Booking ${booking.bookingNumber}: checkIn=${checkInDateStr}, isToday=${isToday}, status=${booking.status}, isNotCancelled=${isNotCancelled}, hasRefusal=${hasRefusal}`);
+        console.log(`- Booking ${booking.bookingNumber}: checkIn=${checkInDateStr}, isToday=${isToday}, status=${booking.status}, isNotCancelled=${isNotCancelled}, hasRefusal=${hasRefusal}, notes="${booking.notes || 'ללא הערות'}"`);
         
         return isToday && isNotCancelled && !hasRefusal;
       });
