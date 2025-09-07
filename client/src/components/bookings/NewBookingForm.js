@@ -99,9 +99,9 @@ const NewBookingForm = ({
   const locationColors = STYLE_CONSTANTS.colors;
   const currentColors = locationColors[location] || locationColors.airport;
 
-  // סינון ומיון החדרים לתצוגה
+  // מיון החדרים לתצוגה (ללא סינון - כולל Not for Sale)
   const filteredAndSortedRooms = useMemo(() => {
-    return sortRoomsByNumber(filterNotForSaleRooms(rooms));
+    return sortRoomsByNumber(rooms);
   }, [rooms]);
 
   // האם אנחנו במצב עריכה

@@ -18,7 +18,9 @@ import {
   Paper,
   Card,
   CardContent,
-  Grid
+  Grid,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import { 
   ReceiptLong as ReceiptIcon,
@@ -27,7 +29,8 @@ import {
   ArrowBack as ArrowBackIcon,
   Article as ArticleIcon,
   Print as PrintIcon,
-  WhatsApp as WhatsAppIcon
+  WhatsApp as WhatsAppIcon,
+  Language as LanguageIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import icountService from '../../services/icountService';
@@ -74,6 +77,36 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
 • במידה ויגיעו אורחים נוספים מעבר למספר שהוזמן, יחולו חיובים נוספים`
   );
   
+  // מצב לשפת אישור ההזמנה
+  const [confirmationLanguage, setConfirmationLanguage] = useState('he');
+
+  // פונקציה לעדכון המידע החשוב בהתאם לשפה
+  const updateImportantInfoByLanguage = (language) => {
+    if (language === 'en') {
+      setImportantInfo(
+        `• Cancellation is free up to 4 days before arrival date, after that no cancellation is allowed
+• Check-out time: Until 10:00 AM
+• We have a self check-in system - on arrival day we will send you all the details and instructions
+• If additional guests arrive beyond the number booked, additional charges will apply`
+      );
+    } else {
+      setImportantInfo(
+        `• ניתן לבטל את ההזמנה ללא עלות עד 4 ימים לפני תאריך הגעה, לאחר מכן לא ניתן לבטל
+• שעת צ'ק אאוט: עד השעה 10:00 בבוקר
+• יש לנו מערכת צ'ק אין עצמאי - ביום ההגעה נשלח אליכם את כל הפרטים וההוראות
+• במידה ויגיעו אורחים נוספים מעבר למספר שהוזמן, יחולו חיובים נוספים`
+      );
+    }
+  };
+
+  // פונקציה לטיפול בשינוי שפה
+  const handleLanguageChange = (event, newLanguage) => {
+    if (newLanguage !== null) {
+      setConfirmationLanguage(newLanguage);
+      updateImportantInfoByLanguage(newLanguage);
+    }
+  };
+  
   // הוק להודעות
   const { enqueueSnackbar } = useSnackbar();
   
@@ -107,6 +140,7 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
     setHasExistingInvoice(false);
     setExistingInvoiceInfo(null);
     setCheckingInvoice(false);
+    setConfirmationLanguage('he');
     setImportantInfo(
       `• ניתן לבטל את ההזמנה ללא עלות עד 4 ימים לפני תאריך הגעה, לאחר מכן לא ניתן לבטל
 • שעת צ'ק אאוט: עד השעה 10:00 בבוקר
@@ -432,9 +466,34 @@ const CreditCardChargeDialog = ({ open, onClose, booking, onPaymentSuccess }) =>
     // קביעת פרטי המתחם
     const isAirport = booking.location === 'airport';
     const hotelName = isAirport ? 'Airport Guest House' : 'Rothschild 79';
-    const address = isAirport ? 'הארז 12 אור יהודה' : 'רוטשילד 79 פתח תקווה';
     
-    return `
+    if (confirmationLanguage === 'en') {
+      return `
+Hello ${booking.firstName}
+
+Thank you for choosing to stay at ${hotelName}! Booking #${booking.bookingNumber} has been confirmed.
+
+*Stay Details:*
+Check-in: ${new Date(booking.checkIn).toLocaleDateString('en-US')}
+Check-out: ${new Date(booking.checkOut).toLocaleDateString('en-US')}
+Nights: ${booking.nights || 1}
+Guests: ${booking.guests || 1}
+
+*Billing Details:*
+Accommodation for ${booking.nights || 1} night${(booking.nights || 1) > 1 ? 's' : ''}: ₪${((booking.price || 0) + (booking.discount || 0)).toLocaleString()}${booking.discount > 0 ? `
+Discount: -₪${booking.discount.toLocaleString()}` : ''}
+
+*Total Amount: ₪${booking.price.toLocaleString()}*
+
+${booking.notes ? `Notes: ${booking.notes}` : ''}
+
+${importantInfo ? `Important Information:
+${importantInfo}` : ''}
+
+For any questions, we are available :)
+      `.trim();
+    } else {
+      return `
 שלום ${booking.firstName}
 
 תודה שבחרת להתארח ב-${hotelName}! הזמנה מס׳ ${booking.bookingNumber} אושרה.
@@ -457,7 +516,8 @@ ${importantInfo ? `מידע חשוב:
 ${importantInfo}` : ''}
 
 לכל שאלה ופנייה אנחנו זמינים :)
-    `.trim();
+      `.trim();
+    }
   };
 
   // יצירת טקסט אישור הזמנה להדפסה
@@ -553,15 +613,22 @@ ${importantInfo}
     // קביעת פרטי המתחם
     const isAirport = booking.location === 'airport';
     const hotelName = isAirport ? 'Airport Guest House' : 'Rothschild 79';
-    const address = isAirport ? 'הארז 12 אור יהודה' : 'רוטשילד 79 פתח תקווה';
+    const address = confirmationLanguage === 'he' 
+      ? (isAirport ? 'הארז 12 אור יהודה' : 'רוטשילד 79 פתח תקווה')
+      : (isAirport ? '12 Haerez St, Or Yehuda' : '79 Rothschild St, Petach Tikva');
+    
+    const isHebrew = confirmationLanguage === 'he';
+    const direction = isHebrew ? 'rtl' : 'ltr';
+    const lang = isHebrew ? 'he' : 'en';
+    const title = isHebrew ? `אישור הזמנה ${booking.bookingNumber}` : `Booking Confirmation ${booking.bookingNumber}`;
     
     return `
 <!DOCTYPE html>
-<html dir="rtl" lang="he">
+<html dir="${direction}" lang="${lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>אישור הזמנה ${booking.bookingNumber}</title>
+    <title>${title}</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -570,6 +637,7 @@ ${importantInfo}
             background-color: #f5f5f5;
             color: #333;
             line-height: 1.4;
+            text-align: ${isHebrew ? 'right' : 'left'};
         }
         .container {
             max-width: 800px;
@@ -665,77 +733,83 @@ ${importantInfo}
         <div class="header">
             <h1 style="margin: 0 0 5px 0; font-size: 1.8em;">${hotelName}</h1>
             <h2 style="margin: 0 0 5px 0; font-size: 1.2em;">${address}</h2>
-            <p style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">טלפון: 0506070260 | מייל: diamshotels@gmail.com</p>
-            <h2 style="margin: 10px 0; font-size: 1.3em;">אישור הזמנה #${booking.bookingNumber}</h2>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">${isHebrew ? 'טלפון: 0506070260 | מייל: diamshotels@gmail.com' : 'Phone: 0506070260 | Email: diamshotels@gmail.com'}</p>
+            <h2 style="margin: 10px 0; font-size: 1.3em;">${title}</h2>
         </div>
 
         <div style="margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #ddd;">
-            <h3 style="margin: 0 0 4px 0; color: #333; font-size: 1.1em;">לכבוד</h3>
+            <h3 style="margin: 0 0 4px 0; color: #333; font-size: 1.1em;">${isHebrew ? 'לכבוד' : 'Dear'}</h3>
             <p style="margin: 0; font-size: 1.1em; font-weight: bold;">${booking.firstName} ${booking.lastName}</p>
-            <p style="margin: 2px 0 0 0; color: #666;">טלפון: ${booking.phone}</p>
+            <p style="margin: 2px 0 0 0; color: #666;">${isHebrew ? 'טלפון:' : 'Phone:'} ${booking.phone}</p>
         </div>
 
         <div style="margin-bottom: 12px;">
-            <h3 style="margin: 0 0 6px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">פרטי השהייה</h3>
+            <h3 style="margin: 0 0 6px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">${isHebrew ? 'פרטי השהייה' : 'Stay Details'}</h3>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
                 <div>
-                    <strong>צ'ק אין:</strong><br/>
-                    ${new Date(booking.checkIn).toLocaleDateString('he-IL')}
+                    <strong>${isHebrew ? 'צ\'ק אין:' : 'Check-in:'}</strong><br/>
+                    ${new Date(booking.checkIn).toLocaleDateString(isHebrew ? 'he-IL' : 'en-US')}
                 </div>
                 <div>
-                    <strong>צ'ק אאוט:</strong><br/>
-                    ${new Date(booking.checkOut).toLocaleDateString('he-IL')}
+                    <strong>${isHebrew ? 'צ\'ק אאוט:' : 'Check-out:'}</strong><br/>
+                    ${new Date(booking.checkOut).toLocaleDateString(isHebrew ? 'he-IL' : 'en-US')}
                 </div>
                 <div>
-                    <strong>מספר לילות:</strong><br/>
+                    <strong>${isHebrew ? 'מספר לילות:' : 'Nights:'}</strong><br/>
                     ${booking.nights || 1}
                 </div>
                 <div>
-                    <strong>מספר אורחים:</strong><br/>
+                    <strong>${isHebrew ? 'מספר אורחים:' : 'Guests:'}</strong><br/>
                     ${booking.guests || 1}
                 </div>
             </div>
         </div>
 
         <div style="margin-bottom: 15px;">
-            <h3 style="margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333;">פירוט חיוב</h3>
+            <h3 style="margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333;">${isHebrew ? 'פירוט חיוב' : 'Billing Details'}</h3>
             
             <div style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd;">
-                    <span>לינה עבור ${booking.nights || 1} לילות</span>
+                    <span>${isHebrew 
+                      ? `לינה עבור ${booking.nights || 1} לילות`
+                      : `Accommodation for ${booking.nights || 1} night${(booking.nights || 1) > 1 ? 's' : ''}`
+                    }</span>
                     <span style="font-weight: 500;">₪${((booking.price || 0) + (booking.discount || 0)).toLocaleString()}</span>
                 </div>
                 
                 ${booking.discount > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd;">
-                    <span style="color: #4caf50;">הנחה</span>
+                    <span style="color: #4caf50;">${isHebrew ? 'הנחה' : 'Discount'}</span>
                     <span style="font-weight: 500; color: #4caf50;">-₪${booking.discount.toLocaleString()}</span>
                 </div>
                 ` : ''}
             </div>
 
             <div style="display: flex; justify-content: space-between; padding: 10px; border-top: 2px solid #333; background-color: #f5f5f5; font-weight: bold; font-size: 1.1em;">
-                <span>סה"כ לתשלום</span>
+                <span>${isHebrew ? 'סה"כ לתשלום' : 'Total Amount'}</span>
                 <span style="color: #1976d2;">₪${booking.price.toLocaleString()}</span>
             </div>
         </div>
 
         ${booking.notes ? `
         <div style="margin-bottom: 10px;">
-            <h3 style="margin: 0 0 4px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">הערות</h3>
+            <h3 style="margin: 0 0 4px 0; padding-bottom: 4px; border-bottom: 1px solid #ddd; color: #333; font-size: 1.1em;">${isHebrew ? 'הערות' : 'Notes'}</h3>
             <p style="margin: 4px 0 0 0;">${booking.notes}</p>
         </div>
         ` : ''}
 
         <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ffa726; border-radius: 5px; background-color: #fff3e0;">
-            <h3 style="margin: 0 0 4px 0; color: #e65100; font-size: 1.1em;">מידע חשוב</h3>
+            <h3 style="margin: 0 0 4px 0; color: #e65100; font-size: 1.1em;">${isHebrew ? 'מידע חשוב' : 'Important Information'}</h3>
             <div style="white-space: pre-line; line-height: 1.4; margin-top: 4px;">
                 ${importantInfo}
             </div>
         </div>
 
         <div class="footer">
-            <p style="margin: 8px 0 0 0;"><em>תודה שבחרת ב-${hotelName} - מחכים לראותך!</em></p>
+            <p style="margin: 8px 0 0 0;"><em>${isHebrew 
+              ? `תודה שבחרת ב-${hotelName} - מחכים לראותך!`
+              : `Thank you for choosing ${hotelName} - we look forward to seeing you!`
+            }</em></p>
         </div>
     </div>
 </body>
@@ -1254,18 +1328,62 @@ ${importantInfo}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                   <Typography variant="h5" sx={{ fontWeight: 600, color: 'info.main' }}>
-                    📄 אישור הזמנה
+                    📄 {confirmationLanguage === 'he' ? 'אישור הזמנה' : 'Booking Confirmation'}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
+                    {/* בחירת שפה */}
+                    <ToggleButtonGroup
+                      value={confirmationLanguage}
+                      exclusive
+                      onChange={handleLanguageChange}
+                      size="small"
+                      sx={{ 
+                        mr: 1,
+                        '& .MuiToggleButton-root': {
+                          border: '1px solid #e0e0e0',
+                          borderRadius: 1,
+                          px: 1,
+                          py: 0.3,
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'text.secondary',
+                          textTransform: 'none',
+                          minWidth: 'auto',
+                          '&.Mui-selected': {
+                            backgroundColor: 'primary.main',
+                            color: 'white',
+                            borderColor: 'primary.main',
+                            '&:hover': {
+                              backgroundColor: 'primary.dark',
+                            }
+                          },
+                          '&:hover': {
+                            backgroundColor: 'grey.50',
+                          }
+                        }
+                      }}
+                    >
+                      <ToggleButton value="he">
+                        עב
+                      </ToggleButton>
+                      <ToggleButton value="en">
+                        EN
+                      </ToggleButton>
+                    </ToggleButtonGroup>
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={<WhatsAppIcon />}
                       onClick={handleWhatsAppSend}
                       sx={{ 
-                        borderRadius: 2,
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
                         color: '#25D366',
-                        borderColor: '#25D366',
+                        borderColor: '#e0e0e0',
+                        textTransform: 'none',
+                        minWidth: 'auto',
                         '&:hover': {
                           backgroundColor: '#25D366',
                           color: 'white',
@@ -1273,83 +1391,114 @@ ${importantInfo}
                         }
                       }}
                     >
-                      שלח בווטסאפ
+                      WhatsApp
                     </Button>
                     <Button
                       size="small"
-                      variant="contained"
-                      startIcon={<PrintIcon />}
+                      variant="outlined"
                       onClick={() => {
                         const printWindow = window.open('', '_blank');
                         printWindow.document.write(generateBookingConfirmationHTML());
                         printWindow.document.close();
                         printWindow.print();
                       }}
-                      sx={{ borderRadius: 2 }}
+                      sx={{ 
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 0.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: 'text.secondary',
+                        borderColor: '#e0e0e0',
+                        textTransform: 'none',
+                        minWidth: 'auto',
+                        '&:hover': {
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          borderColor: 'primary.main'
+                        }
+                      }}
                     >
-                      הדפס
+                      {confirmationLanguage === 'he' ? 'הדפס' : 'Print'}
                     </Button>
                   </Box>
                 </Box>
 
                 {/* תוכן אישור ההזמנה */}
-                <Box sx={{ bgcolor: 'white', p: 3, borderRadius: 2, border: '1px solid', borderColor: 'grey.300' }}>
+                <Box sx={{ 
+                  bgcolor: 'white', 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '1px solid', 
+                  borderColor: 'grey.300',
+                  direction: confirmationLanguage === 'he' ? 'rtl' : 'ltr',
+                  textAlign: confirmationLanguage === 'he' ? 'right' : 'left'
+                }}>
                   {/* כותרת */}
                   <Box sx={{ textAlign: 'center', mb: 2, borderBottom: '2px solid', borderColor: 'info.main', pb: 1 }}>
                     <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main', mb: 0.5 }}>
                       {booking?.location === 'airport' ? 'Airport Guest House' : 'Rothschild 79'}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
-                      {booking?.location === 'airport' ? 'הארז 12 אור יהודה' : 'רוטשילד 79 פתח תקווה'}
+                      {confirmationLanguage === 'he' 
+                        ? (booking?.location === 'airport' ? 'הארז 12 אור יהודה' : 'רוטשילד 79 פתח תקווה')
+                        : (booking?.location === 'airport' ? '12 Haerez St, Or Yehuda' : '79 Rothschild St, Petach Tikva')
+                      }
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', mb: 0.5 }}>
-                      טלפון: 0506070260 | מייל: diamshotels@gmail.com
+                      {confirmationLanguage === 'he' 
+                        ? 'טלפון: 0506070260 | מייל: diamshotels@gmail.com'
+                        : 'Phone: 0506070260 | Email: diamshotels@gmail.com'
+                      }
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: 'info.main', mt: 1 }}>
-                      אישור הזמנה #{booking?.bookingNumber}
+                      {confirmationLanguage === 'he' 
+                        ? `אישור הזמנה #${booking?.bookingNumber}`
+                        : `Booking Confirmation #${booking?.bookingNumber}`
+                      }
                     </Typography>
                   </Box>
 
                   {/* לכבוד */}
                   <Box sx={{ mb: 2, py: 1, borderBottom: '1px solid', borderColor: 'grey.300' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-                      לכבוד
+                      {confirmationLanguage === 'he' ? 'לכבוד' : 'Dear'}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
                       {booking?.firstName} {booking?.lastName}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      טלפון: {booking?.phone}
+                      {confirmationLanguage === 'he' ? 'טלפון:' : 'Phone:'} {booking?.phone}
                     </Typography>
                   </Box>
 
                   {/* פרטי השהייה */}
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5, pb: 0.5, borderBottom: '1px solid', borderColor: 'grey.300' }}>
-                      פרטי השהייה
+                      {confirmationLanguage === 'he' ? 'פרטי השהייה' : 'Stay Details'}
                     </Typography>
                     <Grid container spacing={1} sx={{ mt: 0.5 }}>
                       <Grid item xs={6} sm={3}>
                         <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          <strong>צ'ק אין:</strong><br/>
-                          {new Date(booking?.checkIn).toLocaleDateString('he-IL')}
+                          <strong>{confirmationLanguage === 'he' ? 'צ\'ק אין:' : 'Check-in:'}</strong><br/>
+                          {new Date(booking?.checkIn).toLocaleDateString(confirmationLanguage === 'he' ? 'he-IL' : 'en-US')}
                         </Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
                         <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          <strong>צ'ק אאוט:</strong><br/>
-                          {new Date(booking?.checkOut).toLocaleDateString('he-IL')}
+                          <strong>{confirmationLanguage === 'he' ? 'צ\'ק אאוט:' : 'Check-out:'}</strong><br/>
+                          {new Date(booking?.checkOut).toLocaleDateString(confirmationLanguage === 'he' ? 'he-IL' : 'en-US')}
                         </Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
                         <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          <strong>מס' לילות:</strong><br/>
+                          <strong>{confirmationLanguage === 'he' ? 'מס\' לילות:' : 'Nights:'}</strong><br/>
                           {booking?.nights || 1}
                         </Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
                         <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          <strong>מס' אורחים:</strong><br/>
+                          <strong>{confirmationLanguage === 'he' ? 'מס\' אורחים:' : 'Guests:'}</strong><br/>
                           {booking?.guests || 1}
                         </Typography>
                       </Grid>
@@ -1359,14 +1508,17 @@ ${importantInfo}
                   {/* פירוט חיוב */}
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary', mb: 1, pb: 0.5, borderBottom: '1px solid', borderColor: 'grey.300' }}>
-                      פירוט חיוב
+                      {confirmationLanguage === 'he' ? 'פירוט חיוב' : 'Billing Details'}
                     </Typography>
                     
                     {/* פריטי החיוב */}
                     <Box sx={{ mb: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1, borderBottom: '1px dashed', borderColor: 'grey.200' }}>
                         <Typography variant="body2">
-                          לינה עבור {booking?.nights || 1} לילות
+                          {confirmationLanguage === 'he' 
+                            ? `לינה עבור ${booking?.nights || 1} לילות`
+                            : `Accommodation for ${booking?.nights || 1} night${(booking?.nights || 1) > 1 ? 's' : ''}`
+                          }
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           ₪{((booking?.price || 0) + (booking?.discount || 0)).toLocaleString()}
@@ -1376,7 +1528,7 @@ ${importantInfo}
                       {booking?.discount > 0 && (
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1, borderBottom: '1px dashed', borderColor: 'grey.200' }}>
                           <Typography variant="body2" sx={{ color: 'success.main' }}>
-                            הנחה
+                            {confirmationLanguage === 'he' ? 'הנחה' : 'Discount'}
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.main' }}>
                             -₪{booking?.discount?.toLocaleString()}
@@ -1388,7 +1540,7 @@ ${importantInfo}
                     {/* סה"כ לתשלום */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 2, borderTop: '2px solid', borderColor: 'text.primary', bgcolor: 'grey.50' }}>
                       <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        סה"כ לתשלום
+                        {confirmationLanguage === 'he' ? 'סה"כ לתשלום' : 'Total Amount'}
                       </Typography>
                       <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
                         ₪{booking?.price?.toLocaleString()}
@@ -1400,7 +1552,7 @@ ${importantInfo}
                   {booking?.notes && (
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5, pb: 0.5, borderBottom: '1px solid', borderColor: 'grey.300' }}>
-                        הערות
+                        {confirmationLanguage === 'he' ? 'הערות' : 'Notes'}
                       </Typography>
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
                         {booking.notes}
@@ -1411,7 +1563,7 @@ ${importantInfo}
                   {/* מידע חשוב */}
                   <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'warning.main', borderRadius: 1, bgcolor: 'warning.50' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'warning.dark', mb: 0.5 }}>
-                      מידע חשוב
+                      {confirmationLanguage === 'he' ? 'מידע חשוב' : 'Important Information'}
                     </Typography>
                     <TextField
                       multiline
