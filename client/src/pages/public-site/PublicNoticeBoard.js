@@ -238,14 +238,23 @@ const PublicNoticeBoard = () => {
         guestsList = [...defaultGuests];
       } else {
         // אחרת, הצג אורחים אמיתיים עם השלמה של ברירת מחדל
-        guestsList = todayCheckins.map(booking => ({
-          name: booking.firstName && booking.lastName ? `${booking.firstName} ${booking.lastName}` : booking.firstName || 'Guest',
-          roomNumber: booking.roomNumber,
-          phone: booking.phone || 'Not provided',
-          checkIn: booking.checkIn,
-          checkOut: booking.checkOut,
-          guests: booking.guests
-        }));
+        guestsList = todayCheckins.map(booking => {
+          // שימוש בנתוני החדר המעודכנים מה-populate במקום השדה הישן
+          const roomNumber = booking.room && booking.room.roomNumber ? 
+            booking.room.roomNumber : 
+            booking.roomNumber || 'N/A';
+            
+          console.log(`🏨 Booking ${booking.bookingNumber}: roomNumber from booking.roomNumber=${booking.roomNumber}, from booking.room.roomNumber=${booking.room?.roomNumber}, using=${roomNumber}`);
+          
+          return {
+            name: booking.firstName && booking.lastName ? `${booking.firstName} ${booking.lastName}` : booking.firstName || 'Guest',
+            roomNumber: roomNumber,
+            phone: booking.phone || 'Not provided',
+            checkIn: booking.checkIn,
+            checkOut: booking.checkOut,
+            guests: booking.guests
+          };
+        });
 
         console.log('👥 Guests list before adding defaults:', guestsList);
 

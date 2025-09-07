@@ -189,6 +189,11 @@ exports.getBookingsByDateRange = async (req, res) => {
         bookingObj.hasAnyInvoice = invoices.length > 0;
         bookingObj.invoicesCount = invoices.length;
         
+        // Debug: הוספת לוג לבדיקת נתוני החדר עבור לוח המודעות
+        if (location === 'airport') {
+          console.log(`🏨 Airport Booking ${booking.bookingNumber}: room data - ID: ${booking.room?._id}, roomNumber: ${booking.room?.roomNumber}, bookingObj.roomNumber: ${bookingObj.roomNumber}`);
+        }
+        
         return bookingObj;
       })
     );
