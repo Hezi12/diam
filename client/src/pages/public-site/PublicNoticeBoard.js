@@ -195,7 +195,9 @@ const PublicNoticeBoard = () => {
       const startStr = format(displayDate, 'yyyy-MM-dd');
       const endStr = format(displayDate, 'yyyy-MM-dd');
       
-      const response = await fetch(`${apiUrl}/api/bookings/public/date-range?startDate=${startStr}&endDate=${endStr}&location=airport&hideRefusals=true`);
+      // הוספת cache busting כדי לוודא שהנתונים מתרעננים
+      const cacheBuster = Date.now();
+      const response = await fetch(`${apiUrl}/api/bookings/public/date-range?startDate=${startStr}&endDate=${endStr}&location=airport&hideRefusals=true&_=${cacheBuster}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

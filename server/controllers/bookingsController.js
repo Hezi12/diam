@@ -440,6 +440,12 @@ exports.createBooking = async (req, res) => {
       externalBookingNumber: savedBooking.externalBookingNumber || '(לא הוגדר)'
     });
     
+    // טריגר רענון לוח המודעות עבור הזמנה חדשה (רק עבור Airport)
+    if (savedBooking.location === 'airport') {
+      console.log('🔄 מטריגר רענון לוח המודעות עבור הזמנה חדשה (Airport)');
+      noticeBoardRefreshTimestamp = Date.now();
+    }
+    
     res.status(201).json({
       success: true,
       data: savedBooking,
@@ -592,6 +598,17 @@ exports.updateBooking = async (req, res) => {
       nights: updatedBooking.nights
     });
     
+    // טריגר רענון לוח המודעות אם יש שינוי בחדר או בתאריכים (רק עבור Airport)
+    const roomChanged = updateData.room && updateData.room !== booking.room?.toString();
+    const datesChanged = updateData.checkIn || updateData.checkOut;
+    const isAirportLocation = booking.location === 'airport';
+    
+    if ((roomChanged || datesChanged) && isAirportLocation) {
+      console.log('🔄 מטריגר רענון לוח המודעות בגלל שינוי בחדר או תאריכים (Airport)');
+      // עדכון timestamp לרענון לוח המודעות
+      noticeBoardRefreshTimestamp = Date.now();
+    }
+    
     // אם שינוי בסטטוס התשלום או בסכום, נעדכן את נתוני ההון
     const oldPaymentStatus = booking.paymentStatus;
     const oldPrice = booking.price;
@@ -645,6 +662,12 @@ exports.deleteBooking = async (req, res) => {
     
     // מחיקת ההזמנה
     await Booking.findByIdAndDelete(id);
+    
+    // טריגר רענון לוח המודעות עבור מחיקת הזמנה (רק עבור Airport)
+    if (booking.location === 'airport') {
+      console.log('🔄 מטריגר רענון לוח המודעות עבור מחיקת הזמנה (Airport)');
+      noticeBoardRefreshTimestamp = Date.now();
+    }
     
     res.status(200).json({ message: 'הזמנה נמחקה בהצלחה' });
   } catch (error) {
@@ -1100,6 +1123,12 @@ exports.createPublicBooking = async (req, res) => {
       }
       
       console.log('הזמנה נשמרה בהצלחה:', newBooking._id);
+      
+      // טריגר רענון לוח המודעות עבור הזמנה חדשה מהאתר הציבורי (רק עבור Airport)
+      if (newBooking.location === 'airport') {
+        console.log('🔄 מטריגר רענון לוח המודעות עבור הזמנה חדשה מהאתר הציבורי (Airport)');
+        noticeBoardRefreshTimestamp = Date.now();
+      }
       
       // 📧 שליחת מייל אישור הזמנה (+ עותק לניהול כי זו הזמנה ציבורית)
       try {
