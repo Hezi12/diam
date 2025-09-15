@@ -131,6 +131,7 @@ const EditBookingForm = ({
     { value: 'transfer_poalim', label: 'העברה פועלים' },
     { value: 'bit_poalim', label: 'ביט פועלים' },
     { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
+    { value: 'delayed_transfer', label: 'העברה מאוחרת' },
     { value: 'other', label: 'אחר' }
   ];
 

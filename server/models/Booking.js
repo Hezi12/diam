@@ -174,6 +174,7 @@ const BookingSchema = new mongoose.Schema(
         'transfer_poalim',
         'bit_poalim',
         'paybox_poalim',
+        'delayed_transfer',
         'other'
       ],
       default: 'unpaid'

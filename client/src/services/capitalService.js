@@ -110,6 +110,7 @@ export const getPaymentMethodName = (method) => {
     transfer_mizrahi: 'העברה מזרחי',
     paybox_mizrahi: 'פייבוקס מזרחי',
     credit_or_yehuda: 'אשראי אור יהודה',
+    delayed_transfer: 'העברה מאוחרת',
     other: 'אחר'
   };
   

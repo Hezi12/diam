@@ -103,6 +103,7 @@ const BookingItem = ({ booking, onClick, location = 'airport' }) => {
     transfer_poalim: <AccountBalanceIcon fontSize="small" sx={{ color: colors.accent.green }} />,
     bit_poalim: <PaymentsIcon fontSize="small" sx={{ color: colors.accent.green }} />,
     paybox_poalim: <PaymentsIcon fontSize="small" sx={{ color: colors.accent.green }} />,
+    delayed_transfer: <AccountBalanceIcon fontSize="small" sx={{ color: colors.accent.orange }} />,
     other: <AttachMoneyIcon fontSize="small" sx={{ color: colors.accent.green }} />
   };
 
@@ -118,6 +119,7 @@ const BookingItem = ({ booking, onClick, location = 'airport' }) => {
     transfer_poalim: 'העברה פועלים',
     bit_poalim: 'ביט פועלים',
     paybox_poalim: 'פייבוקס פועלים',
+    delayed_transfer: 'העברה מאוחרת',
     other: 'אחר'
   };
 

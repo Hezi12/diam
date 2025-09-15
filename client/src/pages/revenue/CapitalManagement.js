@@ -105,6 +105,7 @@ const PaymentMethodCard = ({ method, name, amount, onEdit }) => {
       transfer_mizrahi: theme.palette.secondary.main,
       paybox_mizrahi: '#9c27b0',
       credit_or_yehuda: '#795548',
+      delayed_transfer: '#ff9800',
       other: theme.palette.grey[500]
     };
     

@@ -40,6 +40,7 @@ const ExpenseSchema = new mongoose.Schema(
         'bit_mizrahi',
         'paybox_poalim',
         'paybox_mizrahi',
+        'delayed_transfer',
         'other'
       ],
       required: true
