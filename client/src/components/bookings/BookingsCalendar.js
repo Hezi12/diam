@@ -15,6 +15,7 @@ import {
   Divider,
   Chip
 } from '@mui/material';
+import axios from 'axios';
 import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
@@ -351,47 +352,43 @@ const BookingsCalendar = ({
     setNotification(prev => ({ ...prev, open: false }));
   };
 
-  // מחיקה ישירה ללא אישור
+  // מחיקה ישירה ללא אישור - עם axios במקום fetch
   const handleDeleteBooking = async (booking, event) => {
     event.stopPropagation(); // מניעת פתיחת ההזמנה
     
     try {
-      const token = localStorage.getItem('token');
-      console.log('🗑️ מוחק הזמנה:', booking._id, 'עם token:', token ? 'קיים' : 'חסר');
+      console.log('🗑️ מוחק הזמנה:', booking._id);
       
-      const response = await fetch(`/api/bookings/${booking._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // שימוש ב-axios במקום fetch - axios כבר מוגדר עם הטוקן והכתובת הנכונה
+      await axios.delete(`/api/bookings/${booking._id}`);
 
-      console.log('📡 תגובת שרת:', response.status, response.statusText);
-
-      if (response.ok) {
-        console.log('✅ הזמנה נמחקה בהצלחה בשרת');
-        showNotification(`הזמנה ${booking.bookingNumber} נמחקה בהצלחה`, 'success');
-        
-        // רענון הנתונים עם טיפול בשגיאות
-        if (onBookingUpdate) {
-          try {
-            console.log('🔄 מרענן נתונים...');
-            await onBookingUpdate();
-            console.log('✅ נתונים רוענו בהצלחה');
-          } catch (refreshError) {
-            console.error('❌ שגיאה ברענון הנתונים:', refreshError);
-            // לא מציגים שגיאה למשתמש כי המחיקה עצמה הצליחה
-          }
+      console.log('✅ הזמנה נמחקה בהצלחה בשרת');
+      showNotification(`הזמנה ${booking.bookingNumber} נמחקה בהצלחה`, 'success');
+      
+      // רענון הנתונים עם טיפול בשגיאות
+      if (onBookingUpdate) {
+        try {
+          console.log('🔄 מרענן נתונים...');
+          await onBookingUpdate();
+          console.log('✅ נתונים רוענו בהצלחה');
+        } catch (refreshError) {
+          console.error('❌ שגיאה ברענון הנתונים:', refreshError);
+          // לא מציגים שגיאה למשתמש כי המחיקה עצמה הצליחה
         }
-      } else {
-        const errorText = await response.text();
-        console.error('❌ שגיאה במחיקה:', errorText);
-        showNotification(`שגיאה במחיקת ההזמנה: ${response.status}`, 'error');
       }
     } catch (error) {
       console.error('❌ שגיאה במחיקת הזמנה:', error);
-      showNotification('שגיאה במחיקת ההזמנה', 'error');
+      
+      let errorMessage = 'שגיאה במחיקת ההזמנה';
+      if (error.response) {
+        // שגיאה מהשרת
+        errorMessage = `שגיאה במחיקת ההזמנה: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`;
+      } else if (error.request) {
+        // בעיית רשת
+        errorMessage = 'שגיאת רשת - לא ניתן להתחבר לשרת';
+      }
+      
+      showNotification(errorMessage, 'error');
     }
   };
 
