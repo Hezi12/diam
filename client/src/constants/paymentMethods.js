@@ -15,6 +15,7 @@ export const ALL_PAYMENT_METHODS = [
   { value: 'transfer_poalim', label: 'העברה פועלים' },
   { value: 'bit_poalim', label: 'ביט פועלים' },
   { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
+  { value: 'delayed_transfer', label: 'העברה מאוחרת' },
   { value: 'other', label: 'אחר' }
 ];
 
@@ -31,6 +32,7 @@ export const PAYMENT_METHOD_NAMES = {
   transfer_poalim: 'העברה פועלים',
   bit_poalim: 'ביט פועלים',
   paybox_poalim: 'פייבוקס פועלים',
+  delayed_transfer: 'העברה מאוחרת',
   other: 'אחר'
 };
 
