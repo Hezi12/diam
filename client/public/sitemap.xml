@@ -3,58 +3,48 @@
   <!-- Airport Guest House - דפים ראשיים -->
   <url>
     <loc>https://www.diamhotels.com/airport-booking</loc>
-    <lastmod>2024-12-01</lastmod>
+    <lastmod>2025-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   
-  <url>
-    <loc>https://www.diamhotels.com/airport-booking/search-results</loc>
-    <lastmod>2024-12-01</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
+  <!-- דף search-results הוסר כי הוא דינמי וצריך פרמטרים -->
   
   <url>
     <loc>https://www.diamhotels.com/airport-booking/gallery</loc>
-    <lastmod>2024-12-01</lastmod>
+    <lastmod>2025-01-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.diamhotels.com/airport-booking/faq-details</loc>
-    <lastmod>2024-12-01</lastmod>
+    <lastmod>2025-01-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.7</priority>
   </url>
   
   <!-- Rothschild 79 - דפים ראשיים -->
   <url>
     <loc>https://www.diamhotels.com/rothschild-booking</loc>
-    <lastmod>2024-12-01</lastmod>
+    <lastmod>2025-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   
-  <url>
-    <loc>https://www.diamhotels.com/rothschild-booking/search-results</loc>
-    <lastmod>2024-12-01</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
+  <!-- דף search-results הוסר כי הוא דינמי וצריך פרמטרים -->
   
   <url>
     <loc>https://www.diamhotels.com/rothschild-booking/gallery</loc>
-    <lastmod>2024-12-01</lastmod>
+    <lastmod>2025-01-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.diamhotels.com/rothschild-booking/faq-details</loc>
-    <lastmod>2024-12-01</lastmod>
+    <lastmod>2025-01-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.7</priority>
   </url>
 </urlset> 
