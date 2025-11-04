@@ -11,6 +11,9 @@ const publicSiteController = require('../controllers/publicSiteController');
 // קבלת הגדרות באנר הנחת השקה
 router.get('/banner/launch', publicSiteController.getLaunchBannerSettings);
 
+// קבלת הגדרות באנר ההזמנה הישירה
+router.get('/banner/direct-booking', publicSiteController.getDirectBookingBannerSettings);
+
 // נתיבים מוגנים (עם אימות)
 // קבלת כל הגדרות האתר הציבורי
 router.get('/settings', auth, publicSiteController.getSettings);
@@ -39,5 +42,12 @@ router.put('/notice-board/settings', auth, publicSiteController.updateNoticeBoar
 
 // הפעלה/השבתה מהירה של הסתרת שמות אורחים
 router.patch('/notice-board/toggle-guest-names', auth, publicSiteController.toggleGuestNamesVisibility);
+
+// נתיבים עבור באנר ההזמנה הישירה
+// עדכון הגדרות באנר ההזמנה הישירה
+router.put('/banner/direct-booking', auth, publicSiteController.updateDirectBookingBanner);
+
+// הפעלה/השבתה מהירה של באנר ההזמנה הישירה
+router.patch('/banner/direct-booking/toggle', auth, publicSiteController.toggleDirectBookingBanner);
 
 module.exports = router;

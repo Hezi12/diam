@@ -40,6 +40,7 @@ import {
 import { format, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 import DiscountService from '../../services/discountService';
+import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 
 /**
  * קלקולטור מחירים מתקדם עם תמיכה בהנחות וקופונים
@@ -60,6 +61,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
   compact = false,
   style = {}
 }) => {
+  const t = usePublicTranslation();
   
   // State נתונים
   const [loading, setLoading] = useState(false);
@@ -520,7 +522,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
                     )}
                   </Box>
                 }
-                secondary={`${discount.type === 'percentage' ? `${discount.value}%` : `₪${discount.value}`} → חיסכון: ₪${discount.amount}`}
+                secondary={`${discount.type === 'percentage' ? `${discount.value}%` : `₪${discount.value}`} → ${t('common.savings')}${discount.amount}`}
                 primaryTypographyProps={{ variant: 'body2' }}
                 secondaryTypographyProps={{ variant: 'caption' }}
               />
@@ -624,7 +626,7 @@ const PriceCalculatorWithDiscounts = React.memo(({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <SavingsIcon color="success" />
                 <Typography variant="body2" color="success.main">
-                  חיסכון של ₪{priceData.savings} ({priceData.savingsPercentage}%)
+                  {t('common.savingsOf')}{priceData.savings} ({priceData.savingsPercentage}%)
                 </Typography>
                 {showDiscountBadges && (
                   <Chip

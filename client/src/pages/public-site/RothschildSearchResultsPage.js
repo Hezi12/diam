@@ -534,7 +534,7 @@ const RothschildSearchResultsPage = () => {
         {priceData?.savings > 0 && (
           <Box sx={{ mb: 1 }}>
             <Chip
-              label={`חיסכון של ₪${priceData.savings}!`}
+              label={`${t('common.savingsOf')}${priceData.savings}!`}
               color="success"
               size="small"
               variant="filled"

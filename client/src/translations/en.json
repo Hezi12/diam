@@ -295,6 +295,8 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
+    "savingsOf": "Savings of ₪",
+    "savings": "Savings: ₪",
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",

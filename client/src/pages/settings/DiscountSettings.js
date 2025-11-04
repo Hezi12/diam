@@ -19,6 +19,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import DiscountManagement from '../../components/discounts/DiscountManagement';
 import LaunchBannerControl from '../../components/discounts/LaunchBannerControl';
+import DirectBookingBannerControl from '../../components/discounts/DirectBookingBannerControl';
 
 /**
  * עמוד הגדרות הנחות
@@ -68,6 +69,11 @@ const DiscountSettings = () => {
 
       {/* בקרת באנר הנחת השקה */}
       <LaunchBannerControl />
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* בקרת באנר הנחת הזמנה ישירה */}
+      <DirectBookingBannerControl />
 
       <Divider sx={{ mb: 3 }} />
 

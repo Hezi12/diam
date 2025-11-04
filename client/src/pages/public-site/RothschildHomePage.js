@@ -34,6 +34,7 @@ import GalleryPreview from '../../components/public-site/GalleryPreview';
 import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 import LaunchPromotionBanner from '../../components/public-site/LaunchPromotionBanner';
+import DirectBookingBanner from '../../components/public-site/DirectBookingBanner';
 
 const RothschildHomePage = () => {
   const t = usePublicTranslation();
@@ -83,6 +84,9 @@ const RothschildHomePage = () => {
           >
             <SearchBox location="rothschild" />
           </Paper>
+          
+          {/* באנר הנחת הזמנה ישירה */}
+          <DirectBookingBanner />
         </Container>
       </Box>
 

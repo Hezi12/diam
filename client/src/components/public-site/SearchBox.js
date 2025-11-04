@@ -511,6 +511,11 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
               fontWeight: 500,
               height: '40px',
               gap: 1.5,
+              whiteSpace: 'normal',
+              lineHeight: 1.2,
+              '& .MuiButton-label': {
+                lineHeight: 1.2
+              },
               '&:hover': {
                 bgcolor: '#b91c1c',
               },

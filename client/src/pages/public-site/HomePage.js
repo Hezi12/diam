@@ -36,6 +36,7 @@ import PublicSiteLayout from '../../components/public-site/PublicSiteLayout';
 import { usePublicTranslation } from '../../contexts/PublicLanguageContext';
 import SEOHead from '../../components/public-site/SEOHead';
 import LaunchPromotionBanner from '../../components/public-site/LaunchPromotionBanner';
+import DirectBookingBanner from '../../components/public-site/DirectBookingBanner';
 
 const HomePage = () => {
   const t = usePublicTranslation();
@@ -86,6 +87,9 @@ const HomePage = () => {
           >
             <SearchBox />
           </Paper>
+          
+          {/* באנר הנחת הזמנה ישירה */}
+          <DirectBookingBanner />
         </Container>
       </Box>
 
