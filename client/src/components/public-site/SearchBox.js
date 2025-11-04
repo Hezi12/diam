@@ -31,7 +31,7 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const t = usePublicTranslation();
-  const { direction, isRTL } = usePublicLanguage();
+  const { direction, isRTL, currentLanguage } = usePublicLanguage();
   
   const today = new Date();
   const tomorrow = new Date();
@@ -41,12 +41,24 @@ const SearchBox = ({ location: siteLocation = 'airport' }) => {
   const [checkOut, setCheckOut] = useState(tomorrow);
   const [nights, setNights] = useState(1);
   const [guests, setGuests] = useState(2);
-  const [isTourist, setIsTourist] = useState(false);
+  // אם האתר מוצג באנגלית, המתג יהיה מופעל כברירת מחדל (ללא מע"מ)
+  const [isTourist, setIsTourist] = useState(currentLanguage === 'en');
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
   const [error, setError] = useState('');
   const [touristDialogOpen, setTouristDialogOpen] = useState(false);
+  
+  // עדכון isTourist לפי השפה הנוכחית (רק אם אין ערך מה-URL)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const isTouristStr = searchParams.get('isTourist');
+    
+    // אם אין ערך מה-URL, מעדכן לפי השפה הנוכחית
+    if (!isTouristStr) {
+      setIsTourist(currentLanguage === 'en');
+    }
+  }, [currentLanguage, location.search]);
   
   // קריאת ערכים מה-URL אם קיימים (לעדכון הטופס בעמוד תוצאות החיפוש)
   useEffect(() => {
