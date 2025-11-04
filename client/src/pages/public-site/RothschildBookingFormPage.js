@@ -84,6 +84,15 @@ const RothschildBookingFormPage = () => {
   // מצב שגיאות הטופס
   const [formErrors, setFormErrors] = useState({});
   
+  // מצב טריגר וולידציה - רק אחרי ניסיון שליחה
+  const [touchedFields, setTouchedFields] = useState({});
+  const [validationAttempted, setValidationAttempted] = useState(false);
+  
+  // מצב זמינות החדר
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [isRoomAvailable, setIsRoomAvailable] = useState(true);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  
   // חילוץ פרמטרים מה-URL
   const searchParams = new URLSearchParams(location.search);
   const roomId = searchParams.get('roomId');
@@ -134,9 +143,52 @@ const RothschildBookingFormPage = () => {
     appliedDiscounts: []
   });
   
-  // עדכון הפונקציה submitBooking
+  // בדיקת זמינות החדר לפני שליחת הטופס
+  const checkRoomAvailabilityBeforeSubmit = async () => {
+    if (!roomId || !checkInStr || !checkOutStr) {
+      return false;
+    }
+    
+    setCheckingAvailability(true);
+    
+    try {
+      const availabilityResponse = await axios.get(`${API_URL}/api/bookings/check-availability`, {
+        params: {
+          roomId,
+          checkIn: checkInStr,
+          checkOut: checkOutStr
+        }
+      });
+      
+      const available = availabilityResponse.data.available;
+      setIsRoomAvailable(available);
+      setAvailabilityChecked(true);
+      
+      if (!available) {
+        setError('החדר כבר לא זמין בתאריכים שנבחרו. אנא חזור לעמוד החיפוש ובחר חדר אחר.');
+      }
+      
+      return available;
+    } catch (err) {
+      console.error('שגיאה בבדיקת זמינות:', err);
+      setError('אירעה שגיאה בבדיקת זמינות החדר. אנא נסה שנית.');
+      setIsRoomAvailable(false);
+      return false;
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+  
+  // עדכון הפונקציה submitBooking עם בדיקת זמינות
   const submitBooking = async () => {
     setLoading(true);
+    
+    // בדיקת זמינות לפני שליחת הטופס
+    const isAvailable = await checkRoomAvailabilityBeforeSubmit();
+    if (!isAvailable) {
+      setLoading(false);
+      return;
+    }
     
     try {
       // יצירת אובייקט ההזמנה עם נתוני הנחות
@@ -283,91 +335,204 @@ const RothschildBookingFormPage = () => {
   
   // הוסר: useEffect לעדכון מחיר - PriceCalculatorWithDiscounts דואג לכל החישובים
   
-  // עדכון נתוני הטופס
+  // עדכון נתוני הטופס עם וולידציה בזמן אמת
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
     if (name.startsWith('creditCard.')) {
       const cardField = name.split('.')[1];
+      const newCreditCard = {
+        ...bookingData.creditCard,
+        [cardField]: value
+      };
+      
       setBookingData({
         ...bookingData,
-        creditCard: {
-          ...bookingData.creditCard,
-          [cardField]: value
-        }
+        creditCard: newCreditCard
       });
+      
+      // וולידציה בזמן אמת לכרטיס אשראי (רק אם המשתמש כבר ניסה לשלוח)
+      if (validationAttempted && touchedFields[name]) {
+        validateField(name, value, newCreditCard);
+      }
     } else {
       setBookingData({
         ...bookingData,
         [name]: type === 'checkbox' ? checked : value
       });
+      
+      // וולידציה בזמן אמת (רק אם המשתמש כבר ניסה לשלוח)
+      if (validationAttempted && touchedFields[name]) {
+        validateField(name, type === 'checkbox' ? checked : value);
+      }
     }
     
-    // ניקוי שגיאה אם קיימת
-    if (formErrors[name]) {
-      setFormErrors({
-        ...formErrors,
-        [name]: ''
-      });
-    }
+    // סימון שדה כנוגע
+    setTouchedFields(prev => ({
+      ...prev,
+      [name]: true
+    }));
   };
   
-  // אימות פרטי האורח
+  // וולידציה של שדה בודד
+  const validateField = (name, value, creditCardData = null) => {
+    const errors = { ...formErrors };
+    
+    if (name.startsWith('creditCard.')) {
+      const cardField = name.split('.')[1];
+      const cardData = creditCardData || bookingData.creditCard;
+      
+      if (cardField === 'cardNumber') {
+        const cleanCard = (value || '').replace(/\s/g, '');
+        if (!cleanCard) {
+          errors[name] = 'מספר כרטיס הוא שדה חובה';
+        } else if (!/^\d{16}$/.test(cleanCard)) {
+          errors[name] = 'אנא הזן מספר כרטיס תקין (16 ספרות)';
+        } else {
+          delete errors[name];
+        }
+      } else if (cardField === 'expiryDate') {
+        const cleanExpiry = (value || '').replace(/\s|-/g, '');
+        if (!cleanExpiry) {
+          errors[name] = 'תאריך תפוגה הוא שדה חובה';
+        } else if (!/^(0[1-9]|1[0-2])\/?\d{2}$/.test(cleanExpiry) && !/^\d{4}$/.test(cleanExpiry)) {
+          errors[name] = 'אנא הזן תאריך תפוגה תקין (MMYY או MM/YY)';
+        } else {
+          delete errors[name];
+        }
+      } else if (cardField === 'cvv') {
+        if (!value) {
+          errors[name] = 'קוד אבטחה הוא שדה חובה';
+        } else if (!/^\d{3,4}$/.test(value)) {
+          errors[name] = 'אנא הזן קוד אבטחה תקין (3-4 ספרות)';
+        } else {
+          delete errors[name];
+        }
+      } else if (cardField === 'holderName') {
+        if (!value || !value.trim()) {
+          errors[name] = 'שם בעל הכרטיס הוא שדה חובה';
+        } else {
+          delete errors[name];
+        }
+      }
+    } else {
+      if (name === 'firstName') {
+        if (!value || !value.trim()) {
+          errors[name] = 'שם פרטי הוא שדה חובה';
+        } else {
+          delete errors[name];
+        }
+      } else if (name === 'lastName') {
+        if (!value || !value.trim()) {
+          errors[name] = 'שם משפחה הוא שדה חובה';
+        } else {
+          delete errors[name];
+        }
+      } else if (name === 'email') {
+        if (!value || !value.trim()) {
+          errors[name] = 'אימייל הוא שדה חובה';
+        } else if (!/\S+@\S+\.\S+/.test(value)) {
+          errors[name] = 'אנא הזן כתובת אימייל תקינה';
+        } else {
+          delete errors[name];
+        }
+      } else if (name === 'phone') {
+        const cleanPhone = (value || '').replace(/[^\d]/g, '');
+        if (!cleanPhone) {
+          errors[name] = 'מספר טלפון הוא שדה חובה';
+        } else if (!/^\d{9,10}$/.test(cleanPhone)) {
+          errors[name] = 'אנא הזן מספר טלפון תקין (9-10 ספרות)';
+        } else {
+          delete errors[name];
+        }
+      }
+    }
+    
+    setFormErrors(errors);
+  };
+  
+  // אימות פרטי האורח - רק אחרי ניסיון שליחה
   const validateGuestDetails = () => {
+    setValidationAttempted(true);
+    
+    // סימון כל השדות כנוגעים
+    setTouchedFields({
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true
+    });
+    
     const errors = {};
     
-    if (!bookingData.firstName.trim()) {
+    if (!bookingData.firstName || !bookingData.firstName.trim()) {
       errors.firstName = 'שם פרטי הוא שדה חובה';
     }
     
-    if (!bookingData.lastName.trim()) {
+    if (!bookingData.lastName || !bookingData.lastName.trim()) {
       errors.lastName = 'שם משפחה הוא שדה חובה';
     }
     
-    if (!bookingData.email.trim()) {
+    if (!bookingData.email || !bookingData.email.trim()) {
       errors.email = 'אימייל הוא שדה חובה';
     } else if (!/\S+@\S+\.\S+/.test(bookingData.email)) {
       errors.email = 'אנא הזן כתובת אימייל תקינה';
     }
     
-    if (!bookingData.phone.trim()) {
+    const cleanPhone = (bookingData.phone || '').replace(/[^\d]/g, '');
+    if (!cleanPhone) {
       errors.phone = 'מספר טלפון הוא שדה חובה';
-    } else if (!/^\d{9,10}$/.test(bookingData.phone.replace(/[^\d]/g, ''))) {
-      errors.phone = 'אנא הזן מספר טלפון תקין';
+    } else if (!/^\d{9,10}$/.test(cleanPhone)) {
+      errors.phone = 'אנא הזן מספר טלפון תקין (9-10 ספרות)';
     }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
   
-  // אימות פרטי תשלום
+  // אימות פרטי תשלום - רק אחרי ניסיון שליחה
   const validatePaymentDetails = () => {
+    setValidationAttempted(true);
+    
+    // סימון כל שדות כרטיס האשראי כנוגעים
+    setTouchedFields(prev => ({
+      ...prev,
+      'creditCard.cardNumber': true,
+      'creditCard.expiryDate': true,
+      'creditCard.cvv': true,
+      'creditCard.holderName': true
+    }));
+    
     const errors = {};
     
-    if (!bookingData.creditCard.cardNumber.trim()) {
+    const cleanCardNumber = (bookingData.creditCard.cardNumber || '').replace(/\s/g, '');
+    if (!cleanCardNumber) {
       errors['creditCard.cardNumber'] = 'מספר כרטיס הוא שדה חובה';
-    } else if (!/^\d{16}$/.test(bookingData.creditCard.cardNumber.replace(/\s/g, ''))) {
+    } else if (!/^\d{16}$/.test(cleanCardNumber)) {
       errors['creditCard.cardNumber'] = 'אנא הזן מספר כרטיס תקין (16 ספרות)';
     }
     
-    if (!bookingData.creditCard.expiryDate.trim()) {
+    const cleanExpiryDate = (bookingData.creditCard.expiryDate || '').replace(/\s|-/g, '');
+    if (!cleanExpiryDate) {
       errors['creditCard.expiryDate'] = 'תאריך תפוגה הוא שדה חובה';
     } else {
-      const cleanExpiryDate = bookingData.creditCard.expiryDate.replace(/\s|-/g, '');
-      const isValidFormat = /^(0[1-9]|1[0-2])\/?\d{2}$/.test(cleanExpiryDate) ||
-                           /^(0[1-9]|1[0-2])\d{2}$/.test(cleanExpiryDate) ||
-                           /^\d{2}\/\d{2}$/.test(cleanExpiryDate) ||
-                           /^\d{4}$/.test(cleanExpiryDate);
+      const isValidFormat = /^(0[1-9]|1[0-2])\/?\d{2}$/.test(cleanExpiryDate) || // MM/YY או MMYY
+                           /^(0[1-9]|1[0-2])\d{2}$/.test(cleanExpiryDate) || // MMYY
+                           /^\d{4}$/.test(cleanExpiryDate); // MMYY
       
       if (!isValidFormat) {
         errors['creditCard.expiryDate'] = 'אנא הזן תאריך תפוגה תקין (MMYY או MM/YY)';
       }
     }
     
-    if (!bookingData.creditCard.cvv.trim()) {
+    if (!bookingData.creditCard.cvv || !bookingData.creditCard.cvv.trim()) {
       errors['creditCard.cvv'] = 'קוד אבטחה הוא שדה חובה';
     } else if (!/^\d{3,4}$/.test(bookingData.creditCard.cvv)) {
       errors['creditCard.cvv'] = 'אנא הזן קוד אבטחה תקין (3-4 ספרות)';
+    }
+    
+    if (!bookingData.creditCard.holderName || !bookingData.creditCard.holderName.trim()) {
+      errors['creditCard.holderName'] = 'שם בעל הכרטיס הוא שדה חובה';
     }
     
     setFormErrors(errors);
@@ -419,11 +584,18 @@ const RothschildBookingFormPage = () => {
     switch (step) {
       case 0:
         return (
-          <Box sx={{ mt: 3, mb: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+          <Box sx={{ mt: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 2 } }}>
+            <Typography 
+              variant="h6" 
+              fontWeight={600} 
+              sx={{ 
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '1.1rem', sm: '1.25rem' }
+              }}
+            >
               {t('booking.personalDetails')}
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="firstName"
@@ -431,10 +603,17 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.firstName}
                   onChange={handleChange}
-                  error={!!formErrors.firstName}
-                  helperText={formErrors.firstName}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, firstName: true }));
+                    if (validationAttempted) {
+                      validateField('firstName', bookingData.firstName);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields.firstName && !!formErrors.firstName}
+                  helperText={validationAttempted && touchedFields.firstName ? formErrors.firstName : ''}
                   required
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
+                  placeholder={t('booking.firstNamePlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -444,10 +623,17 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.lastName}
                   onChange={handleChange}
-                  error={!!formErrors.lastName}
-                  helperText={formErrors.lastName}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, lastName: true }));
+                    if (validationAttempted) {
+                      validateField('lastName', bookingData.lastName);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields.lastName && !!formErrors.lastName}
+                  helperText={validationAttempted && touchedFields.lastName ? formErrors.lastName : ''}
                   required
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
+                  placeholder={t('booking.lastNamePlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -458,10 +644,17 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.email}
                   onChange={handleChange}
-                  error={!!formErrors.email}
-                  helperText={formErrors.email}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, email: true }));
+                    if (validationAttempted) {
+                      validateField('email', bookingData.email);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields.email && !!formErrors.email}
+                  helperText={validationAttempted && touchedFields.email ? formErrors.email : ''}
                   required
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
+                  placeholder={t('booking.emailPlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -471,10 +664,17 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.phone}
                   onChange={handleChange}
-                  error={!!formErrors.phone}
-                  helperText={formErrors.phone}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, phone: true }));
+                    if (validationAttempted) {
+                      validateField('phone', bookingData.phone);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields.phone && !!formErrors.phone}
+                  helperText={validationAttempted && touchedFields.phone ? formErrors.phone : ''}
                   required
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
+                  placeholder={t('booking.phonePlaceholder')}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -506,16 +706,33 @@ const RothschildBookingFormPage = () => {
         );
       case 1:
         return (
-          <Box sx={{ mt: 3, mb: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+          <Box sx={{ mt: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 2 } }}>
+            <Typography 
+              variant="h6" 
+              fontWeight={600} 
+              sx={{ 
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '1.1rem', sm: '1.25rem' }
+              }}
+            >
               {t('booking.paymentDetails')}
             </Typography>
             
-            <Alert severity="info" sx={{ mb: 3, borderRadius: '8px' }}>
-              <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+            <Alert severity="info" sx={{ 
+              mb: { xs: 2, sm: 3 }, 
+              borderRadius: '8px',
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}>
+              <Typography variant="body2" sx={{ 
+                fontWeight: 500, 
+                mb: 1,
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}>
                 {t('booking.creditCard')}
               </Typography>
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}>
                 {t('booking.paymentMethod')}
               </Typography>
             </Alert>
@@ -528,12 +745,18 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.creditCard.cardNumber}
                   onChange={handleChange}
-                  error={!!formErrors['creditCard.cardNumber']}
-                  helperText={formErrors['creditCard.cardNumber']}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, 'creditCard.cardNumber': true }));
+                    if (validationAttempted) {
+                      validateField('creditCard.cardNumber', bookingData.creditCard.cardNumber);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields['creditCard.cardNumber'] && !!formErrors['creditCard.cardNumber']}
+                  helperText={validationAttempted && touchedFields['creditCard.cardNumber'] ? formErrors['creditCard.cardNumber'] : ''}
                   required
                   placeholder="#### #### #### ####"
                   inputProps={{ maxLength: 19, dir: "ltr", style: { textAlign: 'center' } }}
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -543,12 +766,18 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.creditCard.expiryDate}
                   onChange={handleChange}
-                  error={!!formErrors['creditCard.expiryDate']}
-                  helperText={formErrors['creditCard.expiryDate']}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, 'creditCard.expiryDate': true }));
+                    if (validationAttempted) {
+                      validateField('creditCard.expiryDate', bookingData.creditCard.expiryDate);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields['creditCard.expiryDate'] && !!formErrors['creditCard.expiryDate']}
+                  helperText={validationAttempted && touchedFields['creditCard.expiryDate'] ? formErrors['creditCard.expiryDate'] : ''}
                   required
                   placeholder="MM/YY"
                   inputProps={{ maxLength: 5, dir: "ltr", style: { textAlign: 'center' } }}
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -558,12 +787,38 @@ const RothschildBookingFormPage = () => {
                   fullWidth
                   value={bookingData.creditCard.cvv}
                   onChange={handleChange}
-                  error={!!formErrors['creditCard.cvv']}
-                  helperText={formErrors['creditCard.cvv']}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, 'creditCard.cvv': true }));
+                    if (validationAttempted) {
+                      validateField('creditCard.cvv', bookingData.creditCard.cvv);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields['creditCard.cvv'] && !!formErrors['creditCard.cvv']}
+                  helperText={validationAttempted && touchedFields['creditCard.cvv'] ? formErrors['creditCard.cvv'] : ''}
                   required
                   placeholder="###"
                   inputProps={{ maxLength: 4, dir: "ltr", style: { textAlign: 'center' } }}
-                  size="small"
+                  size={isMobile ? "medium" : "small"}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="creditCard.holderName"
+                  label={t('booking.holderName')}
+                  fullWidth
+                  value={bookingData.creditCard.holderName}
+                  onChange={handleChange}
+                  onBlur={() => {
+                    setTouchedFields(prev => ({ ...prev, 'creditCard.holderName': true }));
+                    if (validationAttempted) {
+                      validateField('creditCard.holderName', bookingData.creditCard.holderName);
+                    }
+                  }}
+                  error={validationAttempted && touchedFields['creditCard.holderName'] && !!formErrors['creditCard.holderName']}
+                  helperText={validationAttempted && touchedFields['creditCard.holderName'] ? formErrors['creditCard.holderName'] : ''}
+                  required
+                  size={isMobile ? "medium" : "small"}
+                  placeholder={t('booking.holderNamePlaceholder')}
                 />
               </Grid>
             </Grid>
@@ -571,13 +826,31 @@ const RothschildBookingFormPage = () => {
         );
       case 2:
         return (
-          <Box sx={{ mt: 3, mb: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+          <Box sx={{ mt: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 2 } }}>
+            <Typography 
+              variant="h6" 
+              fontWeight={600} 
+              sx={{ 
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '1.1rem', sm: '1.25rem' }
+              }}
+            >
               {t('booking.confirm')}
             </Typography>
             
-            <Paper elevation={1} sx={{ p: 3, mb: 3, borderRadius: '10px' }}>
-              <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+            <Paper elevation={1} sx={{ 
+              p: { xs: 2, sm: 3 }, 
+              mb: { xs: 2, sm: 3 }, 
+              borderRadius: '10px' 
+            }}>
+              <Typography 
+                variant="h6" 
+                fontWeight={600} 
+                sx={{ 
+                  mb: { xs: 1.5, sm: 2 },
+                  fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                }}
+              >
                 {t('booking.bookingDetails')}
               </Typography>
               
@@ -775,9 +1048,17 @@ const RothschildBookingFormPage = () => {
   
   return (
     <PublicSiteLayout location="rothschild">
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 600 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
+        <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            sx={{ 
+              mb: { xs: 2, sm: 3 }, 
+              fontWeight: 600,
+              fontSize: { xs: '1.5rem', sm: '2rem' }
+            }}
+          >
             {t('booking.title')}
           </Typography>
           
@@ -790,24 +1071,46 @@ const RothschildBookingFormPage = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
               {/* טופס הזמנה */}
               <Grid item xs={12} md={6} order={{ xs: 2, md: 1 }}>
-                <Paper elevation={1} sx={{ p: { xs: 1, sm: 2 }, borderRadius: '10px' }}>
+                <Paper elevation={1} sx={{ 
+                  p: { xs: 2, sm: 3 }, 
+                  borderRadius: '10px',
+                  '& .MuiTextField-root': {
+                    mb: { xs: 1.5, sm: 1 }
+                  }
+                }}>
                   <Stepper 
                     activeStep={activeStep} 
                     alternativeLabel={!isMobile} 
                     orientation={isMobile ? 'vertical' : 'horizontal'}
-                    connector={null}
                     sx={{
+                      mb: 3,
                       '& .MuiStepConnector-root': {
-                        display: 'none'
+                        display: isMobile ? 'none' : 'block'
+                      },
+                      '& .MuiStepLabel-root': {
+                        '& .MuiStepLabel-label': {
+                          fontSize: isMobile ? '0.875rem' : '1rem',
+                          fontWeight: 500
+                        }
+                      },
+                      '& .MuiStepLabel-iconContainer': {
+                        '& .MuiSvgIcon-root': {
+                          fontSize: isMobile ? '1.5rem' : '1.75rem'
+                        }
                       }
                     }}
                   >
                     {translatedSteps.map((label, index) => {
-                      const stepProps = {};
-                      const labelProps = {};
+                      const stepProps = {
+                        completed: index < activeStep,
+                        active: index === activeStep
+                      };
+                      const labelProps = {
+                        error: index < activeStep && Object.keys(formErrors).length > 0 && index === activeStep - 1
+                      };
                       return (
                         <Step key={label} {...stepProps}>
                           <StepLabel {...labelProps}>{label}</StepLabel>
@@ -818,36 +1121,55 @@ const RothschildBookingFormPage = () => {
                   
                   {getStepContent(activeStep)}
                   
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    mt: 3,
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1, sm: 0 }
+                  }}>
                     {activeStep === 0 ? (
                       <Button
                         component={Link}
                         to={`/rothschild-booking/search-results?checkIn=${checkInStr}&checkOut=${checkOutStr}&nights=${nightsCount}&guests=${urlGuests}&isTourist=${isTourist}`}
                         color="inherit"
-                        sx={{ mr: 1 }}
-                        size="small"
+                        sx={{ mr: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 'auto' } }}
+                        size={isMobile ? "medium" : "small"}
+                        fullWidth={isMobile}
                       >
-{t('common.backToResults')}
+                        {t('common.backToResults')}
                       </Button>
                     ) : (
                       <Button
                         color="inherit"
                         onClick={handleBack}
-                        sx={{ mr: 1 }}
-                        size="small"
+                        sx={{ mr: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 'auto' } }}
+                        size={isMobile ? "medium" : "small"}
+                        fullWidth={isMobile}
                       >
-{t('common.back')}
+                        {t('common.back')}
                       </Button>
                     )}
                     <Button
                       variant="contained"
                       onClick={handleNext}
-                      disabled={loading}
-                      size="small"
+                      disabled={loading || checkingAvailability}
+                      size={isMobile ? "medium" : "small"}
+                      fullWidth={isMobile}
+                      sx={isMobile ? { mt: 1 } : {}}
                     >
-{activeStep === translatedSteps.length - 1 ? t('common.finishBooking') : t('common.continue')}
-                                              {loading && activeStep === translatedSteps.length - 1 && (
-                        <CircularProgress size={20} sx={{ ml: 1 }} />
+                      {checkingAvailability ? (
+                        <>
+                          <CircularProgress size={16} sx={{ mr: 1 }} />
+                          {t('common.checkingAvailability') || 'בודק זמינות...'}
+                        </>
+                      ) : (
+                        <>
+                          {activeStep === translatedSteps.length - 1 ? t('common.finishBooking') : t('common.continue')}
+                          {loading && activeStep === translatedSteps.length - 1 && (
+                            <CircularProgress size={20} sx={{ ml: 1 }} />
+                          )}
+                        </>
                       )}
                     </Button>
                   </Box>
