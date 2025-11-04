@@ -264,9 +264,17 @@ exports.getDirectBookingBannerSettings = async (req, res) => {
   try {
     const settings = await PublicSiteSettings.getDefaultSettings();
     
+    // אם הבאנר לא קיים, ניצור אותו עם enabled: true
+    if (!settings.directBookingBanner) {
+      await PublicSiteSettings.updateDirectBookingBanner({ enabled: true });
+      // טעינה מחדש לאחר יצירה
+      const updatedSettings = await PublicSiteSettings.getDefaultSettings();
+      settings.directBookingBanner = updatedSettings.directBookingBanner;
+    }
+    
     // החזרת נתונים מסוננים לציבור
     const bannerSettings = {
-      enabled: settings.directBookingBanner?.enabled || false,
+      enabled: settings.directBookingBanner?.enabled !== undefined ? settings.directBookingBanner.enabled : true,
       discountPercentage: settings.directBookingBanner?.discountPercentage || 15,
       content: settings.directBookingBanner?.content || {
         he: { text: '15% הנחה בהזמנה ישירה' },

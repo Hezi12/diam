@@ -129,6 +129,51 @@ const PublicSiteSettingsSchema = new mongoose.Schema(
       }
     },
     
+    // הגדרות באנר הנחת הזמנה ישירה
+    directBookingBanner: {
+      // האם הבאנר פעיל
+      enabled: {
+        type: Boolean,
+        default: true
+      },
+      
+      // אחוז ההנחה שמציגים (15 = 15%)
+      discountPercentage: {
+        type: Number,
+        default: 15,
+        min: 0,
+        max: 100
+      },
+      
+      // תוכן הבאנר (מתורגם)
+      content: {
+        he: {
+          text: {
+            type: String,
+            default: '15% הנחה בהזמנה ישירה'
+          }
+        },
+        en: {
+          text: {
+            type: String,
+            default: '15% OFF for Direct Booking'
+          }
+        }
+      },
+      
+      // מי עדכן לאחרונה
+      lastUpdatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      
+      // הערות
+      notes: {
+        type: String,
+        default: ''
+      }
+    },
+    
     // הגדרות לוח מודעות
     noticeBoard: {
       // האם להסתיר שמות אורחים אמיתיים ולהציג רק שמות ברירת מחדל
@@ -256,6 +301,66 @@ PublicSiteSettingsSchema.statics.updateLaunchBanner = async function(updateData,
   
   if (userId) {
     settings.launchPromotionBanner.lastUpdatedBy = userId;
+  }
+  
+  await settings.save();
+  return settings;
+};
+
+// Static method - עדכון הגדרות באנר ההזמנה הישירה
+PublicSiteSettingsSchema.statics.updateDirectBookingBanner = async function(updateData, userId = null) {
+  const settings = await this.getDefaultSettings();
+  
+  // אתחול באנר ההזמנה הישירה אם לא קיים
+  if (!settings.directBookingBanner) {
+    settings.directBookingBanner = {
+      enabled: true,
+      discountPercentage: 15,
+      content: {
+        he: { text: '15% הנחה בהזמנה ישירה' },
+        en: { text: '15% OFF for Direct Booking' }
+      },
+      notes: ''
+    };
+  }
+  
+  // עדכון הנתונים
+  if (updateData.enabled !== undefined) {
+    settings.directBookingBanner.enabled = updateData.enabled;
+  }
+  
+  if (updateData.discountPercentage !== undefined) {
+    settings.directBookingBanner.discountPercentage = updateData.discountPercentage;
+    // עדכון אוטומטי של הטקסט לפי אחוז ההנחה
+    if (settings.directBookingBanner.content) {
+      settings.directBookingBanner.content.he.text = `${updateData.discountPercentage}% הנחה בהזמנה ישירה`;
+      settings.directBookingBanner.content.en.text = `${updateData.discountPercentage}% OFF for Direct Booking`;
+    }
+  }
+  
+  if (updateData.content) {
+    if (updateData.content.he) {
+      if (settings.directBookingBanner.content.he) {
+        Object.assign(settings.directBookingBanner.content.he, updateData.content.he);
+      } else {
+        settings.directBookingBanner.content.he = updateData.content.he;
+      }
+    }
+    if (updateData.content.en) {
+      if (settings.directBookingBanner.content.en) {
+        Object.assign(settings.directBookingBanner.content.en, updateData.content.en);
+      } else {
+        settings.directBookingBanner.content.en = updateData.content.en;
+      }
+    }
+  }
+  
+  if (updateData.notes !== undefined) {
+    settings.directBookingBanner.notes = updateData.notes;
+  }
+  
+  if (userId) {
+    settings.directBookingBanner.lastUpdatedBy = userId;
   }
   
   await settings.save();
