@@ -27,7 +27,7 @@ const PublicNoticeBoard = () => {
 
   // אורחים ברירת מחדל באנגלית
   const defaultGuests = useMemo(() => [
-    { name: 'Arjun Patel', roomNumber: '1', phone: '+1-555-0101' },
+    { name: 'Arjun Patel', roomNumber: '11', phone: '+1-555-0101' },
     { name: 'Maya Levi', roomNumber: '9', phone: '+1-555-0102' },
     { name: 'Raj Kumar', roomNumber: '4', phone: '+1-555-0103' },
     { name: 'Noa Rosenberg', roomNumber: '10', phone: '+1-555-0104' },
