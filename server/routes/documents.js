@@ -38,8 +38,8 @@ router.get('/check-booking/:bookingId', auth, async (req, res) => {
   }
 });
 
-// הורדת PDF של מסמכים - לא דורש אימות
-router.get('/pdf/:id', async (req, res) => {
+// הורדת PDF של מסמכים - כעת דורש אימות
+router.get('/pdf/:id', auth, async (req, res) => {
   try {
     const invoice = await require('../models/Invoice').findById(req.params.id);
     
@@ -75,8 +75,8 @@ router.get('/pdf/:id', async (req, res) => {
 // בדיקת חיבור ל-iCount - דורש אימות
 router.get('/check-connection', auth, documentController.checkICountConnection);
 
-// נתיב זמני לצפייה ברשימת מסמכים - לא דורש אימות
-router.get('/list-all', async (req, res) => {
+// נתיב לצפייה ברשימת מסמכים - כעת דורש אימות
+router.get('/list-all', auth, async (req, res) => {
   try {
     const Invoice = require('../models/Invoice');
     const invoices = await Invoice.find({}).populate('booking').sort({ createdAt: -1 });
@@ -107,8 +107,8 @@ router.get('/list-all', async (req, res) => {
   }
 });
 
-// דף HTML לצפייה במסמכים - לא דורש אימות
-router.get('/view-all', async (req, res) => {
+// דף HTML לצפייה במסמכים - כעת דורש אימות
+router.get('/view-all', auth, async (req, res) => {
   try {
     const Invoice = require('../models/Invoice');
     const invoices = await Invoice.find({}).populate('booking').sort({ createdAt: -1 });

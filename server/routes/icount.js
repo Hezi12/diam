@@ -331,10 +331,10 @@ router.get('/test-connection/:location', auth, async (req, res) => {
 });
 
 /**
- * בדיקת בריאות נתיבי iCount - ללא אימות
+ * בדיקת בריאות נתיבי iCount - כעת דורש אימות
  * GET /api/icount/health
  */
-router.get('/health', async (req, res) => {
+router.get('/health', auth, async (req, res) => {
   try {
     return res.status(200).json({
       success: true,
@@ -350,10 +350,10 @@ router.get('/health', async (req, res) => {
 });
 
 /**
- * בדיקת חיבור ישיר ל-iCount API - ללא אימות
+ * בדיקת חיבור ישיר ל-iCount API - כעת דורש אימות
  * GET /api/icount/direct-test
  */
-router.get('/direct-test', async (req, res) => {
+router.get('/direct-test', auth, async (req, res) => {
   try {
     console.log('🧪 מתחיל בדיקת חיבור ישיר ל-iCount API...');
     

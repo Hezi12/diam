@@ -1,8 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { CURRENT_SESSION_VERSION } = require('../config/sessionConfig');
 
 /**
  * מידלוור לבדיקת אימות JWT
+ * כולל אימות גרסת סשן גלובלית:
+ * כל טוקן שאין בו sessionVersion תואם – נחשב כלא תקף (logout לכולם).
  */
 module.exports = async (req, res, next) => {
   try {
@@ -15,6 +18,11 @@ module.exports = async (req, res, next) => {
     
     // בדיקת תקפות הטוקן
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // אימות גרסת סשן גלובלית - מנתק טוקנים ישנים
+    if (!decoded.sessionVersion || decoded.sessionVersion !== CURRENT_SESSION_VERSION) {
+      return res.status(401).json({ message: 'הסשן שלך אינו תקף, נא להתחבר מחדש' });
+    }
     
     // מציאת המשתמש
     const user = await User.findById(decoded.id).select('-password');

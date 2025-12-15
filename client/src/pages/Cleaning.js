@@ -42,6 +42,10 @@ const Cleaning = () => {
   const { enqueueSnackbar } = useSnackbar();
   const { isAuthenticated } = useAuth();
   
+  // סיסמה פשוטה לדף הניקיון (ללא שם משתמש)
+  const [cleaningPassword, setCleaningPassword] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [currentDateIndex, setCurrentDateIndex] = useState(0); // 0 = היום, 1 = מחר, וכן הלאה
   const [cleaningTasks, setCleaningTasks] = useState({
@@ -52,7 +56,8 @@ const Cleaning = () => {
   });
   
   // פונקציה לטעינת משימות הניקיון
-  const fetchCleaningTasks = async () => {
+  const fetchCleaningTasks = async (password) => {
+    if (!password) return;
     setLoading(true);
     try {
       // לוקחים 4 ימים של משימות ניקיון
@@ -66,8 +71,8 @@ const Cleaning = () => {
         format(addDays(today, 3), 'yyyy-MM-dd')
       ];
       
-      // שימוש בשירות הניקיון
-      const tasks = await cleaningService.getCleaningTasks(dates);
+      // שימוש בשירות הניקיון עם סיסמה פשוטה
+      const tasks = await cleaningService.getCleaningTasks(dates, password);
       setCleaningTasks(tasks);
     } catch (error) {
       console.error('שגיאה בטעינת משימות ניקיון:', error);
@@ -219,17 +224,81 @@ const Cleaning = () => {
     }
   };
   
-  // טעינת הנתונים בעת טעינת הדף
-  useEffect(() => {
-    fetchCleaningTasks();
-    
-    // רענון אוטומטי כל 5 דקות
+  // טיפול באימות סיסמה פשוטה
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+
+    if (cleaningPassword.trim() !== '8788') {
+      enqueueSnackbar('סיסמת ניקיון שגויה', { variant: 'error' });
+      return;
+    }
+
+    setIsAuthorized(true);
+    await fetchCleaningTasks(cleaningPassword.trim());
+
+    // רענון אוטומטי כל 5 דקות לאחר אימות
     const interval = setInterval(() => {
-      fetchCleaningTasks();
+      fetchCleaningTasks(cleaningPassword.trim());
     }, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
-  }, []);
+  };
+
+  // אם אין הרשאה עדיין - מציגים מסך סיסמה בלבד
+  if (!isAuthorized) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 6 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 2,
+            textAlign: 'center',
+            boxShadow: 'rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px'
+          }}
+        >
+          <CleaningServicesIcon sx={{ fontSize: 48, color: '#499C56', mb: 2 }} />
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+            כניסה לדף הניקיון
+          </Typography>
+          <Typography sx={{ mb: 3, color: '#555' }}>
+            יש להזין סיסמה פשוטה כדי לגשת לרשימת החדרים לניקוי.
+          </Typography>
+          <Box
+            component="form"
+            onSubmit={handlePasswordSubmit}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          >
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={8}
+              value={cleaningPassword}
+              onChange={(e) => setCleaningPassword(e.target.value)}
+              placeholder="הקלד סיסמה (לדוגמה 8788)"
+              style={{
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid rgba(0,0,0,0.2)',
+                fontSize: 16,
+                textAlign: 'center'
+              }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ mt: 1, fontWeight: 600 }}
+            >
+              כניסה
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
+    );
+  }
   
   // מעבר ליום הבא
   const goToNextDay = () => {

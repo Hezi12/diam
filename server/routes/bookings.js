@@ -12,8 +12,10 @@ router.get('/public/check-availability', bookingsController.checkRoomAvailabilit
 router.post('/public/create', bookingsController.createPublicBooking);
 router.get('/public/date-range', bookingsController.getBookingsByDateRange);
 
-// נתיבים לרענון לוח המודעות (ציבוריים)
-router.post('/notice-board/refresh', bookingsController.triggerNoticeBoardRefresh);
+// נתיבים לרענון לוח המודעות
+// טריגר רענון - דורש התחברות (ממשק ניהול בלבד)
+router.post('/notice-board/refresh', auth, bookingsController.triggerNoticeBoardRefresh);
+// סטטוס רענון - ציבורי עבור לוח המודעות הציבורי
 router.get('/notice-board/refresh-status', bookingsController.getNoticeBoardRefreshStatus);
 
 // נתיבי תמונות עם אימות מיוחד - לפני הגנה כללית

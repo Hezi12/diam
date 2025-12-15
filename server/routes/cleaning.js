@@ -4,9 +4,41 @@ const Booking = require('../models/Booking');
 const mongoose = require('mongoose');
 
 /**
+ * אימות פשוט לדף הניקיון על בסיס סיסמה בלבד (ללא משתמש)
+ * ברירת מחדל: 8788, ניתן לעדכן דרך משתנה סביבה CLEANING_PASSWORD
+ */
+const SIMPLE_CLEANING_PASSWORD = process.env.CLEANING_PASSWORD || '8788';
+
+const cleaningAuth = (req, res, next) => {
+  try {
+    const passwordFromHeader = req.headers['x-cleaning-password'];
+    const passwordFromBody = req.body?.password;
+    const passwordFromQuery = req.query?.password;
+
+    const providedPassword = passwordFromHeader || passwordFromBody || passwordFromQuery;
+
+    if (!providedPassword) {
+      return res.status(401).json({ message: 'נדרשת סיסמה לצפייה בדף הניקיון' });
+    }
+
+    if (providedPassword !== SIMPLE_CLEANING_PASSWORD) {
+      return res.status(401).json({ message: 'סיסמת ניקיון שגויה' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('שגיאה בבדיקת סיסמת ניקיון:', error);
+    return res.status(500).json({ message: 'שגיאה באימות סיסמת ניקיון' });
+  }
+};
+
+// החלת סיסמת הניקיון על כל נתיבי /api/cleaning/*
+router.use(cleaningAuth);
+
+/**
  * @route   GET /api/cleaning/tasks
  * @desc    קבלת רשימת משימות ניקיון עבור תאריכים מסוימים
- * @access  public
+ * @access  protected with simple password (8788)
  */
 router.get('/tasks', async (req, res) => {
   try {
@@ -64,7 +96,7 @@ router.get('/tasks', async (req, res) => {
 /**
  * @route   POST /api/cleaning/mark-clean
  * @desc    סימון חדר כנקי
- * @access  public
+ * @access  protected with simple password (8788)
  */
 router.post('/mark-clean', async (req, res) => {
   try {
@@ -100,7 +132,7 @@ router.post('/mark-clean', async (req, res) => {
 /**
  * @route   POST /api/cleaning/mark-dirty
  * @desc    סימון חדר כמלוכלך
- * @access  public
+ * @access  protected with simple password (8788)
  */
 router.post('/mark-dirty', async (req, res) => {
   try {

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const emailService = require('../services/emailService');
+const auth = require('../middleware/auth');
+
+// כל נתיבי המייל דורשים כעת התחברות מלאה (JWT)
+router.use(auth);
 
 // דמה של הזמנה לתצוגה מקדימה
 const getSampleBooking = (location = 'airport') => {

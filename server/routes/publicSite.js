@@ -35,7 +35,8 @@ router.patch('/banner/launch/validity', auth, publicSiteController.updateBannerV
 
 // נתיבים עבור הגדרות לוח המודעות
 // קבלת הגדרות לוח המודעות
-router.get('/notice-board/settings', auth, publicSiteController.getNoticeBoardSettings);
+// נגיש לציבור לצורך הצגת לוח המודעות הציבורי
+router.get('/notice-board/settings', publicSiteController.getNoticeBoardSettings);
 
 // עדכון הגדרות לוח המודעות
 router.put('/notice-board/settings', auth, publicSiteController.updateNoticeBoardSettings);

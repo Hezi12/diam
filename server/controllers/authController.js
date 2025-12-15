@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { CURRENT_SESSION_VERSION } = require('../config/sessionConfig');
 
 // הדרך היעילה ביותר תהיה להשתמש במשתמש קבוע מראש, אבל לצורך הדוגמה אנחנו נשתמש במסד נתונים
 
@@ -26,7 +27,8 @@ exports.login = async (req, res) => {
             id: 'dev-user-id',
             username: 'hezi',
             name: 'חזי - מנהל המערכת',
-            role: 'admin'
+            role: 'admin',
+            sessionVersion: CURRENT_SESSION_VERSION
           },
           process.env.JWT_SECRET || 'your_jwt_secret_key',
           { expiresIn: '1d' }
@@ -72,7 +74,8 @@ exports.login = async (req, res) => {
         id: user._id, 
         username: user.username,
         name: user.name,
-        role: user.role 
+        role: user.role,
+        sessionVersion: CURRENT_SESSION_VERSION
       },
       process.env.JWT_SECRET || 'your_jwt_secret_key',
       { expiresIn: '7d' }
