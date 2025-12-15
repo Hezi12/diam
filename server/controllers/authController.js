@@ -21,7 +21,7 @@ exports.login = async (req, res) => {
     // אם אין חיבור ל-MongoDB ומדובר במצב פיתוח, אפשר לאפשר כניסה עם המשתמש הדיפולטיבי
     if (!isMongoConnected && process.env.NODE_ENV === 'development') {
       // נתוני משתמש קבועים לסביבת פיתוח
-      if (username === 'hezi' && password === 'hezi3225') {
+      if (username === 'hezi' && password === 'Hezi!3226') {
         const token = jwt.sign(
           {
             id: 'dev-user-id',
@@ -106,7 +106,7 @@ exports.initializeAdmin = async () => {
       // יצירת משתמש מנהל ראשוני
       await User.create({
         username: 'hezi',
-        password: 'hezi3225',
+        password: 'Hezi!3226',
         name: 'חזי - מנהל המערכת',
         role: 'admin'
       });

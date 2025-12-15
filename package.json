@@ -18,6 +18,7 @@
     "init-capital": "node server/scripts/initializeCapital.js",
     "cleanup-collections": "node server/scripts/cleanupCollections.js",
     "fix-review-field": "node server/scripts/fixReviewHandledField.js",
+    "change-password": "node server/scripts/changePassword.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
