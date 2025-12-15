@@ -1,7 +1,7 @@
 {
   "short_name": "דיאם",
-  "name": "דיאם - Airport Guest House",
-  "description": "מערכת ניהול הזמנות ולוח מודעות ציבורי עבור דיאם Airport Guest House",
+  "name": "Airport Guest House - הזמנת חדרים",
+  "description": "הזמנת חדרים אונליין ב-Airport Guest House - בית הארחה מודרני ליד נמל התעופה בן גוריון. חדרים נקיים ומאובזרים, Wi-Fi חינם, חניה חינם.",
   "icons": [
     {
       "src": "icons/favicon.ico",
