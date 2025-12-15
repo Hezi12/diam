@@ -10,6 +10,9 @@ router.post('/login', authController.login);
 // נתיב לקבלת פרטי המשתמש הנוכחי (עם אימות)
 router.get('/me', auth, authController.getCurrentUser);
 
+// נתיב לעדכון סיסמא (עם אימות)
+router.post('/change-password', auth, authController.changePassword);
+
 // יצירת משתמש מנהל ראשוני
 authController.initializeAdmin();
 

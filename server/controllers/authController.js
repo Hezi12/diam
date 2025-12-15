@@ -132,4 +132,46 @@ exports.getCurrentUser = async (req, res) => {
     console.error('Get Current User Error:', error);
     res.status(500).json({ message: 'שגיאת שרת בקבלת פרטי משתמש' });
   }
+};
+
+// עדכון סיסמא של משתמש
+exports.changePassword = async (req, res) => {
+  try {
+    const { username, newPassword, oldPassword } = req.body;
+
+    // בדיקת פרמטרים
+    if (!username || !newPassword) {
+      return res.status(400).json({ message: 'יש למלא שם משתמש וסיסמא חדשה' });
+    }
+
+    // חיפוש המשתמש
+    const user = await User.findOne({ username });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'משתמש לא נמצא' });
+    }
+
+    // אם ניתנה סיסמא ישנה, בדוק אותה
+    if (oldPassword) {
+      const isMatch = await user.comparePassword(oldPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'סיסמא ישנה שגויה' });
+      }
+    }
+
+    // עדכון הסיסמא
+    // ה-pre-save hook יוצפן את הסיסמא אוטומטית
+    user.password = newPassword;
+    await user.save();
+
+    console.log(`✅ הסיסמא עודכנה בהצלחה עבור המשתמש "${username}"`);
+
+    return res.json({ 
+      success: true, 
+      message: 'הסיסמא עודכנה בהצלחה' 
+    });
+  } catch (error) {
+    console.error('Change Password Error:', error);
+    return res.status(500).json({ message: 'שגיאה בעדכון הסיסמא' });
+  }
 }; 

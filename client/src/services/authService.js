@@ -107,6 +107,31 @@ const authService = {
     } else {
       delete axios.defaults.headers.common['Authorization'];
     }
+  },
+
+  /**
+   * עדכון סיסמא של משתמש
+   * @param {Object} data - נתוני עדכון הסיסמא
+   * @param {string} data.username - שם המשתמש
+   * @param {string} data.newPassword - הסיסמא החדשה
+   * @param {string} [data.oldPassword] - הסיסמא הישנה (אופציונלי)
+   * @returns {Promise<Object>} תוצאת העדכון
+   */
+  changePassword: async (data) => {
+    try {
+      const response = await axios.post('/api/auth/change-password', data);
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      let errorMessage = 'אירעה שגיאה בעדכון הסיסמא';
+      
+      if (error.response) {
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.request) {
+        errorMessage = 'לא התקבלה תשובה מהשרת, בדוק את החיבור לאינטרנט';
+      }
+      
+      return { success: false, error: errorMessage };
+    }
   }
 };
 
