@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { CURRENT_SESSION_VERSION } from '../config/sessionConfig';
 
 // יצירת קונטקסט אימות
 const AuthContext = createContext();
@@ -38,10 +39,19 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(false);
             setUser(null);
           } else {
-            console.log('AuthContext: Token valid, user authenticated');
-            // אם הטוקן תקף, מעדכנים את המצב
-            setIsAuthenticated(true);
-            setUser(decoded);
+            // בדיקת גרסת סשן גלובלית - מנתק טוקנים ישנים
+            if (!decoded.sessionVersion || decoded.sessionVersion !== CURRENT_SESSION_VERSION) {
+              console.log('AuthContext: Session version mismatch or missing, forcing logout');
+              localStorage.removeItem('token');
+              delete axios.defaults.headers.common['Authorization'];
+              setIsAuthenticated(false);
+              setUser(null);
+            } else {
+              console.log('AuthContext: Token valid, user authenticated');
+              // אם הטוקן תקף, מעדכנים את המצב
+              setIsAuthenticated(true);
+              setUser(decoded);
+            }
           }
         } catch (error) {
           console.error('AuthContext: Token validation error:', error);

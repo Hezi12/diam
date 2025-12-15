@@ -329,8 +329,15 @@ const AppContent = () => {
                   }
                 />
                 
-                {/* ניתוב ברירת מחדל */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                {/* ניתוב ברירת מחדל - רק למשתמשים מחוברים */}
+                <Route 
+                  path="*" 
+                  element={
+                    <ProtectedRoute>
+                      <Navigate to="/dashboard" replace />
+                    </ProtectedRoute>
+                  } 
+                />
                 </Routes>
               </HelmetProvider>
             </LanguageProvider>
