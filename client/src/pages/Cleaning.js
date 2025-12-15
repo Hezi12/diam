@@ -276,7 +276,7 @@ const Cleaning = () => {
               maxLength={8}
               value={cleaningPassword}
               onChange={(e) => setCleaningPassword(e.target.value)}
-              placeholder="הקלד סיסמה (לדוגמה 8788)"
+              placeholder="הקלד סיסמה"
               style={{
                 padding: '10px 12px',
                 borderRadius: 8,
