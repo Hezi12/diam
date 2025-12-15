@@ -599,7 +599,10 @@ const SearchResultsPage = () => {
   
   return (
     <PublicSiteLayout>
-      <SEOHead title={`${t('rooms.searchResults')} - Airport Guest House`} />
+      <SEOHead 
+        title={`${t('rooms.searchResults')} - Airport Guest House`}
+        description="חיפוש חדרים זמינים ב-Airport Guest House - בית הארחה מודרני ליד נמל התעופה בן גוריון. הזמנה מיידית אונליין במחירים מיוחדים."
+      />
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ mb: 4 }}>
           <Button
