@@ -258,11 +258,8 @@ const Cleaning = () => {
           }}
         >
           <CleaningServicesIcon sx={{ fontSize: 48, color: '#499C56', mb: 2 }} />
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
             כניסה לדף הניקיון
-          </Typography>
-          <Typography sx={{ mb: 3, color: '#555' }}>
-            יש להזין סיסמה פשוטה כדי לגשת לרשימת החדרים לניקוי.
           </Typography>
           <Box
             component="form"
