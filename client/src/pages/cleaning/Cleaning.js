@@ -128,7 +128,7 @@ const Cleaning = () => {
   const markRoomAsClean = async (taskId) => {
     setLoading(true);
     try {
-      await cleaningService.markRoomAsClean(taskId);
+      await cleaningService.markRoomAsClean(taskId, cleaningPassword);
       
       // עדכון המצב המקומי
       setCleaningTasks(prevTasks => {
@@ -178,7 +178,7 @@ const Cleaning = () => {
   const markRoomAsDirty = async (taskId) => {
     setLoading(true);
     try {
-      await cleaningService.markRoomAsDirty(taskId);
+      await cleaningService.markRoomAsDirty(taskId, cleaningPassword);
       
       // עדכון המצב המקומי
       setCleaningTasks(prevTasks => {
