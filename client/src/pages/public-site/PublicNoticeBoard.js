@@ -13,7 +13,14 @@ import {
   AccessTime,
   ContactSupport,
   Fullscreen,
-  FullscreenExit
+  FullscreenExit,
+  ZoomIn,
+  ZoomOut,
+  Settings,
+  Add,
+  Remove,
+  Close,
+  CheckCircle
 } from '@mui/icons-material';
 
 const PublicNoticeBoard = () => {
@@ -24,6 +31,52 @@ const PublicNoticeBoard = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wakeLock, setWakeLock] = useState(null);
   const [hideRealGuestNames, setHideRealGuestNames] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    const saved = localStorage.getItem('noticeBoardZoom');
+    return saved ? parseFloat(saved) : 1;
+  });
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => {
+      const next = Math.min(prev + 0.1, 2);
+      localStorage.setItem('noticeBoardZoom', next.toString());
+      return next;
+    });
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => {
+      const next = Math.max(prev - 0.1, 0.5);
+      localStorage.setItem('noticeBoardZoom', next.toString());
+      return next;
+    });
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(1);
+    localStorage.setItem('noticeBoardZoom', '1');
+  };
+
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [safeArea, setSafeArea] = useState(() => {
+    const saved = localStorage.getItem('noticeBoardSafeArea');
+    return saved ? JSON.parse(saved) : { top: 0, right: 0, bottom: 0, left: 0 };
+  });
+
+  const updateSafeArea = (side, amount) => {
+    setSafeArea(prev => {
+      const newVal = Math.max(0, Math.min(prev[side] + amount, 200));
+      const next = { ...prev, [side]: newVal };
+      localStorage.setItem('noticeBoardSafeArea', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const resetSafeArea = () => {
+    const defaultArea = { top: 0, right: 0, bottom: 0, left: 0 };
+    setSafeArea(defaultArea);
+    localStorage.setItem('noticeBoardSafeArea', JSON.stringify(defaultArea));
+  };
 
   // אורחים ברירת מחדל באנגלית
   const defaultGuests = useMemo(() => [
@@ -370,9 +423,140 @@ const PublicNoticeBoard = () => {
         display: 'flex',
         flexDirection: 'column',
         fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-        direction: 'ltr'
+        direction: 'ltr',
+        zoom: zoomLevel,
+        paddingTop: `${safeArea.top}px`,
+        paddingRight: `${safeArea.right}px`,
+        paddingBottom: `${safeArea.bottom}px`,
+        paddingLeft: `${safeArea.left}px`,
+        position: 'relative',
+        transition: 'padding 0.3s ease'
       }}
     >
+      {/* Calibration Overlay */}
+      {isCalibrating && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            pointerEvents: 'none',
+            '& > *': { pointerEvents: 'auto' }
+          }}
+        >
+          {/* Border Visualization */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: `${safeArea.top}px`,
+              right: `${safeArea.right}px`,
+              bottom: `${safeArea.bottom}px`,
+              left: `${safeArea.left}px`,
+              border: '4px dashed #f44336',
+              boxShadow: '0 0 0 10000px rgba(0,0,0,0.5)',
+              zIndex: 1
+            }}
+          />
+
+          {/* Controls Container */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              padding: 4,
+              borderRadius: 4,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3,
+              alignItems: 'center',
+              zIndex: 10,
+              minWidth: 400
+            }}
+          >
+            <Typography variant="h5" sx={{ color: '#f44336', fontWeight: 700, mb: 1 }}>
+              Screen Adjustment Mode
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
+              Use buttons to adjust the margins until the red border fits your screen perfectly.
+            </Typography>
+
+            <Grid container spacing={2} justifyContent="center" alignItems="center">
+              {/* Top Control */}
+              <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+                <Typography sx={{ width: 80, fontWeight: 600 }}>TOP</Typography>
+                <IconButton onClick={() => updateSafeArea('top', -5)} color="primary"><Remove /></IconButton>
+                <Typography sx={{ minWidth: 40, textAlign: 'center' }}>{safeArea.top}</Typography>
+                <IconButton onClick={() => updateSafeArea('top', 5)} color="primary"><Add /></IconButton>
+              </Grid>
+
+              {/* Middle Row: Left and Right */}
+              <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ width: 60, fontWeight: 600 }}>LEFT</Typography>
+                  <IconButton onClick={() => updateSafeArea('left', -5)} color="primary"><Remove /></IconButton>
+                  <Typography sx={{ minWidth: 40, textAlign: 'center' }}>{safeArea.left}</Typography>
+                  <IconButton onClick={() => updateSafeArea('left', 5)} color="primary"><Add /></IconButton>
+                </Box>
+                <Box sx={{ width: 20 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ width: 60, fontWeight: 600 }}>RIGHT</Typography>
+                  <IconButton onClick={() => updateSafeArea('right', -5)} color="primary"><Remove /></IconButton>
+                  <Typography sx={{ minWidth: 40, textAlign: 'center' }}>{safeArea.right}</Typography>
+                  <IconButton onClick={() => updateSafeArea('right', 5)} color="primary"><Add /></IconButton>
+                </Box>
+              </Grid>
+
+              {/* Bottom Control */}
+              <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+                <Typography sx={{ width: 80, fontWeight: 600 }}>BOTTOM</Typography>
+                <IconButton onClick={() => updateSafeArea('bottom', -5)} color="primary"><Remove /></IconButton>
+                <Typography sx={{ minWidth: 40, textAlign: 'center' }}>{safeArea.bottom}</Typography>
+                <IconButton onClick={() => updateSafeArea('bottom', 5)} color="primary"><Add /></IconButton>
+              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+              <IconButton 
+                onClick={resetSafeArea}
+                sx={{ 
+                  borderRadius: 2, 
+                  px: 3, 
+                  py: 1, 
+                  fontSize: '0.9rem',
+                  border: '1px solid #ccc'
+                }}
+              >
+                Reset All
+              </IconButton>
+              <IconButton 
+                onClick={() => setIsCalibrating(false)}
+                sx={{ 
+                  backgroundColor: '#4CAF50', 
+                  color: 'white',
+                  borderRadius: 2,
+                  px: 4,
+                  py: 1,
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  '&:hover': { backgroundColor: '#45a049' },
+                  display: 'flex',
+                  gap: 1
+                }}
+              >
+                <CheckCircle /> Finish & Save
+              </IconButton>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
       <Container maxWidth="xl" sx={{ py: 4, flex: 1 }}>
         {/* Header */}
         <Box
@@ -383,23 +567,95 @@ const PublicNoticeBoard = () => {
             position: 'relative'
           }}
         >
-          {/* כפתור Fullscreen - מופיע רק בהובר */}
+          {/* כפתורי שליטה (Fullscreen + Zoom) - מופיעים רק בהובר */}
           <Box
             sx={{
               position: 'absolute',
               top: 0,
               right: 0,
               zIndex: 1000,
-              width: 100,
-              height: 100,
+              p: 2,
+              display: 'flex',
+              gap: 1,
               opacity: 0,
               transition: 'opacity 0.3s ease',
-              cursor: 'pointer',
               '&:hover': {
                 opacity: 1
               }
             }}
           >
+            {/* Zoom Out */}
+            <Tooltip title="Zoom Out">
+              <IconButton
+                onClick={handleZoomOut}
+                sx={{
+                  backgroundColor: '#ffffff',
+                  border: '2px solid #1976D2',
+                  borderRadius: 2,
+                  width: 48,
+                  height: 48,
+                  color: '#1976D2',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  '&:hover': {
+                    backgroundColor: '#1976D2',
+                    color: '#ffffff',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <ZoomOut />
+              </IconButton>
+            </Tooltip>
+
+            {/* Zoom Reset */}
+            <Tooltip title={`Reset Zoom (${Math.round(zoomLevel * 100)}%)`}>
+              <IconButton
+                onClick={handleZoomReset}
+                sx={{
+                  backgroundColor: '#ffffff',
+                  border: '2px solid #1976D2',
+                  borderRadius: 2,
+                  width: 48,
+                  height: 48,
+                  color: '#1976D2',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  '&:hover': {
+                    backgroundColor: '#1976D2',
+                    color: '#ffffff',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                {Math.round(zoomLevel * 100)}%
+              </IconButton>
+            </Tooltip>
+
+            {/* Zoom In */}
+            <Tooltip title="Zoom In">
+              <IconButton
+                onClick={handleZoomIn}
+                sx={{
+                  backgroundColor: '#ffffff',
+                  border: '2px solid #1976D2',
+                  borderRadius: 2,
+                  width: 48,
+                  height: 48,
+                  color: '#1976D2',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  '&:hover': {
+                    backgroundColor: '#1976D2',
+                    color: '#ffffff',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <ZoomIn />
+              </IconButton>
+            </Tooltip>
+
+            {/* Fullscreen */}
             <Tooltip title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}>
               <IconButton
                 onClick={toggleFullscreen}
@@ -407,10 +663,8 @@ const PublicNoticeBoard = () => {
                   backgroundColor: isFullscreen ? '#1976D2' : '#ffffff',
                   border: '2px solid #1976D2',
                   borderRadius: 2,
-                  width: 56,
-                  height: 56,
-                  margin: '10px',
-                  transition: 'all 0.3s ease',
+                  width: 48,
+                  height: 48,
                   color: isFullscreen ? '#ffffff' : '#1976D2',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   '&:hover': {
@@ -422,10 +676,33 @@ const PublicNoticeBoard = () => {
                 }}
               >
                 {isFullscreen ? (
-                  <FullscreenExit sx={{ fontSize: 28, color: 'inherit' }} />
+                  <FullscreenExit />
                 ) : (
-                  <Fullscreen sx={{ fontSize: 28, color: 'inherit' }} />
+                  <Fullscreen />
                 )}
+              </IconButton>
+            </Tooltip>
+
+            {/* Calibration Settings */}
+            <Tooltip title="Screen Adjustment (Safe Area)">
+              <IconButton
+                onClick={() => setIsCalibrating(true)}
+                sx={{
+                  backgroundColor: isCalibrating ? '#f44336' : '#ffffff',
+                  border: '2px solid #f44336',
+                  borderRadius: 2,
+                  width: 48,
+                  height: 48,
+                  color: isCalibrating ? '#ffffff' : '#f44336',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  '&:hover': {
+                    backgroundColor: '#f44336',
+                    color: '#ffffff',
+                    transform: 'scale(1.1)'
+                  }
+                }}
+              >
+                <Settings />
               </IconButton>
             </Tooltip>
           </Box>
