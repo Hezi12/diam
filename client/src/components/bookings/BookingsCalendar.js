@@ -13,7 +13,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip
+  Chip,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import axios from 'axios';
 import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
@@ -83,7 +85,11 @@ const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant, isD
   width: `${length}%`,
   borderRadius: '6px',
   transition: isDragging ? 'none' : 'all 0.15s ease-in-out',
-  padding: '8px 8px',
+  padding: theme.breakpoints.down('md') ? '3px 4px' : '8px 8px',
+  [theme.breakpoints.down('md')]: {
+    padding: '3px 4px',
+    borderRadius: '4px',
+  },
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-start', // נשאר flex-start כי זה הטקסט בתוך התא
@@ -148,7 +154,11 @@ const BookingsCalendar = ({
 }) => {
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
-  
+
+  // זיהוי מובייל
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+
   // הוק פשוט לסינון CSS
   const { getBookingClassNameFlex } = useFilterCSS();
 
@@ -941,22 +951,27 @@ const BookingsCalendar = ({
             height: '100%'
           }}>
             {/* שם האורח */}
-            <Typography variant="body2" sx={{ 
-              color: `rgba(34, 34, 34, 0.9)`, 
+            <Typography variant="body2" sx={{
+              color: `rgba(34, 34, 34, 0.9)`,
               fontWeight: 500,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              width: '100%'
+              width: '100%',
+              fontSize: isMobile ? '0.6rem' : '0.875rem',
+              lineHeight: isMobile ? 1.2 : 1.43
             }}>
-              {booking.firstName ? `${booking.firstName} ${booking.lastName || ''}` : 'ללא שם'}
+              {isMobile
+                ? (booking.firstName || 'ללא שם')
+                : (booking.firstName ? `${booking.firstName} ${booking.lastName || ''}` : 'ללא שם')
+              }
             </Typography>
-            
-            {/* אייקונים - שינוי: אייקון תשלום יוצג תמיד אם התנאי מתקיים, לא רק להזמנות רלוונטיות */}
-            <Box sx={{ 
-              display: 'flex', 
-              gap: '6px', 
-              mt: 'auto', 
+
+            {/* אייקונים - מוסתרים במובייל לחיסכון במקום */}
+            <Box sx={{
+              display: isMobile ? 'none' : 'flex',
+              gap: '6px',
+              mt: 'auto',
               alignSelf: 'flex-end',
               pt: '4px'
             }}>
@@ -1196,19 +1211,19 @@ const BookingsCalendar = ({
   };
 
   return (
-    <Box sx={{ overflowX: 'auto' }}>
+    <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <Paper
         sx={{
           ...STYLE_CONSTANTS.card,
           p: 0,
           overflow: 'hidden',
           width: '100%',
-          minWidth: '1000px'
+          minWidth: isMobile ? '600px' : '1000px'
         }}
       >
-        <Box 
-          sx={{ 
-            display: 'flex', 
+        <Box
+          sx={{
+            display: 'flex',
             bgcolor: '#f8f8f8',
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             position: 'sticky',
@@ -1217,57 +1232,58 @@ const BookingsCalendar = ({
           }}
         >
           {/* עמודת חדרים */}
-          <Box sx={{ 
-            minWidth: '100px', 
-            p: 2,
+          <Box sx={{
+            minWidth: isMobile ? '48px' : '100px',
+            p: isMobile ? 0.5 : 2,
             borderLeft: '1px solid rgba(0,0,0,0.05)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center'
           }}>
-            <Typography sx={{ 
-              fontWeight: 600, 
+            <Typography sx={{
+              fontWeight: 600,
               color: 'text.primary',
-              textAlign: 'center'
+              textAlign: 'center',
+              fontSize: isMobile ? '0.7rem' : 'inherit'
             }}>
               חדר
             </Typography>
           </Box>
 
           {/* עמודות תאריכים */}
-          <Box sx={{ 
-            flex: 1, 
+          <Box sx={{
+            flex: 1,
             display: 'flex'
           }}>
             {daysInRange.map((day, index) => (
-              <Box 
-                key={`date-${index}`} 
-                sx={{ 
+              <Box
+                key={`date-${index}`}
+                sx={{
                   flex: 1,
-                  p: 1,
+                  p: isMobile ? 0.3 : 1,
                   textAlign: 'center',
                   borderLeft: index < daysInRange.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
                   borderBottom: '1px solid rgba(0,0,0,0.05)',
-                  ...(isToday(day) && { 
+                  ...(isToday(day) && {
                     bgcolor: 'rgba(0, 113, 227, 0.05)',
                     borderTop: '2px solid var(--primary-color)'
                   }),
-                  ...(isFridayOrSaturday(day) && { 
-                    bgcolor: 'rgba(0, 0, 0, 0.02)' 
+                  ...(isFridayOrSaturday(day) && {
+                    bgcolor: 'rgba(0, 0, 0, 0.02)'
                   }),
                 }}
               >
-                <Typography sx={{ 
-                  fontWeight: 500, 
+                <Typography sx={{
+                  fontWeight: 500,
                   color: 'text.secondary',
-                  fontSize: '0.8rem'
+                  fontSize: isMobile ? '0.55rem' : '0.8rem'
                 }}>
-                  {format(day, 'EEEE', { locale: he })}
+                  {isMobile ? format(day, 'EE', { locale: he }) : format(day, 'EEEE', { locale: he })}
                 </Typography>
-                <Typography sx={{ 
-                  fontWeight: 600, 
+                <Typography sx={{
+                  fontWeight: 600,
                   color: isToday(day) ? locationColors.main : 'text.primary',
-                  fontSize: '0.9rem'
+                  fontSize: isMobile ? '0.6rem' : '0.9rem'
                 }}>
                   {format(day, 'dd/MM')}
                 </Typography>
@@ -1290,14 +1306,14 @@ const BookingsCalendar = ({
               // המרת מספר החדר למספר שלם לצורך מיון נכון
               const roomNumberA = parseInt(a.roomNumber, 10);
               const roomNumberB = parseInt(b.roomNumber, 10);
-              
+
               // מיון בסדר עולה
               return roomNumberA - roomNumberB;
             })
             .map((room) => (
-              <Box 
+              <Box
                 key={`room-${room._id}`}
-                sx={{ 
+                sx={{
                   display: 'flex',
                   borderBottom: '1px solid rgba(0,0,0,0.05)',
                   '&:hover': {
@@ -1306,28 +1322,28 @@ const BookingsCalendar = ({
                 }}
               >
                 {/* תא חדר */}
-                <Box sx={{ 
-                  minWidth: '100px', 
-                  p: 2,
+                <Box sx={{
+                  minWidth: isMobile ? '48px' : '100px',
+                  p: isMobile ? 0.5 : 2,
                   borderLeft: '1px solid rgba(0,0,0,0.05)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Typography sx={{ 
-                    fontWeight: 700, 
-                    fontSize: '1.1rem'
+                  <Typography sx={{
+                    fontWeight: 700,
+                    fontSize: isMobile ? '0.85rem' : '1.1rem'
                   }}>
                     {room.roomNumber}
                   </Typography>
                 </Box>
 
                 {/* אזור הזמנות גאנט */}
-                <Box sx={{ 
+                <Box sx={{
                   flex: 1,
                   position: 'relative',
                   display: 'flex',
-                  height: '70px',
+                  height: isMobile ? '48px' : '70px',
                 }}>
                   {/* תאי רקע לכל יום עם תמיכה ב-drop zone */}
                   {daysInRange.map((day, dateIndex) => {

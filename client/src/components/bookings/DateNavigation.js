@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TodayIcon from '@mui/icons-material/Today';
@@ -62,6 +62,9 @@ const DateNavigation = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [tempDate, setTempDate] = useState(new Date());
+
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
@@ -141,15 +144,15 @@ const DateNavigation = ({
   const open = Boolean(anchorEl);
 
   return (
-    <Paper 
+    <Paper
       elevation={0}
-      sx={{ 
-        py: 1.5,
-        px: 2,
+      sx={{
+        py: isMobile ? 1 : 1.5,
+        px: isMobile ? 1 : 2,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        mb: 2.5,
+        mb: isMobile ? 1.5 : 2.5,
         borderRadius: '10px',
         border: '1px solid',
         borderColor: 'grey.200',
@@ -174,15 +177,16 @@ const DateNavigation = ({
         </IconButton>
 
         <Tooltip title="בחר תאריך">
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              fontWeight: 500, 
-              mx: 2,
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 500,
+              mx: isMobile ? 0.5 : 2,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              '&:hover': { 
+              fontSize: isMobile ? '0.85rem' : '1rem',
+              '&:hover': {
                 color: locationColors.main,
                 transform: 'scale(1.02)',
                 transition: 'all 0.2s'
