@@ -545,8 +545,11 @@ const Bookings = () => {
           mb: 2
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h5" fontWeight={500} sx={{ mr: 2, fontSize: { xs: '1.1rem', md: '1.5rem' } }}>
+            <Typography variant="h5" fontWeight={500} sx={{ mr: 1, fontSize: { xs: '1.1rem', md: '1.5rem' } }}>
               ניהול הזמנות
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled', mr: 2, fontSize: '0.65rem', alignSelf: 'flex-end', mb: 0.3 }}>
+              v1
             </Typography>
             <BookingTabs location={location} onLocationChange={handleLocationChange} />
           </Box>
