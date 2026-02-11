@@ -23,6 +23,8 @@ import {
   DialogContentText,
   Tooltip,
   Checkbox,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -92,6 +94,8 @@ const NewBookingForm = ({
   initialData = null, // אופציונלי - נתונים התחלתיים
   onDelete = null // פונקציה למחיקת הזמנה
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { enqueueSnackbar } = useSnackbar();
   const { filterPaymentMethods, shouldHidePaymentMethod } = useFilter();
   const style = STYLE_CONSTANTS.style;
@@ -1232,17 +1236,18 @@ const NewBookingForm = ({
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       maxWidth="md"
-      fullWidth 
+      fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: style.dialog.borderRadius,
+          borderRadius: isMobile ? 0 : style.dialog.borderRadius,
           overflow: 'hidden',
-          width: '95%',
-          maxWidth: '1000px'
+          width: isMobile ? '100%' : '95%',
+          maxWidth: isMobile ? '100%' : '1000px'
         }
       }}
     >

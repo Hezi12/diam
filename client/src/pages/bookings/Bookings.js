@@ -41,10 +41,10 @@ const Bookings = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   
-  // מצב תאריכים - ברירת מחדל: 10 ימים במקום 7
+  // מצב תאריכים - מותאם למובייל/דסקטופ
   const [dateRange, setDateRange] = useState({
-    startDate: subDays(new Date(), 3), // 3 ימים אחורה
-    endDate: addDays(new Date(), 6)   // 6 ימים קדימה (סה"כ 10 ימים)
+    startDate: subDays(new Date(), isMobile ? 1 : 3),
+    endDate: addDays(new Date(), isMobile ? 2 : 6)
   });
   
   // מצב טעינת נתונים
@@ -493,49 +493,51 @@ const Bookings = () => {
           height: '100%' 
         }}>
           {/* אזור כותרת וכפתורים */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            mb: 2 
+          <Box sx={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'stretch' : 'center',
+            mb: 2,
+            gap: isMobile ? 1 : 0
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="h5" fontWeight={500} sx={{ mr: 2 }}>
+              <Typography variant={isMobile ? 'h6' : 'h5'} fontWeight={500} sx={{ mr: 2 }}>
                 ניהול הזמנות
               </Typography>
               <BookingTabs location={location} onLocationChange={handleLocationChange} />
             </Box>
-            
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button 
-                variant="contained" 
-                color="primary" 
+
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="contained"
+                color="primary"
                 onClick={handleAddBooking}
                 startIcon={<Add />}
-                size={isMobile ? 'small' : 'medium'}
-                sx={{ borderRadius: '4px', textTransform: 'none' }}
+                size="small"
+                sx={{ borderRadius: '4px', textTransform: 'none', fontSize: isMobile ? '0.75rem' : 'inherit' }}
               >
                 הזמנה חדשה
               </Button>
-            
-            <Button 
-              variant="outlined" 
-              color="primary" 
-              component={Link} 
+
+            <Button
+              variant="outlined"
+              color="primary"
+              component={Link}
               to="/quick-booking"
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: '4px', textTransform: 'none' }}
+              size="small"
+              sx={{ borderRadius: '4px', textTransform: 'none', fontSize: isMobile ? '0.75rem' : 'inherit' }}
             >
               הזנה מהירה
             </Button>
-            
-            <Button 
-              variant="outlined" 
-              color="secondary" 
+
+            <Button
+              variant="outlined"
+              color="secondary"
               onClick={handleSearchClick}
               startIcon={<Search />}
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: '4px', textTransform: 'none' }}
+              size="small"
+              sx={{ borderRadius: '4px', textTransform: 'none', fontSize: isMobile ? '0.75rem' : 'inherit' }}
             >
               חיפוש
             </Button>

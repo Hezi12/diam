@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Button, Popover, Paper, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TodayIcon from '@mui/icons-material/Today';
@@ -60,6 +60,8 @@ const DateNavigation = ({
   onSearchClick,
   onAddBookingClick
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
   const [tempDate, setTempDate] = useState(new Date());
 
@@ -84,10 +86,12 @@ const DateNavigation = ({
   };
 
   const handleApplyDate = () => {
-    // קביעת טווח: 3 ימים לפני היום שנבחר ו-6 ימים אחריו
-    const newStartDate = subDays(tempDate, 3);
-    const newEndDate = addDays(tempDate, 6);
-    
+    // קביעת טווח: מותאם למובייל/דסקטופ
+    const daysBefore = isMobile ? 1 : 3;
+    const daysAfter = isMobile ? 2 : 6;
+    const newStartDate = subDays(tempDate, daysBefore);
+    const newEndDate = addDays(tempDate, daysAfter);
+
     onDateRangeChange(newStartDate, newEndDate);
     handleCloseDatePicker();
   };
@@ -122,8 +126,10 @@ const DateNavigation = ({
 
   const handleGoToToday = () => {
     const today = new Date();
-    const newStartDate = subDays(today, 3); // 3 ימים אחורה
-    const newEndDate = addDays(today, 6);   // 6 ימים קדימה
+    const daysBefore = isMobile ? 1 : 3;
+    const daysAfter = isMobile ? 2 : 6;
+    const newStartDate = subDays(today, daysBefore);
+    const newEndDate = addDays(today, daysAfter);
     onDateRangeChange(newStartDate, newEndDate);
   };
 
@@ -141,15 +147,15 @@ const DateNavigation = ({
   const open = Boolean(anchorEl);
 
   return (
-    <Paper 
+    <Paper
       elevation={0}
-      sx={{ 
-        py: 1.5,
-        px: 2,
+      sx={{
+        py: isMobile ? 0.75 : 1.5,
+        px: isMobile ? 1 : 2,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        mb: 2.5,
+        mb: isMobile ? 1.5 : 2.5,
         borderRadius: '10px',
         border: '1px solid',
         borderColor: 'grey.200',
@@ -174,15 +180,16 @@ const DateNavigation = ({
         </IconButton>
 
         <Tooltip title="בחר תאריך">
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              fontWeight: 500, 
-              mx: 2,
+          <Typography
+            variant={isMobile ? 'body2' : 'subtitle1'}
+            sx={{
+              fontWeight: 500,
+              mx: isMobile ? 1 : 2,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              '&:hover': { 
+              fontSize: isMobile ? '0.8rem' : 'inherit',
+              '&:hover': {
                 color: locationColors.main,
                 transform: 'scale(1.02)',
                 transition: 'all 0.2s'

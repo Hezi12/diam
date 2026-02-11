@@ -13,7 +13,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip
+  Chip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import axios from 'axios';
 import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
@@ -146,9 +148,11 @@ const BookingsCalendar = ({
   onBookingUpdate, // פונקציה לרענון נתונים (למחיקה)
   onDragBookingUpdate // פונקציה לעדכון הזמנה בגרירה
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
-  
+
   // הוק פשוט לסינון CSS
   const { getBookingClassNameFlex } = useFilterCSS();
 
@@ -1203,7 +1207,7 @@ const BookingsCalendar = ({
           p: 0,
           overflow: 'hidden',
           width: '100%',
-          minWidth: '1000px'
+          minWidth: isMobile ? 'auto' : '1000px'
         }}
       >
         <Box 
@@ -1217,18 +1221,19 @@ const BookingsCalendar = ({
           }}
         >
           {/* עמודת חדרים */}
-          <Box sx={{ 
-            minWidth: '100px', 
-            p: 2,
+          <Box sx={{
+            minWidth: isMobile ? '50px' : '100px',
+            p: isMobile ? 0.5 : 2,
             borderLeft: '1px solid rgba(0,0,0,0.05)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center'
           }}>
-            <Typography sx={{ 
-              fontWeight: 600, 
+            <Typography sx={{
+              fontWeight: 600,
               color: 'text.primary',
-              textAlign: 'center'
+              textAlign: 'center',
+              fontSize: isMobile ? '0.7rem' : 'inherit'
             }}>
               חדר
             </Typography>
@@ -1240,11 +1245,11 @@ const BookingsCalendar = ({
             display: 'flex'
           }}>
             {daysInRange.map((day, index) => (
-              <Box 
-                key={`date-${index}`} 
-                sx={{ 
+              <Box
+                key={`date-${index}`}
+                sx={{
                   flex: 1,
-                  p: 1,
+                  p: isMobile ? 0.25 : 1,
                   textAlign: 'center',
                   borderLeft: index < daysInRange.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
                   borderBottom: '1px solid rgba(0,0,0,0.05)',
@@ -1257,17 +1262,17 @@ const BookingsCalendar = ({
                   }),
                 }}
               >
-                <Typography sx={{ 
-                  fontWeight: 500, 
+                <Typography sx={{
+                  fontWeight: 500,
                   color: 'text.secondary',
-                  fontSize: '0.8rem'
+                  fontSize: isMobile ? '0.55rem' : '0.8rem'
                 }}>
-                  {format(day, 'EEEE', { locale: he })}
+                  {isMobile ? format(day, 'EE', { locale: he }) : format(day, 'EEEE', { locale: he })}
                 </Typography>
-                <Typography sx={{ 
-                  fontWeight: 600, 
+                <Typography sx={{
+                  fontWeight: 600,
                   color: isToday(day) ? locationColors.main : 'text.primary',
-                  fontSize: '0.9rem'
+                  fontSize: isMobile ? '0.65rem' : '0.9rem'
                 }}>
                   {format(day, 'dd/MM')}
                 </Typography>
@@ -1306,17 +1311,17 @@ const BookingsCalendar = ({
                 }}
               >
                 {/* תא חדר */}
-                <Box sx={{ 
-                  minWidth: '100px', 
-                  p: 2,
+                <Box sx={{
+                  minWidth: isMobile ? '50px' : '100px',
+                  p: isMobile ? 0.5 : 2,
                   borderLeft: '1px solid rgba(0,0,0,0.05)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Typography sx={{ 
-                    fontWeight: 700, 
-                    fontSize: '1.1rem'
+                  <Typography sx={{
+                    fontWeight: 700,
+                    fontSize: isMobile ? '0.8rem' : '1.1rem'
                   }}>
                     {room.roomNumber}
                   </Typography>
@@ -1327,7 +1332,7 @@ const BookingsCalendar = ({
                   flex: 1,
                   position: 'relative',
                   display: 'flex',
-                  height: '70px',
+                  height: isMobile ? '50px' : '70px',
                 }}>
                   {/* תאי רקע לכל יום עם תמיכה ב-drop zone */}
                   {daysInRange.map((day, dateIndex) => {
