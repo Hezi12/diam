@@ -536,69 +536,74 @@ const Bookings = () => {
         height: '100%' 
       }}>
         {/* אזור כותרת וכפתורים */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 2 
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'stretch', md: 'center' },
+          gap: { xs: 1, md: 0 },
+          mb: 2
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h5" fontWeight={500} sx={{ mr: 2 }}>
+            <Typography variant="h5" fontWeight={500} sx={{ mr: 1, fontSize: { xs: '1.1rem', md: '1.5rem' } }}>
               ניהול הזמנות
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled', mr: 2, fontSize: '0.65rem', alignSelf: 'flex-end', mb: 0.3 }}>
+              v1
             </Typography>
             <BookingTabs location={location} onLocationChange={handleLocationChange} />
           </Box>
-          
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+
+          <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, alignItems: 'center', justifyContent: { xs: 'flex-end', md: 'flex-start' } }}>
             <Tooltip title="חיפוש" arrow placement="bottom">
-              <IconButton 
+              <IconButton
                 onClick={handleSearchClick}
                 size="medium"
-                sx={{ 
+                sx={{
                   backgroundColor: '#f3f3f3',
                   color: '#666',
-                  p: 1,
+                  p: { xs: 0.75, md: 1 },
                   borderRadius: '50%',
                 }}
               >
                 <SearchOutlined fontSize="small" />
               </IconButton>
             </Tooltip>
-            
+
             <Tooltip title="הזנה מהירה" arrow placement="bottom">
-              <IconButton 
-                component={Link} 
+              <IconButton
+                component={Link}
                 to="/quick-booking"
                 size="medium"
-                sx={{ 
+                sx={{
                   backgroundColor: '#e8f4ff',
                   color: '#1976d2',
-                  p: 1,
+                  p: { xs: 0.75, md: 1 },
                   borderRadius: '50%',
                 }}
               >
                 <FlashOn fontSize="small" />
               </IconButton>
             </Tooltip>
-            
+
             <Tooltip title="הזמנה חדשה" arrow placement="bottom">
-              <IconButton 
-                color="primary" 
+              <IconButton
+                color="primary"
                 onClick={handleAddBooking}
                 size="medium"
-                sx={{ 
+                sx={{
                   backgroundColor: '#1976d2',
                   color: 'white',
-                  p: 1,
+                  p: { xs: 0.75, md: 1 },
                   borderRadius: '50%',
                 }}
               >
                 <BookmarkAdd fontSize="small" />
               </IconButton>
             </Tooltip>
-            
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-            
+
+            <Divider orientation="vertical" flexItem sx={{ mx: 1, display: { xs: 'none', md: 'block' } }} />
+
             <ExternalToolbar />
           </Box>
         </Box>
