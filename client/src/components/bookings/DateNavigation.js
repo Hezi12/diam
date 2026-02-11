@@ -141,11 +141,11 @@ const DateNavigation = ({
   const open = Boolean(anchorEl);
 
   return (
-    <Paper 
+    <Paper
       elevation={0}
-      sx={{ 
-        py: 1.5,
-        px: 2,
+      sx={{
+        py: { xs: 1, md: 1.5 },
+        px: { xs: 1, md: 2 },
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -158,11 +158,11 @@ const DateNavigation = ({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <IconButton 
-          size="small" 
-          sx={{ 
+        <IconButton
+          size="small"
+          sx={{
             color: locationColors.main,
-            '&:hover': { 
+            '&:hover': {
               bgcolor: `${locationColors.main}15`,
               transform: 'scale(1.05)',
               transition: 'all 0.2s'
@@ -174,15 +174,16 @@ const DateNavigation = ({
         </IconButton>
 
         <Tooltip title="בחר תאריך">
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              fontWeight: 500, 
-              mx: 2,
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 500,
+              mx: { xs: 0.5, md: 2 },
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              '&:hover': { 
+              fontSize: { xs: '0.8rem', md: '1rem' },
+              '&:hover': {
                 color: locationColors.main,
                 transform: 'scale(1.02)',
                 transition: 'all 0.2s'
@@ -193,12 +194,12 @@ const DateNavigation = ({
             {formatDateRange()}
           </Typography>
         </Tooltip>
-        
-        <IconButton 
-          size="small" 
-          sx={{ 
+
+        <IconButton
+          size="small"
+          sx={{
             color: locationColors.main,
-            '&:hover': { 
+            '&:hover': {
               bgcolor: `${locationColors.main}15`,
               transform: 'scale(1.05)',
               transition: 'all 0.2s'
@@ -210,16 +211,16 @@ const DateNavigation = ({
         </IconButton>
 
         <Tooltip title="חזרה לתאריך נוכחי">
-          <IconButton 
-            size="small" 
-            sx={{ 
+          <IconButton
+            size="small"
+            sx={{
               color: locationColors.main,
-              '&:hover': { 
+              '&:hover': {
                 bgcolor: `${locationColors.main}15`,
                 transform: 'scale(1.05)',
                 transition: 'all 0.2s'
               },
-              ml: 1
+              ml: { xs: 0, md: 1 }
             }}
             onClick={handleGoToToday}
           >
@@ -227,7 +228,7 @@ const DateNavigation = ({
           </IconButton>
         </Tooltip>
       </Box>
-      
+
       {/* כפתורי פעולות נוספות */}
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         {onSearchClick && (
@@ -235,12 +236,12 @@ const DateNavigation = ({
             <IconButton
               onClick={onSearchClick}
               size="small"
-              sx={{ 
+              sx={{
                 color: 'text.secondary',
                 bgcolor: 'rgba(0, 0, 0, 0.03)',
-                p: 1,
-                '&:hover': { 
-                  bgcolor: locationColors.bgLight, 
+                p: { xs: 0.5, md: 1 },
+                '&:hover': {
+                  bgcolor: locationColors.bgLight,
                   color: locationColors.main,
                   transform: 'scale(1.05)',
                   transition: 'all 0.2s'
@@ -251,18 +252,18 @@ const DateNavigation = ({
             </IconButton>
           </Tooltip>
         )}
-        
+
         {onAddBookingClick && (
           <Tooltip title="הזמנה חדשה">
             <IconButton
               onClick={onAddBookingClick}
               size="small"
-              sx={{ 
-                ml: 1,
+              sx={{
+                ml: { xs: 0.5, md: 1 },
                 color: colors.accent.green,
                 bgcolor: `${colors.accent.green}08`,
-                p: 1,
-                '&:hover': { 
+                p: { xs: 0.5, md: 1 },
+                '&:hover': {
                   bgcolor: `${colors.accent.green}15`,
                   transform: 'scale(1.05)',
                   transition: 'all 0.2s'
@@ -299,7 +300,7 @@ const DateNavigation = ({
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: calendarCustomStyles }} />
-        <Box sx={{ minWidth: 300 }}>
+        <Box sx={{ minWidth: { xs: 280, sm: 300 } }}>
           <div style={{ direction: 'rtl' }}>
             <Calendar
               date={tempDate}
