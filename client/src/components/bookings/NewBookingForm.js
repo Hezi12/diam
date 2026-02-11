@@ -23,8 +23,6 @@ import {
   DialogContentText,
   Tooltip,
   Checkbox,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -47,6 +45,8 @@ import { he } from 'date-fns/locale';
 import { addDays, differenceInDays } from 'date-fns';
 import axios from 'axios';
 
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
 import { useFilter } from '../../contexts/FilterContext';
@@ -94,10 +94,10 @@ const NewBookingForm = ({
   initialData = null, // אופציונלי - נתונים התחלתיים
   onDelete = null // פונקציה למחיקת הזמנה
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { enqueueSnackbar } = useSnackbar();
   const { filterPaymentMethods, shouldHidePaymentMethod } = useFilter();
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const style = STYLE_CONSTANTS.style;
   const accentColors = STYLE_CONSTANTS.accentColors;
   const locationColors = STYLE_CONSTANTS.colors;
@@ -1247,35 +1247,56 @@ const NewBookingForm = ({
           borderRadius: isMobile ? 0 : style.dialog.borderRadius,
           overflow: 'hidden',
           width: isMobile ? '100%' : '95%',
-          maxWidth: isMobile ? '100%' : '1000px'
+          maxWidth: isMobile ? '100%' : '1000px',
+          m: isMobile ? 0 : undefined,
+          maxHeight: isMobile ? '100%' : undefined,
         }
       }}
     >
-      <DialogTitle 
-        sx={{ 
-          bgcolor: currentColors.bgLight, 
+      <DialogTitle
+        sx={{
+          bgcolor: currentColors.bgLight,
           color: currentColors.main,
           fontWeight: 500,
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
           borderBottom: `1px solid ${currentColors.main}`,
-          py: 1.5
+          py: isMobile ? 1 : 1.5,
+          px: isMobile ? 1.5 : 3,
+          gap: isMobile ? 1 : 0
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {isEditMode ? null : <AddIcon sx={{ marginRight: '10px' }} />}
-            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
-              {isEditMode 
+            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: isMobile ? '0.85rem' : '1.1rem' }}>
+              {isEditMode
                 ? `עריכת הזמנה${editBooking?.bookingNumber ? ` ${editBooking.bookingNumber}` : ''} - ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`
                 : `הזמנה חדשה - ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`
               }
             </Typography>
           </Box>
+          {/* כפתור סגירה במובייל - ליד הכותרת */}
+          {isMobile && (
+            <IconButton
+              onClick={onClose}
+              size="small"
+              sx={{
+                color: accentColors.red,
+                bgcolor: 'rgba(227, 74, 111, 0.08)',
+                '&:hover': {
+                  bgcolor: 'rgba(227, 74, 111, 0.15)',
+                }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: isMobile ? 0.75 : 1.5 }}>
           {/* אייקון סליקת אשראי */}
           <Tooltip title="סליקת אשראי וחשבוניות">
             <IconButton 
@@ -1370,7 +1391,7 @@ const NewBookingForm = ({
 
           
           {/* בחירת סטטוס תשלום */}
-          <FormControl sx={{ minWidth: 150 }} size="small">
+          <FormControl sx={{ minWidth: isMobile ? 120 : 150 }} size="small">
             <InputLabel sx={{ fontSize: '0.875rem' }}>סטטוס תשלום</InputLabel>
             <Select
               name="paymentStatus"
@@ -1426,26 +1447,28 @@ const NewBookingForm = ({
             </Select>
           </FormControl>
 
-          {/* כפתור סגירה */}
-          <Tooltip title="סגירה">
-            <IconButton 
-              onClick={onClose} 
-              size="small" 
-              sx={{ 
-                color: accentColors.red,
-                bgcolor: 'rgba(227, 74, 111, 0.08)',
-                '&:hover': {
-                  bgcolor: 'rgba(227, 74, 111, 0.15)',
-                }
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          {/* כפתור סגירה - מוסתר במובייל כי כבר מופיע ליד הכותרת */}
+          {!isMobile && (
+            <Tooltip title="סגירה">
+              <IconButton
+                onClick={onClose}
+                size="small"
+                sx={{
+                  color: accentColors.red,
+                  bgcolor: 'rgba(227, 74, 111, 0.08)',
+                  '&:hover': {
+                    bgcolor: 'rgba(227, 74, 111, 0.15)',
+                  }
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       </DialogTitle>
       
-      <DialogContent sx={{ p: 3, mt: 2 }}>
+      <DialogContent sx={{ p: isMobile ? 1.5 : 3, mt: isMobile ? 1 : 2 }}>
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={he}>
         <Grid container spacing={3}>
             {/* חלק 1: פרטי אורח */}
@@ -1727,7 +1750,7 @@ const NewBookingForm = ({
                 </Box>
               
               <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={1.7}>
+                  <Grid item xs={4} sm={6} md={1.7}>
                     <FormControl fullWidth error={!!errors.room} required size="small" sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: style.button.borderRadius,
@@ -1768,7 +1791,7 @@ const NewBookingForm = ({
                   </FormControl>
                 </Grid>
                 
-                  <Grid item xs={12} sm={6} md={2.1}>
+                  <Grid item xs={8} sm={6} md={2.1}>
                   <DatePicker
                       label="כניסה"
                     value={formData.checkIn}
@@ -1790,7 +1813,7 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                  <Grid item xs={12} sm={6} md={2.1}>
+                  <Grid item xs={8} sm={6} md={2.1}>
                   <DatePicker
                       label="יציאה"
                     value={formData.checkOut}
@@ -1812,7 +1835,7 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                  <Grid item xs={12} sm={3} md={1.2}>
+                  <Grid item xs={4} sm={3} md={1.2}>
                   <TextField
                       name="nights"
                     label="לילות"
@@ -1832,7 +1855,7 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={3} md={1.2}>
+                <Grid item xs={4} sm={3} md={1.2}>
                   <TextField
                       name="guests"
                     label="אורחים"
@@ -1852,7 +1875,7 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={3} md={1.2}>
+                <Grid item xs={4} sm={3} md={1.2}>
                   <TextField
                     name="code"
                     label="קוד"
@@ -1873,7 +1896,7 @@ const NewBookingForm = ({
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6} md={2.5}>
+                <Grid item xs={8} sm={6} md={2.5}>
                   <FormControl fullWidth size="small" sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: style.button.borderRadius,
@@ -2081,7 +2104,7 @@ const NewBookingForm = ({
         </LocalizationProvider>
       </DialogContent>
       
-      <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+      <DialogActions sx={{ justifyContent: 'space-between', px: isMobile ? 1.5 : 3, pb: isMobile ? 1.5 : 2 }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {isEditMode && onDelete && (
             <Button 

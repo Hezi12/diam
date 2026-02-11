@@ -22,11 +22,9 @@ import {
   DialogTitle as ConfirmDialogTitle,
   DialogContent as ConfirmDialogContent,
   DialogActions as ConfirmDialogActions,
-  Alert,
-  useMediaQuery,
-  useTheme,
+  Alert
 } from '@mui/material';
-import {
+import { 
   Close as CloseIcon,
   Search as SearchIcon,
   Phone as PhoneIcon,
@@ -52,8 +50,6 @@ const BookingSearchDialog = ({
   isSearching = false,
   onBookingClick
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [localQuery, setLocalQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -359,15 +355,14 @@ const BookingSearchDialog = ({
 
   return (
     <>
-      <Dialog
-        open={open}
+      <Dialog 
+        open={open} 
         onClose={onClose}
         fullWidth
         maxWidth="sm"
-        fullScreen={isMobile}
         PaperProps={{
           sx: {
-            borderRadius: isMobile ? 0 : '12px',
+            borderRadius: '12px',
             overflow: 'hidden'
           }
         }}

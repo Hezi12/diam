@@ -17,9 +17,7 @@ import {
   Tooltip,
   FormControlLabel,
   Checkbox,
-  Switch,
-  useMediaQuery,
-  useTheme,
+  Switch
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -44,8 +42,6 @@ import { useFilter } from '../../contexts/FilterContext';
  * רכיב להצגת פרטי הזמנה מלאים
  */
 const BookingDetails = ({ open, onClose, bookingId, onEdit, onUpdate, onDelete, onRefresh }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { filterPaymentMethods } = useFilter();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -273,16 +269,15 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onUpdate, onDelete, 
 
   return (
     <>
-      <Dialog
-        open={open}
-        onClose={onClose}
-        maxWidth="md"
+      <Dialog 
+        open={open} 
+        onClose={onClose} 
+        maxWidth="md" 
         fullWidth
-        fullScreen={isMobile}
         PaperProps={{
           sx: {
-            borderRadius: isMobile ? 0 : 2,
-            maxHeight: isMobile ? '100vh' : '90vh'
+            borderRadius: 2,
+            maxHeight: '90vh'
           }
         }}
       >

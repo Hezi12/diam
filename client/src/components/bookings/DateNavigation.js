@@ -60,10 +60,11 @@ const DateNavigation = ({
   onSearchClick,
   onAddBookingClick
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
   const [tempDate, setTempDate] = useState(new Date());
+
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const colors = STYLE_CONSTANTS.colors;
   const locationColors = colors[location] || colors.airport;
@@ -86,12 +87,10 @@ const DateNavigation = ({
   };
 
   const handleApplyDate = () => {
-    // קביעת טווח: מותאם למובייל/דסקטופ
-    const daysBefore = isMobile ? 1 : 3;
-    const daysAfter = isMobile ? 2 : 6;
-    const newStartDate = subDays(tempDate, daysBefore);
-    const newEndDate = addDays(tempDate, daysAfter);
-
+    // קביעת טווח: 3 ימים לפני היום שנבחר ו-6 ימים אחריו
+    const newStartDate = subDays(tempDate, 3);
+    const newEndDate = addDays(tempDate, 6);
+    
     onDateRangeChange(newStartDate, newEndDate);
     handleCloseDatePicker();
   };
@@ -126,10 +125,8 @@ const DateNavigation = ({
 
   const handleGoToToday = () => {
     const today = new Date();
-    const daysBefore = isMobile ? 1 : 3;
-    const daysAfter = isMobile ? 2 : 6;
-    const newStartDate = subDays(today, daysBefore);
-    const newEndDate = addDays(today, daysAfter);
+    const newStartDate = subDays(today, 3); // 3 ימים אחורה
+    const newEndDate = addDays(today, 6);   // 6 ימים קדימה
     onDateRangeChange(newStartDate, newEndDate);
   };
 
@@ -150,7 +147,7 @@ const DateNavigation = ({
     <Paper
       elevation={0}
       sx={{
-        py: isMobile ? 0.75 : 1.5,
+        py: isMobile ? 1 : 1.5,
         px: isMobile ? 1 : 2,
         display: 'flex',
         alignItems: 'center',
@@ -181,14 +178,14 @@ const DateNavigation = ({
 
         <Tooltip title="בחר תאריך">
           <Typography
-            variant={isMobile ? 'body2' : 'subtitle1'}
+            variant="subtitle1"
             sx={{
               fontWeight: 500,
-              mx: isMobile ? 1 : 2,
+              mx: isMobile ? 0.5 : 2,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              fontSize: isMobile ? '0.8rem' : 'inherit',
+              fontSize: isMobile ? '0.85rem' : '1rem',
               '&:hover': {
                 color: locationColors.main,
                 transform: 'scale(1.02)',
