@@ -13,7 +13,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip
+  Chip,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import axios from 'axios';
 import { format, eachDayOfInterval, isEqual, isSameDay, addDays, subDays, isWithinInterval, differenceInDays } from 'date-fns';
@@ -76,15 +78,18 @@ const hasSignificantNotes = (notes) => {
 };
 
 // רכיב מותאם לתא הזמנה בסגנון גאנט עם תמיכה ב-drag & drop (מותאם RTL)
-const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
 const GanttBar = styled(Box)(({ theme, status, startOffset, length, variant, isDragging, isDragOver }) => ({
   position: 'absolute',
   height: variant === 'full' ? '100%' : '70%',
   right: `${startOffset}%`, // שונה מ-left ל-right עבור RTL
   width: `${length}%`,
-  borderRadius: isMobileDevice ? '4px' : '6px',
+  borderRadius: '6px',
   transition: isDragging ? 'none' : 'all 0.15s ease-in-out',
-  padding: isMobileDevice ? '3px 4px' : '8px 8px',
+  padding: theme.breakpoints.down('md') ? '3px 4px' : '8px 8px',
+  [theme.breakpoints.down('md')]: {
+    padding: '3px 4px',
+    borderRadius: '4px',
+  },
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-start', // נשאר flex-start כי זה הטקסט בתוך התא
@@ -151,8 +156,9 @@ const BookingsCalendar = ({
   const locationColors = colors[location] || colors.airport;
 
   // זיהוי מובייל
-  const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
-  
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+
   // הוק פשוט לסינון CSS
   const { getBookingClassNameFlex } = useFilterCSS();
 
@@ -952,18 +958,18 @@ const BookingsCalendar = ({
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               width: '100%',
-              fontSize: isMobileView ? '0.6rem' : '0.875rem',
-              lineHeight: isMobileView ? 1.2 : 1.43
+              fontSize: isMobile ? '0.6rem' : '0.875rem',
+              lineHeight: isMobile ? 1.2 : 1.43
             }}>
-              {isMobileView
+              {isMobile
                 ? (booking.firstName || 'ללא שם')
                 : (booking.firstName ? `${booking.firstName} ${booking.lastName || ''}` : 'ללא שם')
               }
             </Typography>
-            
-            {/* אייקונים - שינוי: אייקון תשלום יוצג תמיד אם התנאי מתקיים, לא רק להזמנות רלוונטיות */}
+
+            {/* אייקונים - מוסתרים במובייל לחיסכון במקום */}
             <Box sx={{
-              display: isMobileView ? 'none' : 'flex',
+              display: isMobile ? 'none' : 'flex',
               gap: '6px',
               mt: 'auto',
               alignSelf: 'flex-end',
@@ -1212,13 +1218,13 @@ const BookingsCalendar = ({
           p: 0,
           overflow: 'hidden',
           width: '100%',
-          minWidth: isMobileView ? '600px' : '1000px'
+          minWidth: isMobile ? '600px' : '1000px'
         }}
       >
         <Box
           sx={{
             display: 'flex',
-            bgcolor: isMobileView ? '#e3f2fd' : '#f8f8f8',
+            bgcolor: '#f8f8f8',
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             position: 'sticky',
             top: 0,
@@ -1227,8 +1233,8 @@ const BookingsCalendar = ({
         >
           {/* עמודת חדרים */}
           <Box sx={{
-            minWidth: isMobileView ? '52px' : '100px',
-            p: isMobileView ? 0.5 : 2,
+            minWidth: isMobile ? '48px' : '100px',
+            p: isMobile ? 0.5 : 2,
             borderLeft: '1px solid rgba(0,0,0,0.05)',
             display: 'flex',
             justifyContent: 'center',
@@ -1238,7 +1244,7 @@ const BookingsCalendar = ({
               fontWeight: 600,
               color: 'text.primary',
               textAlign: 'center',
-              fontSize: isMobileView ? '0.7rem' : 'inherit'
+              fontSize: isMobile ? '0.7rem' : 'inherit'
             }}>
               חדר
             </Typography>
@@ -1254,7 +1260,7 @@ const BookingsCalendar = ({
                 key={`date-${index}`}
                 sx={{
                   flex: 1,
-                  p: isMobileView ? 0.3 : 1,
+                  p: isMobile ? 0.3 : 1,
                   textAlign: 'center',
                   borderLeft: index < daysInRange.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
                   borderBottom: '1px solid rgba(0,0,0,0.05)',
@@ -1270,14 +1276,14 @@ const BookingsCalendar = ({
                 <Typography sx={{
                   fontWeight: 500,
                   color: 'text.secondary',
-                  fontSize: isMobileView ? '0.6rem' : '0.8rem'
+                  fontSize: isMobile ? '0.55rem' : '0.8rem'
                 }}>
-                  {isMobileView ? format(day, 'EE', { locale: he }) : format(day, 'EEEE', { locale: he })}
+                  {isMobile ? format(day, 'EE', { locale: he }) : format(day, 'EEEE', { locale: he })}
                 </Typography>
                 <Typography sx={{
                   fontWeight: 600,
                   color: isToday(day) ? locationColors.main : 'text.primary',
-                  fontSize: isMobileView ? '0.65rem' : '0.9rem'
+                  fontSize: isMobile ? '0.6rem' : '0.9rem'
                 }}>
                   {format(day, 'dd/MM')}
                 </Typography>
@@ -1317,8 +1323,8 @@ const BookingsCalendar = ({
               >
                 {/* תא חדר */}
                 <Box sx={{
-                  minWidth: isMobileView ? '52px' : '100px',
-                  p: isMobileView ? 0.5 : 2,
+                  minWidth: isMobile ? '48px' : '100px',
+                  p: isMobile ? 0.5 : 2,
                   borderLeft: '1px solid rgba(0,0,0,0.05)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1326,7 +1332,7 @@ const BookingsCalendar = ({
                 }}>
                   <Typography sx={{
                     fontWeight: 700,
-                    fontSize: isMobileView ? '0.85rem' : '1.1rem'
+                    fontSize: isMobile ? '0.85rem' : '1.1rem'
                   }}>
                     {room.roomNumber}
                   </Typography>
@@ -1337,7 +1343,7 @@ const BookingsCalendar = ({
                   flex: 1,
                   position: 'relative',
                   display: 'flex',
-                  height: isMobileView ? '50px' : '70px',
+                  height: isMobile ? '48px' : '70px',
                 }}>
                   {/* תאי רקע לכל יום עם תמיכה ב-drop zone */}
                   {daysInRange.map((day, dateIndex) => {

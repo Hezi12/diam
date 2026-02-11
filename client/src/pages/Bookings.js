@@ -541,12 +541,15 @@ const Bookings = () => {
           flexDirection: { xs: 'column', md: 'row' },
           justifyContent: 'space-between',
           alignItems: { xs: 'stretch', md: 'center' },
-          gap: { xs: 1.5, md: 0 },
+          gap: { xs: 1, md: 0 },
           mb: 2
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="h5" fontWeight={500} sx={{ mr: 2, fontSize: { xs: '1.15rem', md: '1.5rem' } }}>
+            <Typography variant="h5" fontWeight={500} sx={{ mr: 1, fontSize: { xs: '1.1rem', md: '1.5rem' } }}>
               ניהול הזמנות
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled', mr: 2, fontSize: '0.65rem', alignSelf: 'flex-end', mb: 0.3 }}>
+              v1
             </Typography>
             <BookingTabs location={location} onLocationChange={handleLocationChange} />
           </Box>
@@ -559,7 +562,7 @@ const Bookings = () => {
                 sx={{
                   backgroundColor: '#f3f3f3',
                   color: '#666',
-                  p: 1,
+                  p: { xs: 0.75, md: 1 },
                   borderRadius: '50%',
                 }}
               >
@@ -575,7 +578,7 @@ const Bookings = () => {
                 sx={{
                   backgroundColor: '#e8f4ff',
                   color: '#1976d2',
-                  p: 1,
+                  p: { xs: 0.75, md: 1 },
                   borderRadius: '50%',
                 }}
               >
@@ -591,7 +594,7 @@ const Bookings = () => {
                 sx={{
                   backgroundColor: '#1976d2',
                   color: 'white',
-                  p: 1,
+                  p: { xs: 0.75, md: 1 },
                   borderRadius: '50%',
                 }}
               >
@@ -599,7 +602,7 @@ const Bookings = () => {
               </IconButton>
             </Tooltip>
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, display: { xs: 'none', md: 'block' } }} />
+            <Divider orientation="vertical" flexItem sx={{ mx: 1, display: { xs: 'none', md: 'block' } }} />
 
             <ExternalToolbar />
           </Box>

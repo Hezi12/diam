@@ -38,8 +38,6 @@ import {
   Delete as DeleteIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -47,6 +45,8 @@ import { he } from 'date-fns/locale';
 import { addDays, differenceInDays } from 'date-fns';
 import axios from 'axios';
 
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
 import { useFilter } from '../../contexts/FilterContext';
@@ -1247,7 +1247,9 @@ const NewBookingForm = ({
           borderRadius: isMobile ? 0 : style.dialog.borderRadius,
           overflow: 'hidden',
           width: isMobile ? '100%' : '95%',
-          maxWidth: isMobile ? '100%' : '1000px'
+          maxWidth: isMobile ? '100%' : '1000px',
+          m: isMobile ? 0 : undefined,
+          maxHeight: isMobile ? '100%' : undefined,
         }
       }}
     >
@@ -1269,14 +1271,14 @@ const NewBookingForm = ({
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {isEditMode ? null : <AddIcon sx={{ marginRight: '10px' }} />}
-            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: isMobile ? '0.85rem' : '1.1rem' }}>
               {isEditMode
                 ? `עריכת הזמנה${editBooking?.bookingNumber ? ` ${editBooking.bookingNumber}` : ''} - ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`
                 : `הזמנה חדשה - ${location === 'airport' ? 'אור יהודה' : 'רוטשילד'}`
               }
             </Typography>
           </Box>
-          {/* כפתור סגירה - במובייל ליד הכותרת */}
+          {/* כפתור סגירה במובייל - ליד הכותרת */}
           {isMobile && (
             <IconButton
               onClick={onClose}
@@ -1471,8 +1473,8 @@ const NewBookingForm = ({
         <Grid container spacing={3}>
             {/* חלק 1: פרטי אורח */}
             <Grid item xs={12} md={7}>
-              <Paper sx={{
-                p: isMobile ? 1.5 : 3,
+              <Paper sx={{ 
+                p: 3, 
                 borderRadius: style.card.borderRadius,
                 boxShadow: style.card.boxShadow,
                 borderTop: `3px solid ${currentColors.main}`
@@ -1654,8 +1656,8 @@ const NewBookingForm = ({
             
             {/* חלק 2: פרטי כרטיס אשראי */}
             <Grid item xs={12} md={5}>
-              <Paper sx={{
-                p: isMobile ? 1.5 : 3,
+              <Paper sx={{ 
+                p: 3, 
                 borderRadius: style.card.borderRadius,
                 boxShadow: style.card.boxShadow,
                 borderTop: `3px solid ${accentColors.red}`
@@ -1734,8 +1736,8 @@ const NewBookingForm = ({
             
             {/* חלק 3: פרטי הזמנה */}
             <Grid item xs={12}>
-              <Paper sx={{
-                p: isMobile ? 1.5 : 3,
+              <Paper sx={{ 
+                p: 3, 
                 borderRadius: style.card.borderRadius,
                 boxShadow: style.card.boxShadow,
                 borderTop: `3px solid ${accentColors.green}`
@@ -1971,18 +1973,18 @@ const NewBookingForm = ({
             
             {/* חלק 4: פרטי מחיר */}
             <Grid item xs={12}>
-              <Paper sx={{
-                p: isMobile ? 1.5 : 3,
+              <Paper sx={{ 
+                p: 3, 
                 borderRadius: style.card.borderRadius,
                 boxShadow: style.card.boxShadow,
                 borderTop: `3px solid ${accentColors.purple}`
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, flexWrap: 'wrap', gap: isMobile ? 0.5 : 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                   <ReceiptIcon sx={{ color: accentColors.purple, marginRight: '10px' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 500, fontSize: isMobile ? '0.95rem' : '1.25rem' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
                     פרטי מחיר
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1 : 2, marginLeft: 'auto', flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto' }}>
                     {/* צ'קבוקס תמונת פספורט - רק אם זה תייר ובמצב עריכה */}
                     {formData.isTourist && isEditMode && (
                       <FormControlLabel
@@ -2055,8 +2057,8 @@ const NewBookingForm = ({
             
             {/* חלק 5: הערות */}
             <Grid item xs={12}>
-              <Paper sx={{
-                p: isMobile ? 1.5 : 3,
+              <Paper sx={{ 
+                p: 3, 
                 borderRadius: style.card.borderRadius,
                 boxShadow: style.card.boxShadow,
                 borderTop: `3px solid ${accentColors.orange}`
