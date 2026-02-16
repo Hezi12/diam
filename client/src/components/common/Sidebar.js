@@ -11,6 +11,7 @@ import {
   useMediaQuery,
   useTheme,
   IconButton,
+  Badge,
   GlobalStyles,
   // SwipeableDrawer, - לא בשימוש יותר
   // נסיר את הקומפוננטות הקשורות לניווט התחתון
@@ -32,7 +33,8 @@ import {
   AccountBalanceWallet as AccountBalanceWalletIcon,
   SwapHoriz as MigrationIcon,
   Description as DocumentsIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  ChatBubbleOutline as MessagesIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFilter } from '../../contexts/FilterContext';
@@ -222,6 +224,17 @@ const Sidebar = () => {
   // מצב כפתור הסינון הסודי
   const [secretClickCount, setSecretClickCount] = useState(0);
 
+  // ספירת הודעות ממתינות
+  const [pendingMessages, setPendingMessages] = useState(() => window.__diamPendingMessages || 0);
+
+  useEffect(() => {
+    const handleMessagesUpdated = () => {
+      setPendingMessages(window.__diamPendingMessages || 0);
+    };
+    window.addEventListener('diam-messages-updated', handleMessagesUpdated);
+    return () => window.removeEventListener('diam-messages-updated', handleMessagesUpdated);
+  }, []);
+
   // לוגיקת התנתקות
   const handleLogout = () => {
     logout();
@@ -285,7 +298,8 @@ const Sidebar = () => {
     email: '#FF5722', // כתום - מיילים
     settings: '#F5B400', // צהוב/כתום
     logout: '#EA4335', // אדום
-    icount: '#00C853' // ירוק-iCount
+    icount: '#00C853', // ירוק-iCount
+    messages: '#7B1FA2' // סגול — הודעות
   };
 
   useEffect(() => {
@@ -388,6 +402,29 @@ const Sidebar = () => {
             to="/bookings"
             title="ניהול הזמנות"
             iconColor={iconColors.bookings}
+            onClick={isMobile ? toggleDrawer(false) : undefined}
+          />
+          <SidebarItem
+            icon={
+              <Badge
+                badgeContent={pendingMessages}
+                color="error"
+                max={99}
+                sx={{
+                  '& .MuiBadge-badge': {
+                    fontSize: '0.65rem',
+                    minWidth: 16,
+                    height: 16,
+                    padding: '0 4px',
+                  },
+                }}
+              >
+                <MessagesIcon />
+              </Badge>
+            }
+            to="/messages"
+            title="הודעות"
+            iconColor={iconColors.messages}
             onClick={isMobile ? toggleDrawer(false) : undefined}
           />
           {/* הוסרו אייקוני מסמכים ומיגרציה */}

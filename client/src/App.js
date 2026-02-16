@@ -24,6 +24,7 @@ import MonthlyRevenue from './pages/revenue/MonthlyRevenue';
 import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
 import EmailPreview from './pages/email/EmailPreview';
+import Messages from './pages/Messages';
 
 // עמודי אתר ציבורי - Airport
 import HomePage from './pages/public-site/HomePage';
@@ -314,6 +315,16 @@ const AppContent = () => {
                     <ProtectedRoute>
                       <Layout>
                         <CapitalManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/messages"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Messages />
                       </Layout>
                     </ProtectedRoute>
                   }
