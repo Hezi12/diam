@@ -27,8 +27,8 @@ const Messages = () => {
   const [messages, setMessages] = useState([]);
   const [timestamp, setTimestamp] = useState('');
   const [statuses, setStatuses] = useState({});
-  const [editingGuest, setEditingGuest] = useState(null);
-  const [editText, setEditText] = useState('');
+  const [feedbackGuest, setFeedbackGuest] = useState(null);
+  const [feedbackText, setFeedbackText] = useState('');
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -57,7 +57,7 @@ const Messages = () => {
     setMessages(data || []);
     setTimestamp(ts || '');
     setStatuses({});
-    setEditingGuest(null);
+    setFeedbackGuest(null);
 
     localStorage.setItem(LS_MESSAGES_KEY, JSON.stringify(data || []));
     localStorage.setItem(LS_TIMESTAMP_KEY, ts || '');
@@ -77,7 +77,8 @@ const Messages = () => {
       if (status) {
         const entry = { guest: guestKey, status: status.status };
         if (status.status === 'edited') {
-          entry.reply = status.editedReply;
+          entry.feedback = status.feedback;
+          entry.originalReply = card.r;
         } else if (status.status === 'approved') {
           entry.reply = card.r;
         }
@@ -108,7 +109,7 @@ const Messages = () => {
       ...prev,
       [guestName]: { status: 'approved' },
     }));
-    if (editingGuest === guestName) setEditingGuest(null);
+    if (feedbackGuest === guestName) setFeedbackGuest(null);
   };
 
   const handleIgnore = (guestName) => {
@@ -116,20 +117,28 @@ const Messages = () => {
       ...prev,
       [guestName]: { status: 'ignored' },
     }));
-    if (editingGuest === guestName) setEditingGuest(null);
+    if (feedbackGuest === guestName) setFeedbackGuest(null);
   };
 
-  const handleStartEdit = (guestName, currentReply) => {
-    setEditingGuest(guestName);
-    setEditText(currentReply || '');
+  const handleStartFeedback = (guestName) => {
+    // If there's already a saved feedback, load it into the text field
+    const existing = statuses[guestName];
+    setFeedbackGuest(guestName);
+    setFeedbackText(existing?.status === 'edited' ? (existing.feedback || '') : '');
   };
 
-  const handleSaveEdit = (guestName) => {
+  const handleSaveFeedback = (guestName) => {
+    if (!feedbackText.trim()) return;
     setStatuses(prev => ({
       ...prev,
-      [guestName]: { status: 'edited', editedReply: editText },
+      [guestName]: { status: 'edited', feedback: feedbackText.trim() },
     }));
-    setEditingGuest(null);
+    setFeedbackGuest(null);
+  };
+
+  const handleCancelFeedback = () => {
+    setFeedbackGuest(null);
+    setFeedbackText('');
   };
 
   const handleClearStatus = (guestName) => {
@@ -138,7 +147,7 @@ const Messages = () => {
       delete next[guestName];
       return next;
     });
-    if (editingGuest === guestName) setEditingGuest(null);
+    if (feedbackGuest === guestName) setFeedbackGuest(null);
   };
 
   const getCardBorder = (guestName) => {
@@ -255,7 +264,7 @@ const Messages = () => {
         if (item.g) {
           const guestKey = item.g;
           const status = statuses[guestKey];
-          const isEditing = editingGuest === guestKey;
+          const isWritingFeedback = feedbackGuest === guestKey;
 
           return (
             <Paper
@@ -317,41 +326,61 @@ const Messages = () => {
                   borderRadius: 1.5,
                   p: 1.5,
                 }}>
-                  {isEditing ? (
-                    <Box>
-                      <TextField
-                        multiline
-                        fullWidth
-                        minRows={2}
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        variant="outlined"
-                        size="small"
-                        sx={{ mb: 1 }}
-                      />
-                      <Button
-                        size="small"
-                        variant="contained"
-                        onClick={() => handleSaveEdit(guestKey)}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        שמור
-                      </Button>
-                    </Box>
-                  ) : (
-                    <>
-                      <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                        {status?.status === 'edited' ? status.editedReply : item.r}
-                      </Typography>
-                      {item.rt && (
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', mt: 0.5 }}>
-                          {status?.status === 'edited' ? '' : item.rt}
-                        </Typography>
-                      )}
-                    </>
+                    <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                    {item.r}
+                  </Typography>
+                  {item.rt && (
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', mt: 0.5 }}>
+                      {item.rt}
+                    </Typography>
                   )}
                 </Box>
               </Box>
+
+              {/* Saved feedback display */}
+              {status?.status === 'edited' && status.feedback && !isWritingFeedback && (
+                <Box sx={{ mt: 1.5, px: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: '#1976d2', fontSize: '0.85rem' }}>
+                    💬 הערה: {status.feedback}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Feedback input field */}
+              {isWritingFeedback && (
+                <Box sx={{ mt: 2, p: 1.5, backgroundColor: 'rgba(33, 150, 243, 0.04)', borderRadius: 1.5 }}>
+                  <TextField
+                    multiline
+                    fullWidth
+                    minRows={2}
+                    maxRows={4}
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    placeholder="למה התשובה לא מתאימה? (למשל: קצר מדי, טון לא נכון, חסר מידע...)"
+                    sx={{ mb: 1 }}
+                  />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => handleSaveFeedback(guestKey)}
+                      disabled={!feedbackText.trim()}
+                      sx={{ textTransform: 'none', fontSize: '0.8rem' }}
+                    >
+                      שמור הערה
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={handleCancelFeedback}
+                      sx={{ textTransform: 'none', fontSize: '0.8rem', color: 'text.secondary' }}
+                    >
+                      ביטול
+                    </Button>
+                  </Box>
+                </Box>
+              )}
 
               {/* Action buttons */}
               <Box sx={{
@@ -369,7 +398,7 @@ const Messages = () => {
                     size="small"
                     label={
                       status.status === 'approved' ? 'מאושר' :
-                      status.status === 'edited' ? 'נערך' :
+                      status.status === 'edited' ? 'הערה' :
                       'התעלמות'
                     }
                     color={
@@ -398,7 +427,7 @@ const Messages = () => {
                 <Button
                   size="small"
                   startIcon={<EditIcon />}
-                  onClick={() => handleStartEdit(guestKey, status?.status === 'edited' ? status.editedReply : item.r)}
+                  onClick={() => handleStartFeedback(guestKey)}
                   sx={{
                     color: '#2196f3',
                     textTransform: 'none',
