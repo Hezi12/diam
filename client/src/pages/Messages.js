@@ -8,17 +8,60 @@ import {
   useTheme,
   useMediaQuery,
   Chip,
+  IconButton,
+  Drawer,
 } from '@mui/material';
 import {
   ChatBubbleOutline as ChatIcon,
   Check as CheckIcon,
   Edit as EditIcon,
   Close as CloseIcon,
+  Psychology as BrainIcon,
 } from '@mui/icons-material';
 
 const LS_MESSAGES_KEY = 'diam_messages';
 const LS_TIMESTAMP_KEY = 'diam_messages_timestamp';
 const LS_STATUSES_KEY = 'diam_message_statuses';
+const LS_KNOWLEDGE_KEY = 'diam_ai_knowledge';
+
+const DEFAULT_KNOWLEDGE = {
+  lastUpdated: "2026-02-17T14:30:00",
+  replyStyle: {
+    tone: "short, warm, personal",
+    signEnglish: "David",
+    signHebrew: "דוד",
+    alwaysInclude: "WhatsApp: +972-506070260",
+    israeliFormat: "0506070260"
+  },
+  propertyDescriptions: {
+    airportGH: [
+      "בית גדול שהפך לפני כמה שנים לבית הארחה",
+      "כל חדר הוא פרטי לגמרי עם שירותים ומקלחת פרטיים",
+      "המקום שקט",
+      "נמצא כרבע שעה מהשדה תעופה"
+    ]
+  },
+  rules: [
+    "לא לתאר כ-cozy או comfortable — לתאר את המבנה והפרטיות",
+    "לא להזכיר מחיר מונית אלא אם האורח שואל ספציפית",
+    "מהשדה תעופה — יש מוניות כל הזמן בעמדה מסודרת ביציאה מהטרמינל",
+    "חשבוניות — לבקש מייל מהאורח + בקשה אישית לפידבק בבוקינג",
+    "תמיד לענות בשפה של האורח",
+    "הודעות לא בעברית — להציג מקור + תרגום עברית עם 🇮🇱"
+  ],
+  feedbackLog: [
+    {
+      date: "2026-02-17",
+      lesson: "לא cozy — לתאר מבנה ופרטיות",
+      source: "פידבק על תשובה לשניאור פרידמן"
+    },
+    {
+      date: "2026-02-17",
+      lesson: "חשבונית — לבקש מייל + לבקש פידבק אישי בבוקינג",
+      source: "פידבק על תשובה לשמעון שכטר"
+    }
+  ]
+};
 
 const Messages = () => {
   const theme = useTheme();
@@ -29,6 +72,16 @@ const Messages = () => {
   const [statuses, setStatuses] = useState({});
   const [feedbackGuest, setFeedbackGuest] = useState(null);
   const [feedbackText, setFeedbackText] = useState('');
+
+  // Knowledge system state
+  const [knowledge, setKnowledge] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LS_KNOWLEDGE_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_KNOWLEDGE;
+    } catch { return DEFAULT_KNOWLEDGE; }
+  });
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [knowledgeEditText, setKnowledgeEditText] = useState('');
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -97,12 +150,53 @@ const Messages = () => {
     };
   }, [loadMessages, getMessageStatuses]);
 
+  // Knowledge API — global functions
+  useEffect(() => {
+    window.getKnowledge = () => knowledge;
+
+    window.updateKnowledge = (updates) => {
+      setKnowledge(prev => {
+        const merged = { ...prev, ...updates, lastUpdated: new Date().toISOString() };
+        localStorage.setItem(LS_KNOWLEDGE_KEY, JSON.stringify(merged));
+        return merged;
+      });
+    };
+
+    window.resetKnowledge = () => {
+      setKnowledge(DEFAULT_KNOWLEDGE);
+      localStorage.setItem(LS_KNOWLEDGE_KEY, JSON.stringify(DEFAULT_KNOWLEDGE));
+    };
+  }, [knowledge]);
+
   // Count pending messages for badge
   useEffect(() => {
     const count = messages.filter(item => item.g).length;
     window.__diamPendingMessages = count;
     window.dispatchEvent(new CustomEvent('diam-messages-updated'));
   }, [messages]);
+
+  const handleOpenKnowledge = () => {
+    setKnowledgeEditText(JSON.stringify(knowledge, null, 2));
+    setKnowledgeOpen(true);
+  };
+
+  const handleSaveKnowledge = () => {
+    try {
+      const parsed = JSON.parse(knowledgeEditText);
+      parsed.lastUpdated = new Date().toISOString();
+      setKnowledge(parsed);
+      localStorage.setItem(LS_KNOWLEDGE_KEY, JSON.stringify(parsed));
+      setKnowledgeOpen(false);
+    } catch (e) {
+      alert('JSON לא תקין — בדוק את הפורמט');
+    }
+  };
+
+  const handleResetKnowledge = () => {
+    setKnowledge(DEFAULT_KNOWLEDGE);
+    localStorage.setItem(LS_KNOWLEDGE_KEY, JSON.stringify(DEFAULT_KNOWLEDGE));
+    setKnowledgeEditText(JSON.stringify(DEFAULT_KNOWLEDGE, null, 2));
+  };
 
   const handleApprove = (guestName) => {
     setStatuses(prev => ({
@@ -174,13 +268,83 @@ const Messages = () => {
 
   const hasMessages = messages.some(item => item.g);
 
+  // Knowledge drawer component
+  const knowledgeDrawer = (
+    <Drawer
+      anchor="left"
+      open={knowledgeOpen}
+      onClose={() => setKnowledgeOpen(false)}
+      PaperProps={{
+        sx: {
+          width: isMobile ? '90%' : 480,
+          p: 3,
+          direction: 'rtl',
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          זיכרון AI
+        </Typography>
+        <IconButton onClick={() => setKnowledgeOpen(false)} size="small">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
+        עדכון אחרון: {knowledge.lastUpdated ? new Date(knowledge.lastUpdated).toLocaleString('he-IL') : '—'}
+      </Typography>
+      <TextField
+        multiline
+        fullWidth
+        minRows={20}
+        maxRows={30}
+        value={knowledgeEditText}
+        onChange={(e) => setKnowledgeEditText(e.target.value)}
+        variant="outlined"
+        size="small"
+        sx={{
+          mb: 2,
+          '& .MuiInputBase-input': {
+            fontFamily: 'monospace',
+            fontSize: '0.8rem',
+            direction: 'ltr',
+            textAlign: 'left',
+          }
+        }}
+      />
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleSaveKnowledge}
+          sx={{ textTransform: 'none' }}
+        >
+          שמירה
+        </Button>
+        <Button
+          size="small"
+          onClick={handleResetKnowledge}
+          sx={{ textTransform: 'none', color: 'text.secondary' }}
+        >
+          איפוס לברירת מחדל
+        </Button>
+      </Box>
+    </Drawer>
+  );
+
   // Empty state
   if (!hasMessages) {
     return (
       <Box sx={{ p: isMobile ? 2 : 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-          הודעות אורחים
-        </Typography>
+        {knowledgeDrawer}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            הודעות אורחים
+          </Typography>
+          <IconButton onClick={handleOpenKnowledge} size="small" sx={{ color: 'text.secondary' }}>
+            <BrainIcon />
+          </IconButton>
+        </Box>
         {timestamp && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
             {timestamp}
@@ -207,10 +371,16 @@ const Messages = () => {
 
   return (
     <Box sx={{ p: isMobile ? 2 : 3 }}>
+      {knowledgeDrawer}
       {/* Header */}
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-        הודעות אורחים
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          הודעות אורחים
+        </Typography>
+        <IconButton onClick={handleOpenKnowledge} size="small" sx={{ color: 'text.secondary' }}>
+          <BrainIcon />
+        </IconButton>
+      </Box>
       {timestamp && (
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
           {timestamp}
