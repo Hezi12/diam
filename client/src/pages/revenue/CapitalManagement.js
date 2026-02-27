@@ -38,7 +38,7 @@ import { useFilter } from '../../contexts/FilterContext';
 
 // פאנל לטעינת נתונים
 const LoadingPanel = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: { xs: '200px', sm: '300px' } }}>
     <CircularProgress size={48} thickness={4} sx={{ color: theme => theme.palette.primary.main }} />
   </Box>
 );

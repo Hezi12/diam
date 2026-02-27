@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTheme, Box, Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { useTheme, useMediaQuery, Box, Typography, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import {
   BarChart,
   Bar,
@@ -17,6 +17,7 @@ import {
  */
 const RoomRevenueChart = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [viewType, setViewType] = useState('byRoom'); // byRoom או byType
 
   // הגדרת צבעים לגרף
@@ -105,7 +106,7 @@ const RoomRevenueChart = ({ data }) => {
         </ToggleButtonGroup>
       </Box>
 
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={isMobile ? 180 : 250}>
         <BarChart
           data={sortedData}
           layout="vertical"

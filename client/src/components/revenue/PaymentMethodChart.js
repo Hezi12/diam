@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme, Box, Typography } from '@mui/material';
+import { useTheme, useMediaQuery, Box, Typography } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { getPaymentMethodName } from '../../constants/paymentMethods';
 
@@ -9,6 +9,7 @@ import { getPaymentMethodName } from '../../constants/paymentMethods';
  */
 const PaymentMethodChart = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // צבעים לגרף העוגה
   const COLORS = [
@@ -128,7 +129,7 @@ const PaymentMethodChart = ({ data }) => {
   }
 
   return (
-    <Box sx={{ height: 300, width: '100%' }}>
+    <Box sx={{ height: isMobile ? 220 : 300, width: '100%' }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -137,7 +138,7 @@ const PaymentMethodChart = ({ data }) => {
             cy="50%"
             labelLine={false}
             label={renderCustomizedLabel}
-            outerRadius={80}
+            outerRadius={isMobile ? 60 : 80}
             fill="#8884d8"
             dataKey="value"
             animationDuration={1500}

@@ -5,6 +5,30 @@ const theme = createTheme({
   direction: 'rtl',
   typography: {
     fontFamily: '"Assistant", "Roboto", "Helvetica", "Arial", sans-serif',
+    h3: {
+      fontSize: '2.2rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.6rem',
+      },
+    },
+    h4: {
+      fontSize: '1.8rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.4rem',
+      },
+    },
+    h5: {
+      fontSize: '1.4rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.15rem',
+      },
+    },
+    h6: {
+      fontSize: '1.15rem',
+      '@media (max-width:600px)': {
+        fontSize: '1rem',
+      },
+    },
   },
   palette: {
     primary: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '@mui/material';
+import { useTheme, useMediaQuery } from '@mui/material';
 import {
   BarChart,
   Bar,
@@ -17,6 +17,7 @@ import {
  */
 const DailyRevenueChart = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // עיצוב גרף מותאם לתמה של המערכת
   const chartColors = {
@@ -65,7 +66,7 @@ const DailyRevenueChart = ({ data }) => {
   };
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
       <BarChart
         data={data}
         margin={{

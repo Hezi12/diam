@@ -1211,7 +1211,18 @@ const BookingsCalendar = ({
   };
 
   return (
-    <Box sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <Box sx={{
+      overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      // Scroll shadow indicator for mobile
+      ...(isMobile && {
+        background: 'linear-gradient(to right, white 30%, rgba(255,255,255,0)), linear-gradient(to left, white 30%, rgba(255,255,255,0)), linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0)), linear-gradient(to left, rgba(0,0,0,0.1), rgba(0,0,0,0))',
+        backgroundPosition: 'left center, right center, left center, right center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '20px 100%, 20px 100%, 10px 100%, 10px 100%',
+        backgroundAttachment: 'local, local, scroll, scroll',
+      })
+    }}>
       <Paper
         sx={{
           ...STYLE_CONSTANTS.card,
@@ -1238,7 +1249,13 @@ const BookingsCalendar = ({
             borderLeft: '1px solid rgba(0,0,0,0.05)',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            ...(isMobile && {
+              position: 'sticky',
+              right: 0,
+              zIndex: 3,
+              bgcolor: '#f8f8f8',
+            })
           }}>
             <Typography sx={{
               fontWeight: 600,
@@ -1328,7 +1345,13 @@ const BookingsCalendar = ({
                   borderLeft: '1px solid rgba(0,0,0,0.05)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  ...(isMobile && {
+                    position: 'sticky',
+                    right: 0,
+                    zIndex: 3,
+                    bgcolor: 'background.paper',
+                  })
                 }}>
                   <Typography sx={{
                     fontWeight: 700,

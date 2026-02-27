@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '@mui/material';
+import { useTheme, useMediaQuery } from '@mui/material';
 import {
   LineChart,
   Line,
@@ -18,6 +18,7 @@ import {
  */
 const RevenueTrendChart = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // קביעת צבעים לגרף מתוך התמה
   const colors = [
@@ -78,7 +79,7 @@ const RevenueTrendChart = ({ data }) => {
   const currentDay = data.currentMonthDay;
 
   return (
-    <ResponsiveContainer width="100%" height={350}>
+    <ResponsiveContainer width="100%" height={isMobile ? 250 : 350}>
       <LineChart
         data={data.byDay}
         margin={{

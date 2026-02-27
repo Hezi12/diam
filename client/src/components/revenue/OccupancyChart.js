@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '@mui/material';
+import { useTheme, useMediaQuery } from '@mui/material';
 import {
   AreaChart,
   Area,
@@ -17,6 +17,7 @@ import {
  */
 const OccupancyChart = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // הגדרת צבעים לגרף
   const chartColors = {
@@ -73,7 +74,7 @@ const OccupancyChart = ({ data }) => {
   };
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
       <AreaChart
         data={data}
         margin={{

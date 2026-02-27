@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Grid, 
+import {
+  Box,
+  Typography,
+  Paper,
+  Grid,
   CircularProgress,
   useTheme,
+  useMediaQuery,
   Avatar
 } from '@mui/material';
 import { format, startOfMonth, getMonth, getYear } from 'date-fns';
@@ -28,7 +29,7 @@ import { getMonthlyRevenueData } from '../../services/revenueService';
 
 // פאנל לטעינת נתונים
 const LoadingPanel = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: { xs: '200px', sm: '300px' } }}>
     <CircularProgress />
   </Box>
 );
@@ -39,6 +40,7 @@ const LoadingPanel = () => (
  */
 const MonthlyRevenue = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSite, setSelectedSite] = useState(0); // 0 = רוטשילד, 1 = שדה התעופה
   const [loading, setLoading] = useState(true);
@@ -87,13 +89,15 @@ const MonthlyRevenue = () => {
   return (
     <Box sx={{ py: 3, px: 2 }}>
       {/* כותרת ראשית ואזור הניווט */}
-      <Box sx={{ 
+      <Box sx={{
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
         bgcolor: 'background.paper',
         borderRadius: '10px',
-        p: 1, 
+        p: 1,
         mb: 3,
+        gap: isMobile ? 1 : 0,
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
         {/* כותרת הדף עם אייקון של כסף */}

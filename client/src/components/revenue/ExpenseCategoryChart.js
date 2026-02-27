@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme, Box, Typography } from '@mui/material';
+import { useTheme, useMediaQuery, Box, Typography } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 /**
@@ -8,6 +8,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
  */
 const ExpenseCategoryChart = ({ data }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // עיבוד הנתונים - קיבוץ לפי קטגוריה
   const prepareData = () => {
@@ -170,7 +171,7 @@ const ExpenseCategoryChart = ({ data }) => {
   }
 
   return (
-    <Box sx={{ height: 300, width: '100%' }}>
+    <Box sx={{ height: isMobile ? 220 : 300, width: '100%' }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -179,7 +180,7 @@ const ExpenseCategoryChart = ({ data }) => {
             cy="50%"
             labelLine={false}
             label={renderCustomizedLabel}
-            outerRadius={80}
+            outerRadius={isMobile ? 60 : 80}
             fill="#8884d8"
             dataKey="value"
             animationDuration={1500}

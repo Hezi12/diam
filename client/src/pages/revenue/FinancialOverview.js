@@ -64,7 +64,7 @@ import { getManualIncomes, addManualIncome, deleteManualIncome, getIncomeCategor
 
 // פאנל לטעינת נתונים
 const LoadingPanel = () => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: { xs: '200px', sm: '300px' } }}>
     <CircularProgress size={48} thickness={4} sx={{ color: theme => theme.palette.primary.main }} />
   </Box>
 );
@@ -1144,11 +1144,12 @@ const FinancialOverview = () => {
       </Paper>
       
       {/* דיאלוג להוספת הוצאה */}
-      <Dialog 
-        open={openAddDialog} 
+      <Dialog
+        open={openAddDialog}
         onClose={() => setOpenAddDialog(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
           הוספת הוצאה חדשה
@@ -1293,11 +1294,12 @@ const FinancialOverview = () => {
       </Dialog>
       
       {/* דיאלוג להוספת הכנסה ידנית */}
-      <Dialog 
-        open={openAddIncomeDialog} 
+      <Dialog
+        open={openAddIncomeDialog}
         onClose={() => setOpenAddIncomeDialog(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
           הוספת הכנסה ידנית חדשה
@@ -1406,11 +1408,12 @@ const FinancialOverview = () => {
       </Dialog>
       
       {/* דיאלוג לעריכת הוצאה */}
-      <Dialog 
-        open={openEditDialog} 
+      <Dialog
+        open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
           עריכת הוצאה
