@@ -228,7 +228,10 @@ const Cleaning = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
-    if (cleaningPassword.trim() !== '8788') {
+    // האימות מתבצע בצד השרת - נשלח את הסיסמה ונבדוק תגובה
+    try {
+      await cleaningService.getCleaningTasks([], cleaningPassword.trim());
+    } catch (error) {
       enqueueSnackbar('סיסמת ניקיון שגויה', { variant: 'error' });
       return;
     }

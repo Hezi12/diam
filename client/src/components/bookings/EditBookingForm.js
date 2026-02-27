@@ -52,6 +52,7 @@ import PriceCalculator from './PriceCalculator';
 import { formStyles, paymentStatusStyles } from '../../styles/ComponentStyles';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useFilter } from '../../contexts/FilterContext';
+import { ALL_PAYMENT_METHODS } from '../../constants/paymentMethods';
 
 /**
  * טופס לעריכה ומחיקה של הזמנה קיימת
@@ -118,26 +119,9 @@ const EditBookingForm = ({
   // מצב שדות תיקוף
   const [errors, setErrors] = useState({});
   
-  // הגדרת אמצעי התשלום הזמינים (מסוננים לפי הקונטקסט)
-  const allPaymentMethods = [
-    { value: 'unpaid', label: 'לא שולם' },
-    { value: 'cash', label: 'מזומן' },
-    { value: 'cash2', label: 'מזומן2' },
-    { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
-    { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
-    { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
-    { value: 'bit_mizrahi', label: 'ביט מזרחי' },
-    { value: 'paybox_mizrahi', label: 'פייבוקס מזרחי' },
-    { value: 'transfer_poalim', label: 'העברה פועלים' },
-    { value: 'bit_poalim', label: 'ביט פועלים' },
-    { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
-    { value: 'delayed_transfer', label: 'העברה מאוחרת' },
-    { value: 'other', label: 'אחר' }
-  ];
-
-  // סינון אמצעי התשלום בהתאם למצב הסינון
+  // אמצעי תשלום מסוננים לפי הקונטקסט
   const availablePaymentMethods = useMemo(() => {
-    return filterPaymentMethods(allPaymentMethods);
+    return filterPaymentMethods(ALL_PAYMENT_METHODS);
   }, [filterPaymentMethods]);
   
   // מצבים נוספים

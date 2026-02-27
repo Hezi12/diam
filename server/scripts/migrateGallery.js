@@ -36,15 +36,22 @@ const gallerySchema = new mongoose.Schema({
 
 async function migrateGallery() {
   try {
+    if (!process.env.MONGODB_URI) {
+      console.error('MONGODB_URI is not defined in .env');
+      process.exit(1);
+    }
+    const sourceUri = process.env.MONGODB_SOURCE_URI || process.env.MONGODB_URI;
+    const targetUri = process.env.MONGODB_TARGET_URI || process.env.MONGODB_URI;
+
     // התחברות למסד הנתונים המקורי
-    console.log('מתחבר למסד הנתונים המקורי (test)...');
-    const testConn = await mongoose.createConnection('mongodb+srv://Hezi:Hezi!3225@cluster0.o8qdhf0.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0');
-    console.log('מחובר למסד נתונים test');
+    console.log('מתחבר למסד הנתונים המקורי...');
+    const testConn = await mongoose.createConnection(sourceUri);
+    console.log('מחובר למסד נתונים מקור');
 
     // התחברות למסד הנתונים החדש
-    console.log('מתחבר למסד הנתונים החדש (diam_hotel)...');
-    const diamConn = await mongoose.createConnection('mongodb+srv://Hezi:Hezi!3225@cluster0.o8qdhf0.mongodb.net/diam_hotel?retryWrites=true&w=majority&appName=Cluster0');
-    console.log('מחובר למסד נתונים diam_hotel');
+    console.log('מתחבר למסד הנתונים החדש...');
+    const diamConn = await mongoose.createConnection(targetUri);
+    console.log('מחובר למסד נתונים יעד');
 
     // הגדרת המודלים
     const TestGallery = testConn.model('Gallery', gallerySchema);

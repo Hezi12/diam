@@ -46,6 +46,7 @@ import PublicNoticeBoard from './pages/public-site/PublicNoticeBoard';
 // רכיבים נוספים
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/common/Layout';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import { PublicLanguageProvider } from './contexts/PublicLanguageContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -97,6 +98,7 @@ const AppContent = () => {
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
           <CssBaseline />
+          <ErrorBoundary>
           <AuthProvider>
             <FilterProvider>
               <LanguageProvider>
@@ -354,6 +356,7 @@ const AppContent = () => {
             </LanguageProvider>
           </FilterProvider>
         </AuthProvider>
+        </ErrorBoundary>
         </ThemeProvider>
       </StyledEngineProvider>
     </CacheProvider>

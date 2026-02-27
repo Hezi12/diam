@@ -13,8 +13,13 @@ dotenv.config();
 async function changePassword() {
   try {
     // קבלת פרמטרים מהפקודה
-    const username = process.argv[2] || 'hezi';
-    const newPassword = process.argv[3] || 'Hezi!3226';
+    const username = process.argv[2];
+    const newPassword = process.argv[3];
+
+    if (!username) {
+      console.error('שימוש: node changePassword.js <username> <newPassword>');
+      process.exit(1);
+    }
 
     if (!newPassword) {
       console.error('יש להזין סיסמא חדשה');

@@ -74,16 +74,16 @@ server/
 ```javascript
 accounts: {
   airport: {
-    companyId: 'Airport',
-    username: 'diamshotels',
-    password: 'Hezi!3225',
-    vatId: '516679909'
+    companyId: process.env.ICOUNT_AIRPORT_COMPANY_ID,
+    username: process.env.ICOUNT_AIRPORT_USERNAME,
+    password: process.env.ICOUNT_AIRPORT_PASSWORD,
+    vatId: process.env.ICOUNT_VAT_ID
   },
   rothschild: {
-    companyId: 'diamshotels', 
-    username: 'diamshotels',
-    password: 'Hezi!3225',
-    vatId: '516679909'
+    companyId: process.env.ICOUNT_ROTHSCHILD_COMPANY_ID,
+    username: process.env.ICOUNT_ROTHSCHILD_USERNAME,
+    password: process.env.ICOUNT_ROTHSCHILD_PASSWORD,
+    vatId: process.env.ICOUNT_VAT_ID
   }
 }
 ```

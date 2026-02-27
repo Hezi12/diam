@@ -20,7 +20,11 @@ async function deleteSpecificCollections() {
     console.log('מתחיל תהליך מחיקת קולקציות שאינן בשימוש...');
     
     // התחברות למסד הנתונים
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Hezi:Hezi!3225@cluster0.o8qdhf0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+    const MONGODB_URI = process.env.MONGODB_URI;
+    if (!MONGODB_URI) {
+      console.error('MONGODB_URI is not defined in .env');
+      process.exit(1);
+    }
     console.log('מתחבר למסד הנתונים...');
     
     const conn = await mongoose.connect(MONGODB_URI);

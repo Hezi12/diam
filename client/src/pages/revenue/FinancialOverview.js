@@ -50,6 +50,7 @@ import RevenueDateNavigation from '../../components/revenue/RevenueDateNavigatio
 import RevenueTabs from '../../components/revenue/RevenueTabs';
 import PaymentMethodChart from '../../components/revenue/PaymentMethodChart';
 import { useFilter } from '../../contexts/FilterContext';
+import { ALL_PAYMENT_METHODS } from '../../constants/paymentMethods';
 import RevenueSummaryCards from '../../components/revenue/RevenueSummaryCards';
 import ExpensesList from '../../components/revenue/ExpensesList';
 import ExpenseCategoryChart from '../../components/revenue/ExpenseCategoryChart';
@@ -477,23 +478,8 @@ const FinancialOverview = () => {
   ];
   
   // שיטות תשלום - מסוננות לפי מצב הסינון
-  const allPaymentMethods = [
-    { value: 'cash', label: 'מזומן' },
-    { value: 'cash2', label: 'מזומן2' },
-    { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
-    { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
-    { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
-    { value: 'bit_mizrahi', label: 'ביט מזרחי' },
-    { value: 'paybox_mizrahi', label: 'פייבוקס מזרחי' },
-    { value: 'transfer_poalim', label: 'העברה פועלים' },
-    { value: 'bit_poalim', label: 'ביט פועלים' },
-    { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
-    { value: 'delayed_transfer', label: 'העברה מאוחרת' },
-    { value: 'other', label: 'אחר' }
-  ];
-
   const { filterPaymentMethods } = useFilter();
-  const paymentMethods = filterPaymentMethods(allPaymentMethods);
+  const paymentMethods = filterPaymentMethods(ALL_PAYMENT_METHODS.filter(m => m.value !== 'unpaid'));
 
   // קטגוריות הכנסה
   const defaultIncomeCategories = [

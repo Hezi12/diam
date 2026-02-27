@@ -186,17 +186,19 @@ const BookingSchema = new mongoose.Schema(
       default: false
     },
     
-    // פרטי כרטיס אשראי
+    // פרטי כרטיס אשראי - שומרים רק 4 ספרות אחרונות ותוקף לצורך זיהוי
+    // CVV לעולם לא נשמר (דרישת PCI-DSS)
     creditCard: {
-      cardNumber: {
+      lastFourDigits: {
         type: String,
-        trim: true
+        trim: true,
+        maxlength: 4
       },
       expiryDate: {
         type: String,
         trim: true
       },
-      cvv: {
+      cardholderName: {
         type: String,
         trim: true
       }

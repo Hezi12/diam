@@ -18,19 +18,25 @@ exports.login = async (req, res) => {
     // בדיקה אם השרת מחובר ל-MongoDB
     const isMongoConnected = mongoose.connection.readyState === 1;
 
-    // אם אין חיבור ל-MongoDB ומדובר במצב פיתוח, אפשר לאפשר כניסה עם המשתמש הדיפולטיבי
+    // אם אין חיבור ל-MongoDB ומדובר במצב פיתוח, אפשר לאפשר כניסה עם משתמש ממשתני סביבה
     if (!isMongoConnected && process.env.NODE_ENV === 'development') {
-      // נתוני משתמש קבועים לסביבת פיתוח
-      if (username === 'hezi' && password === 'Hezi!3226') {
+      const devUsername = process.env.ADMIN_USERNAME || 'admin';
+      const devPassword = process.env.ADMIN_PASSWORD;
+
+      if (!devPassword) {
+        return res.status(500).json({ message: 'ADMIN_PASSWORD not configured in environment' });
+      }
+
+      if (username === devUsername && password === devPassword) {
         const token = jwt.sign(
           {
             id: 'dev-user-id',
-            username: 'hezi',
-            name: 'חזי - מנהל המערכת',
+            username: devUsername,
+            name: 'מנהל המערכת',
             role: 'admin',
             sessionVersion: CURRENT_SESSION_VERSION
           },
-          process.env.JWT_SECRET || 'your_jwt_secret_key',
+          process.env.JWT_SECRET,
           { expiresIn: '1d' }
         );
 
@@ -38,8 +44,8 @@ exports.login = async (req, res) => {
           token,
           user: {
             id: 'dev-user-id',
-            username: 'hezi',
-            name: 'חזי - מנהל המערכת',
+            username: devUsername,
+            name: 'מנהל המערכת',
             role: 'admin'
           }
         });
@@ -77,7 +83,7 @@ exports.login = async (req, res) => {
         role: user.role,
         sessionVersion: CURRENT_SESSION_VERSION
       },
-      process.env.JWT_SECRET || 'your_jwt_secret_key',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -103,15 +109,23 @@ exports.initializeAdmin = async () => {
     const usersCount = await User.countDocuments();
     
     if (usersCount === 0) {
-      // יצירת משתמש מנהל ראשוני
+      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (!adminPassword) {
+        console.warn('WARNING: ADMIN_PASSWORD not set. Skipping initial admin creation.');
+        console.warn('Set ADMIN_USERNAME and ADMIN_PASSWORD in .env to create initial admin.');
+        return;
+      }
+
       await User.create({
-        username: 'hezi',
-        password: 'Hezi!3226',
-        name: 'חזי - מנהל המערכת',
+        username: adminUsername,
+        password: adminPassword,
+        name: 'מנהל המערכת',
         role: 'admin'
       });
-      
-      console.log('Created initial admin user: hezi');
+
+      console.log(`Created initial admin user: ${adminUsername}`);
     }
   } catch (error) {
     console.error('Error initializing admin user:', error);
@@ -151,12 +165,14 @@ exports.changePassword = async (req, res) => {
       return res.status(404).json({ message: 'משתמש לא נמצא' });
     }
 
-    // אם ניתנה סיסמא ישנה, בדוק אותה
-    if (oldPassword) {
-      const isMatch = await user.comparePassword(oldPassword);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'סיסמא ישנה שגויה' });
-      }
+    // חובה לספק סיסמא ישנה לצורך אימות
+    if (!oldPassword) {
+      return res.status(400).json({ message: 'יש לספק את הסיסמא הישנה לצורך אימות' });
+    }
+
+    const isMatch = await user.comparePassword(oldPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'סיסמא ישנה שגויה' });
     }
 
     // עדכון הסיסמא

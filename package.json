@@ -19,7 +19,8 @@
     "cleanup-collections": "node server/scripts/cleanupCollections.js",
     "fix-review-field": "node server/scripts/fixReviewHandledField.js",
     "change-password": "node server/scripts/changePassword.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd server && npm test",
+    "test:client": "cd client && npm test -- --watchAll=false"
   },
   "author": "",
   "license": "ISC",

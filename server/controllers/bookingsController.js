@@ -50,22 +50,24 @@ exports.getAllBookings = async (req, res) => {
     const bookings = await Booking.find(query)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
-    
-    // הוספת מידע על חשבוניות לכל הזמנה
+
+    // שאילתה אחת לכל החשבוניות במקום N שאילתות (תיקון N+1)
     const Invoice = require('../models/Invoice');
-    const bookingsWithInvoiceInfo = await Promise.all(
-      bookings.map(async (booking) => {
-        const bookingObj = booking.toObject();
-        
-        // בדיקה אם יש חשבוניות להזמנה זו
-        const invoices = await Invoice.find({ booking: booking._id });
-        bookingObj.hasAnyInvoice = invoices.length > 0;
-        bookingObj.invoicesCount = invoices.length;
-        
-        return bookingObj;
-      })
-    );
-    
+    const bookingIds = bookings.map(b => b._id);
+    const invoiceCounts = await Invoice.aggregate([
+      { $match: { booking: { $in: bookingIds } } },
+      { $group: { _id: '$booking', count: { $sum: 1 } } }
+    ]);
+    const invoiceMap = new Map(invoiceCounts.map(ic => [ic._id.toString(), ic.count]));
+
+    const bookingsWithInvoiceInfo = bookings.map(booking => {
+      const bookingObj = booking.toObject();
+      const count = invoiceMap.get(booking._id.toString()) || 0;
+      bookingObj.hasAnyInvoice = count > 0;
+      bookingObj.invoicesCount = count;
+      return bookingObj;
+    });
+
     res.json(bookingsWithInvoiceInfo);
   } catch (error) {
     console.error('Error getting bookings:', error);
@@ -90,22 +92,24 @@ exports.getBookingsByLocation = async (req, res) => {
     const bookings = await Booking.find(query)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
-    
-    // הוספת מידע על חשבוניות לכל הזמנה
+
+    // שאילתה אחת לכל החשבוניות במקום N שאילתות (תיקון N+1)
     const Invoice = require('../models/Invoice');
-    const bookingsWithInvoiceInfo = await Promise.all(
-      bookings.map(async (booking) => {
-        const bookingObj = booking.toObject();
-        
-        // בדיקה אם יש חשבוניות להזמנה זו
-        const invoices = await Invoice.find({ booking: booking._id });
-        bookingObj.hasAnyInvoice = invoices.length > 0;
-        bookingObj.invoicesCount = invoices.length;
-        
-        return bookingObj;
-      })
-    );
-    
+    const bookingIds = bookings.map(b => b._id);
+    const invoiceCounts = await Invoice.aggregate([
+      { $match: { booking: { $in: bookingIds } } },
+      { $group: { _id: '$booking', count: { $sum: 1 } } }
+    ]);
+    const invoiceMap = new Map(invoiceCounts.map(ic => [ic._id.toString(), ic.count]));
+
+    const bookingsWithInvoiceInfo = bookings.map(booking => {
+      const bookingObj = booking.toObject();
+      const count = invoiceMap.get(booking._id.toString()) || 0;
+      bookingObj.hasAnyInvoice = count > 0;
+      bookingObj.invoicesCount = count;
+      return bookingObj;
+    });
+
     res.json(bookingsWithInvoiceInfo);
   } catch (error) {
     console.error('Error getting bookings by location:', error);
@@ -177,26 +181,23 @@ exports.getBookingsByDateRange = async (req, res) => {
     const bookings = await Booking.find(filter)
       .populate('room', 'roomNumber category basePrice')
       .sort({ checkIn: 1 });
-    
-    // הוספת מידע על חשבוניות לכל הזמנה
+
+    // שאילתה אחת לכל החשבוניות במקום N שאילתות (תיקון N+1)
     const Invoice = require('../models/Invoice');
-    const bookingsWithInvoiceInfo = await Promise.all(
-      bookings.map(async (booking) => {
-        const bookingObj = booking.toObject();
-        
-        // בדיקה אם יש חשבוניות להזמנה זו
-        const invoices = await Invoice.find({ booking: booking._id });
-        bookingObj.hasAnyInvoice = invoices.length > 0;
-        bookingObj.invoicesCount = invoices.length;
-        
-        // Debug: הוספת לוג לבדיקת נתוני החדר עבור לוח המודעות
-        if (location === 'airport') {
-          console.log(`🏨 Airport Booking ${booking.bookingNumber}: room data - ID: ${booking.room?._id}, roomNumber: ${booking.room?.roomNumber}, bookingObj.roomNumber: ${bookingObj.roomNumber}`);
-        }
-        
-        return bookingObj;
-      })
-    );
+    const bookingIds = bookings.map(b => b._id);
+    const invoiceCounts = await Invoice.aggregate([
+      { $match: { booking: { $in: bookingIds } } },
+      { $group: { _id: '$booking', count: { $sum: 1 } } }
+    ]);
+    const invoiceMap = new Map(invoiceCounts.map(ic => [ic._id.toString(), ic.count]));
+
+    const bookingsWithInvoiceInfo = bookings.map(booking => {
+      const bookingObj = booking.toObject();
+      const count = invoiceMap.get(booking._id.toString()) || 0;
+      bookingObj.hasAnyInvoice = count > 0;
+      bookingObj.invoicesCount = count;
+      return bookingObj;
+    });
     
     // 🛡️ סינון הזמנות עם סירוב עבור לוח המודעות (רק אם נדרש)
     let finalBookings = bookingsWithInvoiceInfo;

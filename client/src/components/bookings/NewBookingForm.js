@@ -50,6 +50,7 @@ import { useTheme } from '@mui/material/styles';
 import { STYLE_CONSTANTS } from '../../styles/StyleConstants';
 import { useSnackbar } from 'notistack';
 import { useFilter } from '../../contexts/FilterContext';
+import { ALL_PAYMENT_METHODS } from '../../constants/paymentMethods';
 
 // רכיב של חישובי מחירים
 import PriceCalculator from './PriceCalculator';
@@ -120,26 +121,9 @@ const NewBookingForm = ({
   // מצב חלונות ההזמנה
   const [newBookingOpen, setNewBookingOpen] = useState(false);
 
-  // הגדרת אמצעי התשלום הזמינים (מסוננים לפי הקונטקסט)
-  const allPaymentMethods = [
-    { value: 'unpaid', label: 'לא שולם' },
-    { value: 'cash', label: 'מזומן' },
-    { value: 'cash2', label: 'מזומן2' },
-    { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
-    { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
-    { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
-    { value: 'bit_mizrahi', label: 'ביט מזרחי' },
-    { value: 'paybox_mizrahi', label: 'פייבוקס מזרחי' },
-    { value: 'transfer_poalim', label: 'העברה פועלים' },
-    { value: 'bit_poalim', label: 'ביט פועלים' },
-    { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
-    { value: 'delayed_transfer', label: 'העברה מאוחרת' },
-    { value: 'other', label: 'אחר' }
-  ];
-
-  // סינון אמצעי התשלום בהתאם למצב הסינון
+  // אמצעי תשלום מסוננים לפי הקונטקסט
   const availablePaymentMethods = useMemo(() => {
-    return filterPaymentMethods(allPaymentMethods);
+    return filterPaymentMethods(ALL_PAYMENT_METHODS);
   }, [filterPaymentMethods]);
 
   // הגדרת מצב התחלתי של הטופס - משמש לאיפוס בעת פתיחת טופס חדש

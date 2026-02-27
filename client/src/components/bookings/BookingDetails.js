@@ -37,6 +37,7 @@ import axios from 'axios';
 import CreateDocumentDialog from '../documents/CreateDocumentDialog';
 import CreditCardChargeDialog from '../payment/CreditCardChargeDialog';
 import { useFilter } from '../../contexts/FilterContext';
+import { ALL_PAYMENT_METHODS } from '../../constants/paymentMethods';
 
 /**
  * רכיב להצגת פרטי הזמנה מלאים
@@ -54,24 +55,8 @@ const BookingDetails = ({ open, onClose, bookingId, onEdit, onUpdate, onDelete, 
   const [chargeDialogOpen, setChargeDialogOpen] = useState(false);
   const [hasInvoice, setHasInvoice] = useState(false);
 
-  // הגדרת אמצעי התשלום הזמינים (מסוננים לפי הקונטקסט)
-  const allPaymentMethods = [
-    { value: 'unpaid', label: 'לא שולם' },
-    { value: 'cash', label: 'מזומן' },
-    { value: 'cash2', label: 'מזומן2' },
-    { value: 'credit_or_yehuda', label: 'אשראי אור יהודה' },
-    { value: 'credit_rothschild', label: 'אשראי רוטשילד' },
-    { value: 'transfer_mizrahi', label: 'העברה מזרחי' },
-    { value: 'bit_mizrahi', label: 'ביט מזרחי' },
-    { value: 'paybox_mizrahi', label: 'פייבוקס מזרחי' },
-    { value: 'transfer_poalim', label: 'העברה פועלים' },
-    { value: 'bit_poalim', label: 'ביט פועלים' },
-    { value: 'paybox_poalim', label: 'פייבוקס פועלים' },
-    { value: 'delayed_transfer', label: 'העברה מאוחרת' },
-    { value: 'other', label: 'אחר' }
-  ];
-
-  const availablePaymentMethods = filterPaymentMethods(allPaymentMethods);
+  // אמצעי תשלום מסוננים לפי הקונטקסט
+  const availablePaymentMethods = filterPaymentMethods(ALL_PAYMENT_METHODS);
 
   // הגדרות צבעים לפי סטטוס הזמנה
   const bookingStatusColors = {

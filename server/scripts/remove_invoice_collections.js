@@ -5,8 +5,12 @@ const path = require('path');
 // טעינת הגדרות סביבה
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// יצירת חיבור למונגו עם המחרוזת ישירות 
-const MONGODB_URI = 'mongodb+srv://Hezi:Hezi!3225@cluster0.o8qdhf0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+// שימוש במשתנה סביבה
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI is not defined in .env');
+  process.exit(1);
+}
 
 console.log('מתחבר למסד הנתונים...');
 

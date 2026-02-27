@@ -4,7 +4,11 @@ require('dotenv').config();
 // חיבור למסד הנתונים
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://hezi:hezi3225@cluster0.k7o6b.mongodb.net/diam?retryWrites=true&w=majority&appName=Cluster0';
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error('MONGODB_URI is not defined in .env');
+      process.exit(1);
+    }
     await mongoose.connect(mongoUri);
     console.log('✅ התחברות למסד הנתונים הושלמה');
   } catch (error) {

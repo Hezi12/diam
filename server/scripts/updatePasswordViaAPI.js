@@ -11,9 +11,14 @@ require('dotenv').config();
 async function updatePasswordViaAPI() {
   try {
     // קבלת פרמטרים מהפקודה
-    const username = process.argv[2] || 'hezi';
-    const oldPassword = process.argv[3] || 'hezi3225';
-    const newPassword = process.argv[4] || 'Hezi!3226';
+    const username = process.argv[2];
+    const oldPassword = process.argv[3];
+    const newPassword = process.argv[4];
+
+    if (!username || !oldPassword || !newPassword) {
+      console.error('שימוש: node updatePasswordViaAPI.js <username> <oldPassword> <newPassword>');
+      process.exit(1);
+    }
 
     if (!newPassword) {
       console.error('יש להזין סיסמא חדשה');

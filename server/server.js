@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
@@ -72,8 +74,8 @@ const corsOptions = {
         /\.onrender\.com$/.test(origin)) {
       callback(null, true);
     } else {
-      console.log(`CORS policy violation: ${origin} is not allowed`);
-      callback(null, true); // במקום לחסום - נאפשר בכל זאת ונראה בלוג
+      console.warn(`CORS blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -84,22 +86,47 @@ const corsOptions = {
   preflightContinue: false
 };
 
-// Middleware
+// Security Middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false // מושבת כי ה-client מוגש מדומיין אחר
+}));
+
+// Rate Limiting - הגנה מפני brute force
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 דקות
+  max: 100, // מקסימום 100 בקשות לכל IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'יותר מדי בקשות, נסה שוב מאוחר יותר' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 דקות
+  max: 10, // מקסימום 10 ניסיונות התחברות
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'יותר מדי ניסיונות התחברות, נסה שוב בעוד 15 דקות' }
+});
+
+// CORS
 app.use(cors(corsOptions));
-// פתרון נוסף: הוספת מידלוור ספציפי לבקשות preflight
 app.options('*', cors(corsOptions));
 
+// Body parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(morgan('dev'));
 
-// הגדרת headers נוספים (רק אם צריך)
-app.use((req, res, next) => {
-  // לא נכתוב על הגדרות CORS שכבר קיימות
-  // רק נוסיף headers נוספים אם צריך
-  
-  next();
-});
+// Logging
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined'));
+}
+
+// Rate limiting על API routes
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
 
 // הגדרת נתיב גישה לתמונות - מותאם לסביבה
 const uploadsPath = process.env.NODE_ENV === 'production' 
@@ -157,11 +184,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });
 });
 
-// טיפול בשגיאות
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'שגיאת שרת פנימית' });
-});
+// טיפול בשגיאות - middleware מרכזי
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 // הפעלת שירות הסנכרון האוטומטי
 const cronService = require('./services/cronService');
