@@ -25,6 +25,7 @@ import FinancialOverview from './pages/revenue/FinancialOverview';
 import CapitalManagement from './pages/revenue/CapitalManagement';
 import EmailPreview from './pages/email/EmailPreview';
 import Messages from './pages/Messages';
+import HebrewReader from './pages/HebrewReader';
 
 // עמודי אתר ציבורי - Airport
 import HomePage from './pages/public-site/HomePage';
@@ -110,6 +111,9 @@ const AppContent = () => {
                 
                 {/* לוח מודעות ציבורי - ללא אבטחה */}
                 <Route path="/notice-board-public" element={<PublicNoticeBoard />} />
+
+                {/* קורא טקסט עברי - ללא אבטחה */}
+                <Route path="/reader" element={<HebrewReader />} />
                 
                 {/* נתיבי האתר הציבורי - עם קונטקסט שפה מבודד */}
                 <Route path="/airport-booking" element={
