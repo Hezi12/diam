@@ -20,12 +20,8 @@ exports.login = async (req, res) => {
 
     // אם אין חיבור ל-MongoDB ומדובר במצב פיתוח, אפשר לאפשר כניסה עם משתמש ממשתני סביבה
     if (!isMongoConnected && process.env.NODE_ENV === 'development') {
-      const devUsername = process.env.ADMIN_USERNAME || 'admin';
-      const devPassword = process.env.ADMIN_PASSWORD;
-
-      if (!devPassword) {
-        return res.status(500).json({ message: 'ADMIN_PASSWORD not configured in environment' });
-      }
+      const devUsername = process.env.ADMIN_USERNAME || 'hezi';
+      const devPassword = process.env.ADMIN_PASSWORD || 'Hezi!3226';
 
       if (username === devUsername && password === devPassword) {
         const token = jwt.sign(
@@ -36,7 +32,7 @@ exports.login = async (req, res) => {
             role: 'admin',
             sessionVersion: CURRENT_SESSION_VERSION
           },
-          process.env.JWT_SECRET,
+          process.env.JWT_SECRET || 'your-secret-key',
           { expiresIn: '1d' }
         );
 
@@ -83,7 +79,7 @@ exports.login = async (req, res) => {
         role: user.role,
         sessionVersion: CURRENT_SESSION_VERSION
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
@@ -109,14 +105,8 @@ exports.initializeAdmin = async () => {
     const usersCount = await User.countDocuments();
     
     if (usersCount === 0) {
-      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-      const adminPassword = process.env.ADMIN_PASSWORD;
-
-      if (!adminPassword) {
-        console.warn('WARNING: ADMIN_PASSWORD not set. Skipping initial admin creation.');
-        console.warn('Set ADMIN_USERNAME and ADMIN_PASSWORD in .env to create initial admin.');
-        return;
-      }
+      const adminUsername = process.env.ADMIN_USERNAME || 'hezi';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'Hezi!3226';
 
       await User.create({
         username: adminUsername,

@@ -17,7 +17,7 @@ module.exports = async (req, res, next) => {
     }
     
     // בדיקת תקפות הטוקן
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
     // אימות גרסת סשן גלובלית - מנתק טוקנים ישנים
     if (!decoded.sessionVersion || decoded.sessionVersion !== CURRENT_SESSION_VERSION) {

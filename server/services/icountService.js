@@ -33,15 +33,15 @@ class ICountService {
     this.accounts = {
       airport: {
         companyId: process.env.ICOUNT_AIRPORT_COMPANY_ID || 'Airport',
-        username: process.env.ICOUNT_AIRPORT_USERNAME,
-        password: process.env.ICOUNT_AIRPORT_PASSWORD,
-        vatId: process.env.ICOUNT_VAT_ID
+        username: process.env.ICOUNT_AIRPORT_USERNAME || 'diamshotels',
+        password: process.env.ICOUNT_AIRPORT_PASSWORD || 'Hezi!3225',
+        vatId: process.env.ICOUNT_VAT_ID || '516679909'
       },
       rothschild: {
-        companyId: process.env.ICOUNT_ROTHSCHILD_COMPANY_ID,
-        username: process.env.ICOUNT_ROTHSCHILD_USERNAME,
-        password: process.env.ICOUNT_ROTHSCHILD_PASSWORD,
-        vatId: process.env.ICOUNT_VAT_ID
+        companyId: process.env.ICOUNT_ROTHSCHILD_COMPANY_ID || 'diamshotels',
+        username: process.env.ICOUNT_ROTHSCHILD_USERNAME || 'diamshotels',
+        password: process.env.ICOUNT_ROTHSCHILD_PASSWORD || 'Hezi!3225',
+        vatId: process.env.ICOUNT_VAT_ID || '516679909'
       }
     };
   }
